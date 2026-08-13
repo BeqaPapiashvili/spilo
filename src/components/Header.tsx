@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingBag, User, ArrowRight, Sparkles, Heart } from "lucide-react";
+import { 
+  Search, 
+  ShoppingBag, 
+  User, 
+  ArrowRight, 
+  Sparkles, 
+  Trash2, 
+  Plus, 
+  Minus 
+} from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,12 +66,14 @@ const SEARCH_PRODUCTS = [
 
 export default function Header() {
   const router = useRouter();
-  const { toggleCart, cart, wishlist, user, toggleAuthModal } = useStore();
+  const { toggleCart, cart, updateQuantity, removeFromCart, user, toggleAuthModal } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isCartHovered, setIsCartHovered] = useState(false);
   const [lang, setLang] = useState<"GE" | "EN">("GE");
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const cartSubtotal = cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0);
 
   const cleanQuery = searchQuery.trim().toLowerCase();
 
@@ -77,7 +88,6 @@ export default function Header() {
     e.preventDefault();
     if (!cleanQuery) return;
 
-    // Check ONLY direct ID or SKU exact match
     const exactIdMatch = SEARCH_PRODUCTS.find(
       (item) =>
         item.id.toLowerCase() === cleanQuery ||
@@ -88,7 +98,6 @@ export default function Header() {
     if (exactIdMatch) {
       router.push(`/product/${exactIdMatch.id}`);
     } else {
-      // If searched by name/word, navigate directly to /search?q=... page!
       router.push(`/search?q=${encodeURIComponent(cleanQuery)}`);
     }
 
@@ -128,7 +137,7 @@ export default function Header() {
             <span className="text-blue-500">.</span>
           </Link>
 
-          {/* Search Bar with ID Search & Enter Auto Navigation / Search List */}
+          {/* Search Bar */}
           <div className="flex-1 max-w-lg relative">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
               <input
@@ -196,21 +205,141 @@ export default function Header() {
           {/* Right Action Icons */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0 text-xs md:text-sm text-white">
 
-            {/* Cart Button */}
-            <button
-              onClick={toggleCart}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/10 px-3.5 py-2 rounded-lg cursor-pointer"
+            {/* Cart Button Container with Hover Dropdown Popup */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setIsCartHovered(true)}
+              onMouseLeave={() => setIsCartHovered(false)}
             >
-              <div className="relative">
-                <ShoppingBag className="w-4 h-4 text-blue-400" />
-                {cartItemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                    {cartItemsCount}
-                  </span>
+              <button
+                onClick={toggleCart}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/10 px-3.5 py-2 rounded-lg cursor-pointer"
+              >
+                <div className="relative">
+                  <ShoppingBag className="w-4 h-4 text-blue-400" />
+                  {cartItemsCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                      {cartItemsCount}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden sm:inline">კალათა</span>
+              </button>
+
+              {/* Hover Cart Preview Card Dropdown (Matching Screenshot Layout) */}
+              <AnimatePresence>
+                {isCartHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-5 text-gray-900 z-50 space-y-4"
+                  >
+                    {/* Dropdown Header */}
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <h4 className="text-sm text-gray-900">კალათა</h4>
+                      <span className="text-xs text-gray-500">{cartItemsCount} პროდუქტი</span>
+                    </div>
+
+                    {/* Cart Items List or Empty State */}
+                    {cart.length === 0 ? (
+                      /* Empty Cart View (Matching Screenshot 1) */
+                      <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
+                        <div className="relative w-20 h-20 bg-[#F1F3F6] rounded-full flex items-center justify-center text-gray-400">
+                          <ShoppingBag className="w-10 h-10 text-gray-400" />
+                          <span className="absolute top-0 left-0 bg-blue-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-mono">
+                            0
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Cart Items List View (Matching Screenshot 2) */
+                      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                        {cart.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="bg-[#F8FAFC] p-3.5 rounded-2xl border border-gray-100 flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <img 
+                                src={item.image} 
+                                alt={item.title} 
+                                className="w-12 h-12 object-contain bg-white p-1 rounded-xl shrink-0" 
+                              />
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <p className="text-gray-900 truncate">{item.title}</p>
+                                <p className="text-gray-900 font-mono">
+                                  {((item.discountPrice || item.price) * item.quantity).toFixed(2)} ₾
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Actions Right Side */}
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeFromCart(item.id);
+                                }}
+                                className="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                title="წაშლა"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+
+                              {/* Quantity Control Pill */}
+                              <div className="flex items-center gap-2 bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, Math.max(1, item.quantity - 1));
+                                  }}
+                                  className="hover:opacity-80 transition-opacity cursor-pointer"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="font-mono px-1">{item.quantity}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, item.quantity + 1);
+                                  }}
+                                  className="hover:opacity-80 transition-opacity cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Subtotal Line */}
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
+                      <span className="text-gray-600">ჯამური ფასი:</span>
+                      <span className="text-sm text-gray-900 font-mono">
+                        {cartSubtotal.toFixed(2)} ₾
+                      </span>
+                    </div>
+
+                    {/* Action Button: კალათის გახსნა */}
+                    <button
+                      onClick={() => {
+                        setIsCartHovered(false);
+                        toggleCart();
+                      }}
+                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs sm:text-sm flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+                    >
+                      <span>კალათის გახსნა</span>
+                    </button>
+
+                  </motion.div>
                 )}
-              </div>
-              <span className="hidden sm:inline">კალათა</span>
-            </button>
+              </AnimatePresence>
+            </div>
 
             {/* User Profile / Auth */}
             {user ? (
