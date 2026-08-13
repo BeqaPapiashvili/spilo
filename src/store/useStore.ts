@@ -46,7 +46,7 @@ interface StoreState {
   isAuthModalOpen: boolean;
   
   // Cart Actions
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'>, openCart?: boolean) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   toggleCart: () => void;
@@ -99,7 +99,7 @@ export const useStore = create<StoreState>()(
       isAuthModalOpen: false,
 
       // Cart
-      addToCart: (item) =>
+      addToCart: (item, openCart = false) =>
         set((state) => {
           const existing = state.cart.find((i) => i.id === item.id);
           if (existing) {
@@ -107,10 +107,13 @@ export const useStore = create<StoreState>()(
               cart: state.cart.map((i) =>
                 i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
               ),
-              isCartOpen: true,
+              isCartOpen: openCart ? true : state.isCartOpen,
             };
           }
-          return { cart: [...state.cart, { ...item, quantity: 1 }], isCartOpen: true };
+          return { 
+            cart: [...state.cart, { ...item, quantity: 1 }], 
+            isCartOpen: openCart ? true : state.isCartOpen 
+          };
         }),
       removeFromCart: (id) =>
         set((state) => ({ cart: state.cart.filter((i) => i.id !== id) })),

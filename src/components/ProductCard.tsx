@@ -38,7 +38,7 @@ export default function ProductCard({
       price,
       discountPrice,
       image,
-    });
+    }, true);
 
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 1500);
@@ -53,7 +53,7 @@ export default function ProductCard({
       price,
       discountPrice,
       image,
-    });
+    }, false);
     router.push("/checkout");
   };
 
