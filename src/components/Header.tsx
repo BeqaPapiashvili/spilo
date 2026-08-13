@@ -195,23 +195,6 @@ export default function Header() {
 
           {/* Right Action Icons */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0 text-xs md:text-sm text-white">
-            
-            {/* Wishlist Link */}
-            <Link
-              href="/wishlist"
-              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity bg-white/10 px-3 py-2 rounded-lg cursor-pointer"
-              title="სურვილების სია"
-            >
-              <div className="relative">
-                <Heart className="w-4 h-4 text-red-400" />
-                {wishlist.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                    {wishlist.length}
-                  </span>
-                )}
-              </div>
-              <span className="hidden md:inline">სურვილები</span>
-            </Link>
 
             {/* Cart Button */}
             <button
