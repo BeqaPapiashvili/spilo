@@ -120,6 +120,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   const currentPrice = product.discountPrice || product.price;
 
+  const handleQuickBuy = () => {
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      discountPrice: product.discountPrice,
+      image: product.images[0],
+    });
+    router.push("/checkout");
+  };
+
   const handleAddToCart = () => {
     addToCart({
       id: product.id,
@@ -304,7 +315,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <div className="space-y-3.5 pt-2">
                   {/* Primary Blue Action Button */}
                   <button
-                    onClick={handleAddToCart}
+                    onClick={handleQuickBuy}
                     className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-base flex items-center justify-center gap-2.5 cursor-pointer transition-colors"
                   >
                     <Zap className="w-5 h-5" />

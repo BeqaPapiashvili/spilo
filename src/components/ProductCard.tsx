@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag, Check, Moon } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -23,6 +24,7 @@ export default function ProductCard({
   image,
   discountPercentage,
 }: ProductCardProps) {
+  const router = useRouter();
   const { addToCart } = useStore();
   const [isLiked, setIsLiked] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
@@ -42,6 +44,19 @@ export default function ProductCard({
     setTimeout(() => setIsAdded(false), 1500);
   };
 
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      id,
+      title,
+      price,
+      discountPrice,
+      image,
+    });
+    router.push("/checkout");
+  };
+
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -53,7 +68,7 @@ export default function ProductCard({
   return (
     <div className="group relative flex flex-col h-[420px] w-full bg-white rounded-2xl p-3 select-none cursor-pointer overflow-hidden border border-gray-100/80 shadow-xs hover:shadow-md transition-all justify-between">
       
-      {/* 1. Image Container - Fixed height 200px, 100% full image visible */}
+      {/* 1. Image Container - Clicking image opens product detail page */}
       <Link href={`/product/${id}`} className="relative w-full h-[200px] rounded-xl overflow-hidden bg-transparent flex items-center justify-center p-2 block shrink-0">
         
         {/* Discount Badge */}
@@ -83,10 +98,10 @@ export default function ProductCard({
         />
       </Link>
 
-      {/* 2. Product Info Container - Takes remaining height with fixed slot sizes */}
+      {/* 2. Product Info Container */}
       <div className="flex flex-col flex-1 justify-between pt-2 px-1">
         
-        {/* Title Slot - Fixed height h-[40px] for 2 lines of text */}
+        {/* Title Slot - Clicking title opens product detail page */}
         <div className="h-[40px] flex items-start overflow-hidden">
           <Link 
             href={`/product/${id}`} 
@@ -125,15 +140,15 @@ export default function ProductCard({
 
           {/* Action Buttons Slot - Fixed height 40px */}
           <div className="flex items-center gap-2 pt-1">
-            {/* Main Buy Button */}
-            <Link
-              href={`/product/${id}`}
+            {/* Main Buy Button - Adds to cart and navigates directly to /checkout */}
+            <button
+              onClick={handleBuyNow}
               className="flex-1 h-10 bg-[#111111] hover:bg-black text-white rounded-xl text-xs md:text-sm flex items-center justify-center cursor-pointer transition-colors"
             >
               <span>ყიდვა</span>
-            </Link>
+            </button>
 
-            {/* Cart Icon Button */}
+            {/* Cart Icon Button - Adds to cart without navigating */}
             <button
               onClick={handleAddToCart}
               title="კალათაში დამატება"
