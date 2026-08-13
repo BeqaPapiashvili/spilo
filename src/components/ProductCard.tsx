@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
-import { Heart, ShoppingBag, Check, Moon, Star } from "lucide-react";
+import { Heart, ShoppingBag, Check, Moon } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 interface ProductCardProps {
@@ -22,7 +22,6 @@ export default function ProductCard({
   monthlyInstallment,
   image,
   discountPercentage,
-  rating = 4.9,
 }: ProductCardProps) {
   const { addToCart } = useStore();
   const [isLiked, setIsLiked] = useState(false);
@@ -52,10 +51,10 @@ export default function ProductCard({
   const currentPrice = discountPrice || price;
 
   return (
-    <div className="group relative flex flex-col w-full bg-white rounded-xl p-2 select-none cursor-pointer overflow-hidden border border-gray-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.015)]">
+    <div className="group relative flex flex-col h-[420px] w-full bg-white rounded-2xl p-3 select-none cursor-pointer overflow-hidden border border-gray-100/80 shadow-xs hover:shadow-md transition-all justify-between">
       
-      {/* Image Container - Fixed height, transparent, 100% visible image */}
-      <Link href={`/product/${id}`} className="relative w-full h-[220px] rounded-lg overflow-hidden bg-transparent flex items-center justify-center p-2 block">
+      {/* 1. Image Container - Fixed height 200px, 100% full image visible */}
+      <Link href={`/product/${id}`} className="relative w-full h-[200px] rounded-xl overflow-hidden bg-transparent flex items-center justify-center p-2 block shrink-0">
         
         {/* Discount Badge */}
         {discountPercentage && (
@@ -76,29 +75,32 @@ export default function ProductCard({
           <Heart className={`w-4 h-4 ${isLiked ? "fill-red-500" : ""}`} />
         </button>
 
-        {/* Product Image - 100% full image visible without any cropping */}
+        {/* Product Image */}
         <img
           src={image}
           alt={title}
-          className="w-full h-full object-contain mix-blend-multiply"
+          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
         />
       </Link>
 
-      {/* Product Info - Positioned cleanly below image */}
-      <div className="mt-3 flex flex-col flex-1 justify-between space-y-2 px-1">
+      {/* 2. Product Info Container - Takes remaining height with fixed slot sizes */}
+      <div className="flex flex-col flex-1 justify-between pt-2 px-1">
         
-        <div className="space-y-1">
-          {/* Title */}
-          <Link href={`/product/${id}`} className="block text-xs sm:text-sm text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2 min-h-[38px]">
+        {/* Title Slot - Fixed height h-[40px] for 2 lines of text */}
+        <div className="h-[40px] flex items-start overflow-hidden">
+          <Link 
+            href={`/product/${id}`} 
+            className="text-xs sm:text-sm text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2"
+          >
             {title}
           </Link>
         </div>
 
-        {/* Pricing & Installment Container */}
-        <div className="space-y-2 pt-1">
+        {/* Bottom Section: Pricing, Installment & Buttons */}
+        <div className="space-y-2 pt-2">
           
-          {/* Prices */}
-          <div className="flex items-baseline gap-2">
+          {/* Prices Slot - Fixed height h-6 */}
+          <div className="h-6 flex items-baseline gap-2">
             <span className="text-lg md:text-xl text-gray-900 tracking-tight">
               {currentPrice.toFixed(2)} ₾
             </span>
@@ -109,25 +111,29 @@ export default function ProductCard({
             )}
           </div>
 
-          {/* Monthly Installment Pill */}
-          {monthlyInstallment && (
-            <div className="inline-flex items-center gap-1 bg-[#F5F6F8] text-gray-700 px-2 py-0.5 rounded-md text-[11px]">
-              <Moon className="w-3 h-3 text-gray-500" />
-              <span>თვეში: {monthlyInstallment} ₾-დან</span>
-            </div>
-          )}
+          {/* Monthly Installment Slot - Fixed height h-6 */}
+          <div className="h-6 flex items-center">
+            {monthlyInstallment ? (
+              <div className="inline-flex items-center gap-1 bg-[#F5F6F8] text-gray-700 px-2 py-0.5 rounded-md text-[11px]">
+                <Moon className="w-3 h-3 text-gray-500" />
+                <span>თვეში: {monthlyInstallment} ₾-დან</span>
+              </div>
+            ) : (
+              <div className="h-full" />
+            )}
+          </div>
 
-          {/* Action Buttons: 1 Main "ყიდვა" text button + 1 Cart SVG icon button side by side */}
-          <div className="flex items-center gap-2 pt-1.5">
+          {/* Action Buttons Slot - Fixed height 40px */}
+          <div className="flex items-center gap-2 pt-1">
             {/* Main Buy Button */}
             <Link
               href={`/product/${id}`}
-              className="flex-1 h-10 bg-[#111111] hover:bg-black text-white rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              className="flex-1 h-10 bg-[#111111] hover:bg-black text-white rounded-xl text-xs md:text-sm flex items-center justify-center cursor-pointer transition-colors"
             >
               <span>ყიდვა</span>
             </Link>
 
-            {/* Cart Icon Button (SVG only, compact size) */}
+            {/* Cart Icon Button */}
             <button
               onClick={handleAddToCart}
               title="კალათაში დამატება"
