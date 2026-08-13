@@ -10,19 +10,18 @@ import {
   Truck, 
   ShieldCheck, 
   CreditCard, 
-  PackageCheck,
-  Headphones
+  PackageCheck
 } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col gap-12 pb-24 bg-white">
+    <div className="flex flex-col gap-14 pb-24 bg-white">
       
-      {/* 1. Category Carousel (VELI.store style icons & subcategories) */}
+      {/* 1. Top Category Carousel (VELI.store style icons & subcategories) */}
       <CategoryCarousel />
 
-      {/* 2. Main Hero Banner */}
+      {/* 2. Main Hero Banner - Image fully spread across box */}
       <section>
         <div className="container mx-auto px-4 lg:px-8">
           <div className="rounded-[32px] relative overflow-hidden min-h-[360px] md:min-h-[420px] flex items-center p-6 md:p-12 shadow-xs border border-gray-100">
@@ -64,7 +63,7 @@ export default function Home() {
       {/* 3. Promo Banner Swiper */}
       <PromoCarousel />
 
-      {/* ==================== SECTION GROUP 1 ==================== */}
+      {/* ==================== GROUP 1: DJI & SMARTPHONES ==================== */}
 
       {/* Product Carousel 1: DJI Drones & Accessories */}
       <section className="pt-2">
@@ -206,41 +205,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 ELEGANT BREAK 1: Premium Soft Feature Banner */}
+      {/* 📸 FULL-WIDTH FEATURE BANNER 1: Apple iPhone 16 Pro Series */}
       <section className="py-2">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="bg-gradient-to-r from-blue-50/80 via-[#F8FAFC] to-blue-50/50 rounded-[32px] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-blue-100/60 shadow-xs">
-            <div className="space-y-3 max-w-lg text-left">
-              <div className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs">
-                <Headphones className="w-3.5 h-3.5" />
-                <span>პრემიუმ აუდიო</span>
-              </div>
-              <h3 className="text-2xl md:text-3xl text-gray-900 leading-tight">
-                აღმოაჩინე უმაღლესი ჟღერადობა
+          <div className="relative rounded-[32px] overflow-hidden min-h-[220px] md:min-h-[260px] flex items-center p-8 md:p-12 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white shadow-md">
+            <img 
+              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80" 
+              alt="iPhone 16 Pro Promo" 
+              className="absolute inset-0 w-full h-full object-cover opacity-40"
+            />
+            <div className="relative z-10 max-w-lg space-y-3">
+              <span className="text-xs text-blue-400 uppercase tracking-widest">Apple Flagship</span>
+              <h3 className="text-2xl md:text-4xl leading-tight">
+                iPhone 16 Pro Series
               </h3>
-              <p className="text-xs md:text-sm text-gray-600 leading-relaxed">
-                Sony, Marshall, Bose და Apple — უსადენო ყურსასმენები 0%-იანი განვადებით და ოფიციალური გარანტიით.
+              <p className="text-xs md:text-sm text-gray-300">
+                ტიტანის კორპუსი, A18 Pro ჩიპი და ინოვაციური კამერის მართვა. 0%-იანი ონლაინ განვადებით.
               </p>
-              <div className="pt-1">
-                <Link href="/catalog" className="inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer">
-                  <span>ყურსასმენების ნახვა</span>
+              <div className="pt-2">
+                <Link href="/catalog" className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-black px-6 py-2.5 rounded-2xl text-xs sm:text-sm transition-colors">
+                  <span>ყიდვა</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
-            </div>
-
-            <div className="w-full md:w-auto h-48 md:h-56 shrink-0 flex items-center justify-center">
-              <img 
-                src="https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=600&q=80" 
-                alt="Audio Premium" 
-                className="h-full object-contain mix-blend-multiply drop-shadow-md rounded-2xl"
-              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ==================== SECTION GROUP 2 ==================== */}
+      {/* ==================== GROUP 2: LAPTOPS & GAMING ==================== */}
 
       {/* Product Carousel 3: Laptops & Computers */}
       <section>
@@ -382,56 +375,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 ELEGANT BREAK 2: Minimal Single-Line Trust Service Strip */}
+      {/* 📸 FULL-WIDTH FEATURE BANNER 2: PlayStation 5 Gaming Banner */}
       <section className="py-2">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="bg-[#F8FAFC] rounded-2xl p-5 border border-gray-100/80 shadow-xs grid grid-cols-2 md:grid-cols-4 gap-4">
-            
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Truck className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs md:text-sm text-gray-900">სწრაფი მიწოდება</h4>
-                <p className="text-[11px] text-gray-500">უფასოდ მთელ საქართველოში</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs md:text-sm text-gray-900">ოფიციალური გარანტია</h4>
-                <p className="text-[11px] text-gray-500">100% ორიგინალი პროდუქცია</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs md:text-sm text-gray-900">0% განვადება</h4>
-                <p className="text-[11px] text-gray-500">ყველა წამყვან ბანკში</p>
+          <div className="relative rounded-[32px] overflow-hidden min-h-[220px] md:min-h-[260px] flex items-center p-8 md:p-12 bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white shadow-md">
+            <img 
+              src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1400&q=80" 
+              alt="PlayStation 5 Gaming Promo" 
+              className="absolute inset-0 w-full h-full object-cover opacity-35"
+            />
+            <div className="relative z-10 max-w-lg space-y-3">
+              <span className="text-xs text-blue-300 uppercase tracking-widest">Next-Gen Gaming</span>
+              <h3 className="text-2xl md:text-4xl leading-tight">
+                PlayStation 5 Slim & DualSense
+              </h3>
+              <p className="text-xs md:text-sm text-blue-100">
+                ჩაერთე გეიმინგის ახალ ეპოქაში. 4K 120Hz გრაფიკა და ულტრა-სწრაფი SSD.
+              </p>
+              <div className="pt-2">
+                <Link href="/catalog" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-2xl text-xs sm:text-sm transition-colors">
+                  <span>კონსოლების ნახვა</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <PackageCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs md:text-sm text-gray-900">სასაჩუქრე შეფუთვა</h4>
-                <p className="text-[11px] text-gray-500">უფასო შეფუთვა და ბარათი</p>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>
 
-      {/* ==================== SECTION GROUP 3 ==================== */}
+      {/* ==================== GROUP 3: AUDIO & SMART HOME ==================== */}
 
       {/* Product Carousel 5: Audio & Speakers */}
       <section>
@@ -564,35 +536,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 ELEGANT BREAK 3: Sleek Brand Badges Bar */}
-      <section className="py-2">
+      {/* 🚚 FOOTER TRUST STRIP (Clean single-line bar at page bottom) */}
+      <section className="pt-4">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base md:text-lg text-gray-900 tracking-tight">
-              პოპულარული ბრენდები
-            </h3>
-            <span className="text-xs text-gray-500">ოფიციალური პარტნიორები</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
-            {[
-              { name: "Apple", logo: "" },
-              { name: "Samsung", logo: "SAMSUNG" },
-              { name: "Sony", logo: "SONY" },
-              { name: "DJI", logo: "DJI" },
-              { name: "Marshall", logo: "Marshall" },
-              { name: "JBL", logo: "JBL" },
-              { name: "Dyson", logo: "dyson" },
-              { name: "Asus", logo: "ASUS" },
-            ].map((brand, idx) => (
-              <div 
-                key={idx} 
-                className="bg-[#F8FAFC] hover:bg-gray-200/70 rounded-2xl p-3 flex flex-col items-center justify-center min-h-[72px] cursor-pointer transition-colors border border-gray-100/60"
-              >
-                <span className="text-sm text-gray-900 tracking-wider">{brand.logo}</span>
-                <span className="text-[10px] text-gray-500 mt-0.5">{brand.name}</span>
+          <div className="bg-[#F8FAFC] rounded-2xl p-5 border border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-4">
+            
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Truck className="w-5 h-5" />
               </div>
-            ))}
+              <div>
+                <h4 className="text-xs md:text-sm text-gray-900">სწრაფი მიწოდება</h4>
+                <p className="text-[11px] text-gray-500">უფასოდ მთელ საქართველოში</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs md:text-sm text-gray-900">ოფიციალური გარანტია</h4>
+                <p className="text-[11px] text-gray-500">100% ორიგინალი პროდუქცია</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs md:text-sm text-gray-900">0% განვადება</h4>
+                <p className="text-[11px] text-gray-500">ყველა წამყვან ბანკში</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <PackageCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs md:text-sm text-gray-900">სასაჩუქრე შეფუთვა</h4>
+                <p className="text-[11px] text-gray-500">უფასო შეფუთვა და ბარათი</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
