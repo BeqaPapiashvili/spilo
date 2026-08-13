@@ -6,11 +6,11 @@ import {
   Search, 
   ShoppingBag, 
   User, 
-  ArrowRight, 
-  Sparkles, 
   Trash2, 
   Plus, 
-  Minus 
+  Minus,
+  LayoutGrid,
+  Percent
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
@@ -117,7 +117,7 @@ export default function Header() {
           <span className="text-gray-400">უფასო მიწოდება მთელ საქართველოში</span>
           <button 
             onClick={() => setLang(lang === "GE" ? "EN" : "GE")}
-            className="flex items-center gap-1.5 hover:text-blue-400 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 hover:text-blue-400 transition-colors cursor-pointer text-xs"
           >
             <span>{lang}</span>
             <div className="w-7 h-4 bg-gray-800 rounded-full relative p-0.5 border border-gray-700">
@@ -127,18 +127,27 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Main Header */}
-      <header className="sticky top-0 z-40 w-full bg-[#111111] h-16 flex items-center shadow-xs">
-        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-4 md:gap-6">
+      {/* Main Header (Solid Light Off-White Background matching Screenshot) */}
+      <header className="sticky top-0 z-40 w-full bg-[#F4F4F6] border-b border-gray-200/60 py-2.5 shadow-xs">
+        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-3 md:gap-4">
           
           {/* Logo */}
-          <Link href="/" className="text-2xl md:text-3xl text-white tracking-tighter shrink-0 flex items-center gap-1">
+          <Link href="/" className="text-2xl md:text-3xl text-gray-900 tracking-tighter shrink-0 flex items-center gap-0.5">
             <span>spilo</span>
-            <span className="text-blue-500">.</span>
+            <span className="text-blue-600">.</span>
           </Link>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-lg relative">
+          {/* Navigation Category Pill Button */}
+          <Link
+            href="/catalog"
+            className="hidden md:inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 h-11 rounded-2xl text-xs md:text-sm cursor-pointer transition-colors shrink-0 shadow-xs"
+          >
+            <LayoutGrid className="w-4 h-4 text-blue-400" />
+            <span>ნავიგაცია</span>
+          </Link>
+
+          {/* Search Input Bar (Matching Screenshot Pill Input) */}
+          <div className="flex-1 max-w-xl relative">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
               <input
                 type="text"
@@ -149,14 +158,14 @@ export default function Header() {
                 }}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
-                placeholder="ჩაწერეთ ნივთის დასახელება ან ID (მაგ: 172122, dji-neo)..."
-                className="w-full h-10 pl-10 pr-10 rounded-xl border-none focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs md:text-sm bg-white text-gray-900 shadow-2xs placeholder:text-gray-400"
+                placeholder="ძიება (მაგ: 172122, dji-neo)..."
+                className="w-full h-11 pl-11 pr-4 rounded-2xl border border-gray-200/80 focus:ring-2 focus:ring-blue-600 focus:border-transparent focus:outline-none text-xs md:text-sm bg-white text-gray-900 shadow-2xs placeholder:text-gray-400"
               />
               <button
                 type="submit"
-                className="absolute left-3 p-0.5 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                className="absolute left-3.5 p-0.5 text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-4.5 h-4.5" />
               </button>
             </form>
 
@@ -167,7 +176,7 @@ export default function Header() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-50 p-2 text-gray-900"
+                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 z-50 p-2 text-gray-900"
                 >
                   {filteredResults.length > 0 ? (
                     <div className="flex flex-col">
@@ -179,10 +188,10 @@ export default function Header() {
                         <div
                           key={item.id}
                           onMouseDown={() => handleSelectProduct(item.id)}
-                          className="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50/60 rounded-lg cursor-pointer transition-colors gap-3 group"
+                          className="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50/60 rounded-xl cursor-pointer transition-colors gap-3 group"
                         >
                           <div className="flex items-center gap-3">
-                            <img src={item.image} alt={item.title} className="w-10 h-10 object-contain shrink-0 mix-blend-multiply bg-gray-50 p-1 rounded-md" />
+                            <img src={item.image} alt={item.title} className="w-10 h-10 object-contain shrink-0 mix-blend-multiply bg-gray-50 p-1 rounded-lg" />
                             <div>
                               <div className="text-gray-900 text-xs sm:text-sm group-hover:text-blue-600 transition-colors">{item.title}</div>
                               <div className="text-[11px] text-gray-400">ID: <span className="text-gray-600">{item.sku}</span> • {item.cat}</div>
@@ -202,8 +211,8 @@ export default function Header() {
             </AnimatePresence>
           </div>
 
-          {/* Right Action Icons */}
-          <div className="flex items-center gap-2 md:gap-3 shrink-0 text-xs md:text-sm text-white">
+          {/* Right Action Icons (Matching Screenshot Pill Buttons) */}
+          <div className="flex items-center gap-2 shrink-0 text-xs md:text-sm">
 
             {/* Cart Button Container with Hover Dropdown Popup */}
             <div 
@@ -213,12 +222,12 @@ export default function Header() {
             >
               <Link
                 href="/cart"
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/10 px-3.5 py-2 rounded-lg cursor-pointer"
+                className="flex items-center gap-2.5 bg-white text-gray-900 hover:bg-gray-50 px-4 md:px-5 h-11 rounded-2xl border border-gray-200/80 shadow-2xs transition-colors cursor-pointer relative"
               >
                 <div className="relative">
-                  <ShoppingBag className="w-4 h-4 text-blue-400" />
+                  <ShoppingBag className="w-4.5 h-4.5 text-gray-900" />
                   {cartItemsCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                    <span className="absolute -top-2.5 -left-2 bg-blue-600 text-white text-[10px] rounded-full w-4.5 h-4.5 flex items-center justify-center shadow-xs">
                       {cartItemsCount}
                     </span>
                   )}
@@ -226,7 +235,7 @@ export default function Header() {
                 <span className="hidden sm:inline">კალათა</span>
               </Link>
 
-              {/* Hover Cart Preview Card Dropdown (Matching Screenshot Layout) */}
+              {/* Hover Cart Preview Card Dropdown */}
               <AnimatePresence>
                 {isCartHovered && (
                   <motion.div
@@ -244,7 +253,7 @@ export default function Header() {
 
                     {/* Cart Items List or Empty State */}
                     {cart.length === 0 ? (
-                      /* Empty Cart View (Matching Screenshot 1) */
+                      /* Empty Cart View */
                       <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
                         <div className="relative w-20 h-20 bg-[#F1F3F6] rounded-full flex items-center justify-center text-gray-400">
                           <ShoppingBag className="w-10 h-10 text-gray-400" />
@@ -254,7 +263,7 @@ export default function Header() {
                         </div>
                       </div>
                     ) : (
-                      /* Cart Items List View (Matching Screenshot 2) */
+                      /* Cart Items List View */
                       <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
                         {cart.map((item) => (
                           <div 
@@ -339,24 +348,34 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
-            {/* User Profile / Auth */}
+            {/* User Profile / Auth Button (Pill Shaped) */}
             {user ? (
               <Link
                 href="/profile"
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-lg text-xs md:text-sm cursor-pointer transition-colors"
+                className="flex items-center gap-2.5 bg-white text-gray-900 hover:bg-gray-50 px-4 md:px-5 h-11 rounded-2xl border border-gray-200/80 shadow-2xs transition-colors cursor-pointer"
               >
-                <User className="w-4 h-4 text-blue-400" />
+                <User className="w-4.5 h-4.5 text-gray-900" />
                 <span className="hidden sm:inline">პროფილი</span>
               </Link>
             ) : (
               <button
                 onClick={() => toggleAuthModal(true)}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/10 px-3.5 py-2 rounded-lg cursor-pointer text-xs md:text-sm"
+                className="flex items-center gap-2.5 bg-white text-gray-900 hover:bg-gray-50 px-4 md:px-5 h-11 rounded-2xl border border-gray-200/80 shadow-2xs transition-colors cursor-pointer"
               >
-                <User className="w-4 h-4" />
+                <User className="w-4.5 h-4.5 text-gray-900" />
                 <span className="hidden sm:inline">შესვლა</span>
               </button>
             )}
+
+            {/* Special Offers % Pill Button */}
+            <Link
+              href="/catalog"
+              className="bg-blue-600 hover:bg-blue-700 text-white w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 cursor-pointer transition-colors shadow-2xs"
+              title="სპეციალური შეთავაზებები"
+            >
+              <Percent className="w-5 h-5" />
+            </Link>
+
           </div>
 
         </div>
