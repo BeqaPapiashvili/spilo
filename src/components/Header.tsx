@@ -234,7 +234,7 @@ export default function Header() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.18 }}
-                    className="absolute left-0 top-full mt-2 w-[340px] sm:w-[380px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-5 text-gray-900 z-50 space-y-4"
+                    className="absolute -left-28 sm:-left-44 top-full mt-2 w-[340px] sm:w-[380px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-5 text-gray-900 z-50 space-y-4"
                   >
                     {/* Dropdown Header */}
                     <div className="flex items-center justify-between border-b border-gray-100 pb-3">
