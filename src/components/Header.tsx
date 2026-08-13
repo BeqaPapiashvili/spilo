@@ -211,8 +211,8 @@ export default function Header() {
               onMouseEnter={() => setIsCartHovered(true)}
               onMouseLeave={() => setIsCartHovered(false)}
             >
-              <button
-                onClick={toggleCart}
+              <Link
+                href="/cart"
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/10 px-3.5 py-2 rounded-lg cursor-pointer"
               >
                 <div className="relative">
@@ -224,7 +224,7 @@ export default function Header() {
                   )}
                 </div>
                 <span className="hidden sm:inline">კალათა</span>
-              </button>
+              </Link>
 
               {/* Hover Cart Preview Card Dropdown (Matching Screenshot Layout) */}
               <AnimatePresence>
@@ -326,15 +326,13 @@ export default function Header() {
                     </div>
 
                     {/* Action Button: კალათის გახსნა */}
-                    <button
-                      onClick={() => {
-                        setIsCartHovered(false);
-                        toggleCart();
-                      }}
+                    <Link
+                      href="/cart"
+                      onClick={() => setIsCartHovered(false)}
                       className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs sm:text-sm flex items-center justify-center cursor-pointer transition-colors shadow-xs"
                     >
                       <span>კალათის გახსნა</span>
-                    </button>
+                    </Link>
 
                   </motion.div>
                 )}
