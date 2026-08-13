@@ -236,7 +236,7 @@ export default function Header() {
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-lg text-xs md:text-sm cursor-pointer transition-colors"
               >
                 <User className="w-4 h-4 text-blue-400" />
-                <span className="hidden sm:inline max-w-[100px] truncate">{user.name}</span>
+                <span className="hidden sm:inline">პროფილი</span>
               </Link>
             ) : (
               <button

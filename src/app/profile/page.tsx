@@ -89,11 +89,11 @@ export default function ProfilePage() {
     <div className="bg-white min-h-screen py-8">
       <div className="container mx-auto px-4 lg:px-8 max-w-6xl space-y-8">
         
-        {/* Page Top Heading - Matching Screenshot Header */}
+        {/* Page Top Heading */}
         <div className="flex items-center gap-3 border-b border-gray-100 pb-6">
           <User className="w-6 h-6 text-gray-900" />
           <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
-            გამარჯობა{user?.name ? `, ${user.name}` : ""}
+            პროფილი
           </h1>
         </div>
 
