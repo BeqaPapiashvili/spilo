@@ -202,8 +202,8 @@ export default function Header() {
             </AnimatePresence>
           </div>
 
-          {/* Right Action Icons (Matching Screenshot Pill Buttons) */}
-          <div className="flex items-center gap-2 shrink-0 text-xs md:text-sm">
+          {/* Right Action Icons (Hidden on Mobile since MobileBottomNav handles them) */}
+          <div className="hidden md:flex items-center gap-2 shrink-0 text-xs md:text-sm">
 
             {/* Cart Button Container with Hover Dropdown Popup */}
             <div 
