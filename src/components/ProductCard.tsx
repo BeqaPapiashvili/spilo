@@ -38,7 +38,7 @@ export default function ProductCard({
       price,
       discountPrice,
       image,
-    }, true);
+    }, false);
 
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 1500);

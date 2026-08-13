@@ -138,7 +138,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       price: product.price,
       discountPrice: product.discountPrice,
       image: product.images[0],
-    }, true);
+    }, false);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 1500);
   };
