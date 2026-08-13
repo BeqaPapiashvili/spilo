@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingBag, User, ArrowRight, Sparkles } from "lucide-react";
+import { Search, ShoppingBag, User, ArrowRight, Sparkles, Heart } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,7 +57,7 @@ const SEARCH_PRODUCTS = [
 
 export default function Header() {
   const router = useRouter();
-  const { toggleCart, cart, user, toggleAuthModal, setUser } = useStore();
+  const { toggleCart, cart, wishlist, user, toggleAuthModal } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [lang, setLang] = useState<"GE" | "EN">("GE");
@@ -194,13 +194,32 @@ export default function Header() {
           </div>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-3 md:gap-4 shrink-0 text-xs md:text-sm text-white">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 text-xs md:text-sm text-white">
+            
+            {/* Wishlist Link */}
+            <Link
+              href="/wishlist"
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity bg-white/10 px-3 py-2 rounded-lg cursor-pointer"
+              title="სურვილების სია"
+            >
+              <div className="relative">
+                <Heart className="w-4 h-4 text-red-400" />
+                {wishlist.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                    {wishlist.length}
+                  </span>
+                )}
+              </div>
+              <span className="hidden md:inline">სურვილები</span>
+            </Link>
+
+            {/* Cart Button */}
             <button
               onClick={toggleCart}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/10 px-3.5 py-2 rounded-lg cursor-pointer"
             >
               <div className="relative">
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingBag className="w-4 h-4 text-blue-400" />
                 {cartItemsCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                     {cartItemsCount}
@@ -210,18 +229,15 @@ export default function Header() {
               <span className="hidden sm:inline">კალათა</span>
             </button>
 
+            {/* User Profile / Auth */}
             {user ? (
-              <div className="flex items-center gap-2 bg-white/10 px-3.5 py-2 rounded-lg text-xs md:text-sm">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-lg text-xs md:text-sm cursor-pointer transition-colors"
+              >
                 <User className="w-4 h-4 text-blue-400" />
-                <span className="hidden sm:inline">{user.name}</span>
-                <button
-                  onClick={() => setUser(null)}
-                  className="text-[11px] text-gray-400 hover:text-red-400 ml-1 transition-colors cursor-pointer"
-                  title="გამოსვლა"
-                >
-                  (გამოსვლა)
-                </button>
-              </div>
+                <span className="hidden sm:inline max-w-[100px] truncate">{user.name}</span>
+              </Link>
             ) : (
               <button
                 onClick={() => toggleAuthModal(true)}

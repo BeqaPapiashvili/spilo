@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import CartDrawer from "@/components/CartDrawer";
 import AuthModal from "@/components/AuthModal";
+import SupportChatWidget from "@/components/SupportChatWidget";
 import Footer from "@/components/Footer";
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <CartDrawer />
         <AuthModal />
+        <SupportChatWidget />
         <main className="flex-1">
           {children}
         </main>
