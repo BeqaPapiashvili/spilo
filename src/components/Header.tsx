@@ -137,15 +137,6 @@ export default function Header() {
             <span className="text-blue-600">.</span>
           </Link>
 
-          {/* Navigation Category Pill Button */}
-          <Link
-            href="/catalog"
-            className="hidden md:inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 h-11 rounded-2xl text-xs md:text-sm cursor-pointer transition-colors shrink-0 shadow-xs"
-          >
-            <LayoutGrid className="w-4 h-4 text-blue-400" />
-            <span>ნავიგაცია</span>
-          </Link>
-
           {/* Search Input Bar (Matching Screenshot Pill Input) */}
           <div className="flex-1 max-w-xl relative">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
