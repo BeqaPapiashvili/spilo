@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import CartDrawer from "@/components/CartDrawer";
 import AuthModal from "@/components/AuthModal";
 import SupportChatWidget from "@/components/SupportChatWidget";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="ka-GE"
       className={`${notoGeorgian.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
+      <body className="min-h-full flex flex-col font-sans bg-background text-foreground pb-16 md:pb-0">
         <Header />
         <CartDrawer />
         <AuthModal />
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1">
           {children}
         </main>
+        <MobileBottomNav />
         <Footer />
       </body>
     </html>

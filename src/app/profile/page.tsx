@@ -17,9 +17,11 @@ import {
   CheckCircle2,
   Clock,
   Truck,
-  Plus
+  Plus,
+  FileText
 } from "lucide-react";
 import Link from "next/link";
+import OrderInvoiceModal from "@/components/OrderInvoiceModal";
 
 export default function ProfilePage() {
   const { user, setUser, orders, wishlist, toggleAuthModal } = useStore();
@@ -51,6 +53,7 @@ export default function ProfilePage() {
 
   // Updated Feedback
   const [isSaved, setIsSaved] = useState(false);
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<any>(null);
 
   if (!user) {
     return (
@@ -285,8 +288,17 @@ export default function ProfilePage() {
                       </div>
 
                       <div className="pt-2 border-t border-gray-200/60 flex justify-between items-center text-xs">
-                        <span className="text-gray-500">სულ გადახდილი:</span>
-                        <span className="text-blue-600 font-mono text-base">{order.totalAmount.toFixed(2)} ₾</span>
+                        <button
+                          onClick={() => setSelectedInvoiceOrder(order)}
+                          className="inline-flex items-center gap-1 bg-[#111111] hover:bg-black text-white px-3 py-1.5 rounded-xl text-[11px] cursor-pointer transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>🧾 ინვოისი</span>
+                        </button>
+                        <div className="text-right">
+                          <span className="text-gray-400 text-[11px] block">სულ გადახდილი:</span>
+                          <span className="text-blue-600 font-mono text-base">{order.totalAmount.toFixed(2)} ₾</span>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -443,6 +455,14 @@ export default function ProfilePage() {
         </div>
 
       </div>
+
+      {selectedInvoiceOrder && (
+        <OrderInvoiceModal
+          order={selectedInvoiceOrder}
+          isOpen={!!selectedInvoiceOrder}
+          onClose={() => setSelectedInvoiceOrder(null)}
+        />
+      )}
     </div>
   );
 }
