@@ -1,162 +1,212 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import "dotenv/config";
+import { CATEGORIES_DATA } from "../src/data/categories";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL || "mysql://root:@127.0.0.1:3306/spilo_db";
+const adapter = new PrismaMariaDb(connectionString);
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Seeding database...');
+  console.log("🌱 Starting MySQL Database Seed for Spilo.ge...");
 
-  // Create Categories
-  const categoryTech = await prisma.category.upsert({
-    where: { slug: 'tech' },
-    update: {},
-    create: {
-      name: 'ტექნიკა',
-      slug: 'tech',
-    },
-  });
-
-  const categoryBeauty = await prisma.category.upsert({
-    where: { slug: 'beauty' },
-    update: {},
-    create: {
-      name: 'სილამაზე & მოვლა',
-      slug: 'beauty',
-    },
-  });
-
-  // Create Brands
-  const brandAriete = await prisma.brand.create({
-    data: {
-      name: 'Ariete',
-    },
-  });
-
-  const brandDreame = await prisma.brand.create({
-    data: {
-      name: 'Dreame',
-    },
-  });
-  
-  const brandJonr = await prisma.brand.create({
-    data: {
-      name: 'Jonr',
-    },
-  });
-
-  const brandKarcher = await prisma.brand.create({
-    data: {
-      name: 'Karcher',
-    },
-  });
-  
-  const brandDJI = await prisma.brand.create({
-    data: {
-      name: 'DJI',
-    },
-  });
-
-  // Create Products
-  const products = [
-    {
-      title: 'ელექტრო ცოცხი Ariete 2764 Evo 2-In-1 Bagless Corded Electric Broom',
-      slug: 'ariete-2764-evo',
-      description: 'Ariete-ს ინოვაციური ელექტრო ცოცხი 2 1-ში, იდეალურია ყოველდღიური დასუფთავებისთვის.',
-      price: 279.0,
-      discountPrice: 223.0,
-      monthlyInstallment: 9,
-      stock: 50,
-      categoryId: categoryTech.id,
-      brandId: brandAriete.id,
-      images: ['https://via.placeholder.com/200'],
-    },
-    {
-      title: 'ხელის მტვერსასრუტი Dreame T10 Cordless Vacuum Cleaner Silver',
-      slug: 'dreame-t10',
-      description: 'მძლავრი და მსუბუქი უკაბელო მტვერსასრუტი Dreame T10.',
-      price: 899.0,
-      discountPrice: 719.0,
-      monthlyInstallment: 29,
-      stock: 20,
-      categoryId: categoryTech.id,
-      brandId: brandDreame.id,
-      images: ['https://via.placeholder.com/200'],
-    },
-    {
-      title: 'ხელის მტვერსასრუტი Ariete 2759 Electric Broom And Handheld Vacuum',
-      slug: 'ariete-2759',
-      description: 'მოსახერხებელი 2 1-ში მტვერსასრუტი Ariete-სგან.',
-      price: 399.0,
-      discountPrice: 319.0,
-      monthlyInstallment: 13,
-      stock: 15,
-      categoryId: categoryTech.id,
-      brandId: brandAriete.id,
-      images: ['https://via.placeholder.com/200'],
-    },
-    {
-      title: 'ხელის მტვერსასრუტი Jonr Cordless Vacuum ED 12 Pro Max',
-      slug: 'jonr-ed-12-pro-max',
-      description: 'უმაღლესი კლასის მტვერსასრუტი დიდი სახლებისთვის.',
-      price: 1599.0,
-      discountPrice: 1279.0,
-      monthlyInstallment: 51,
-      stock: 5,
-      categoryId: categoryTech.id,
-      brandId: brandJonr.id,
-      images: ['https://via.placeholder.com/200'],
-    },
-    {
-      title: 'ხელის მტვერსასრუტი Karcher VC7 Signature Line Handheld Vacuum',
-      slug: 'karcher-vc7',
-      description: 'გერმანული ხარისხის სტანდარტი Karcher-ისგან.',
-      price: 1799.0,
-      discountPrice: 1439.0,
-      monthlyInstallment: 58,
-      stock: 8,
-      categoryId: categoryTech.id,
-      brandId: brandKarcher.id,
-      images: ['https://via.placeholder.com/200'],
-    },
-    {
-      title: 'ყავის აპარატი Ariete 1389 Vintage Espresso Machine Blue',
-      slug: 'ariete-1389-vintage',
-      description: 'ვინტაჟური დიზაინის ესპრესოს აპარატი.',
-      price: 539.0,
-      discountPrice: 404.0,
-      monthlyInstallment: 16,
-      stock: 12,
-      categoryId: categoryTech.id,
-      brandId: brandAriete.id,
-      images: ['https://via.placeholder.com/200'],
-    },
-    {
-      title: 'DJI Neo DJI-NEO100 Drone White',
-      slug: 'dji-neo-drone',
-      description: 'ულტრა მსუბუქი და კომპაქტური დრონი 4K ვიდეოთი.',
-      price: 809.0,
-      discountPrice: 749.0,
-      monthlyInstallment: 30,
-      stock: 10,
-      categoryId: categoryTech.id,
-      brandId: brandDJI.id,
-      images: ['https://via.placeholder.com/200'],
-    }
+  // 1. Seed Featured Brands
+  const brandsData = [
+    { id: "dji", name: "DJI", slug: "dji", logo: "https://veli.store/media-cdn/__sized__/brand/dji_logo-thumbnail-100x100-95.png" },
+    { id: "apple", name: "Apple", slug: "apple", logo: "https://veli.store/media-cdn/__sized__/brand/apple_logo-thumbnail-100x100-95.png" },
+    { id: "samsung", name: "Samsung", slug: "samsung", logo: "https://veli.store/media-cdn/__sized__/brand/samsung_logo-thumbnail-100x100-95.png" },
+    { id: "sony", name: "Sony", slug: "sony", logo: "https://veli.store/media-cdn/__sized__/brand/sony_logo-thumbnail-100x100-95.png" },
+    { id: "asus", name: "ASUS", slug: "asus", logo: "https://veli.store/media-cdn/__sized__/brand/asus_logo-thumbnail-100x100-95.png" },
+    { id: "marshall", name: "Marshall", slug: "marshall", logo: "https://veli.store/media-cdn/__sized__/brand/marshall_logo-thumbnail-100x100-95.png" },
+    { id: "jbl", name: "JBL", slug: "jbl", logo: "https://veli.store/media-cdn/__sized__/brand/jbl_logo-thumbnail-100x100-95.png" },
+    { id: "xiaomi", name: "Xiaomi", slug: "xiaomi", logo: "https://veli.store/media-cdn/__sized__/brand/xiaomi_logo-thumbnail-100x100-95.png" },
   ];
 
-  for (const p of products) {
+  for (const b of brandsData) {
+    await prisma.brand.upsert({
+      where: { id: b.id },
+      update: { name: b.name, slug: b.slug, logo: b.logo },
+      create: b,
+    });
+  }
+  console.log("✅ Seeded Brands");
+
+  // 2. Seed Main Categories from CATEGORIES_DATA
+  for (const c of CATEGORIES_DATA) {
+    await prisma.category.upsert({
+      where: { id: c.id },
+      update: { 
+        name: c.name, 
+        slug: c.slug, 
+        icon: c.icon, 
+        childrenJson: c.children ? JSON.stringify(c.children) : null 
+      },
+      create: {
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        icon: c.icon,
+        childrenJson: c.children ? JSON.stringify(c.children) : null,
+      },
+    });
+  }
+  console.log("✅ Seeded Categories");
+
+  // 3. Seed Products
+  const productsData = [
+    {
+      id: "dji-neo",
+      title: "დრონი DJI Neo Drone Gray",
+      slug: "dji-neo-drone-gray",
+      sku: "DJI-NEO-001",
+      description: "პორტატული და ულტრა-მსუბუქი დრონი 4K Ultra HD ვიდეო გადაღებით და AI სმარტ თრექინგით.",
+      price: 799,
+      discountPrice: 699,
+      discountPercentage: 12,
+      monthlyInstallment: 28,
+      stock: 15,
+      categoryId: "photo-video",
+      brandId: "dji",
+      images: ["https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg"],
+      isFeatured: true,
+      isFlashDeal: true,
+    },
+    {
+      id: "iphone-16-pro-max",
+      title: "სმარტფონი Apple iPhone 16 Pro Max 256GB Desert Titanium",
+      slug: "apple-iphone-16-pro-max-256gb-desert-titanium",
+      sku: "APL-IP16PM-256",
+      description: "ფლაგმანური iPhone 16 Pro Max ტიტანის კორპუსით, A18 Pro ჩიპით და კამერის მართვის ინოვაციური ღილაკით.",
+      price: 4899,
+      discountPrice: 4399,
+      discountPercentage: 10,
+      monthlyInstallment: 175,
+      stock: 8,
+      categoryId: "mobiles",
+      brandId: "apple",
+      images: ["https://veli.store/media-cdn/__sized__/product/Apple_iPhone_16_Pro_Desert_Titanium_1-thumbnail-200x200-95.png"],
+      isFeatured: true,
+      isFlashDeal: true,
+    },
+    {
+      id: "macbook-pro-16",
+      title: 'ლეპტოპი Apple MacBook Pro 16" M3 Max / 36GB / 1TB Space Black',
+      slug: "apple-macbook-pro-16-m3-max-36gb-1tb-space-black",
+      sku: "APL-MBP16-M3MAX",
+      description: "პროფესიონალური MacBook Pro 16 M3 Max პროცესორით, Liquid Retina XDR ეკრანით და ულტრა-სწრაფი 1TB SSD-ით.",
+      price: 11499,
+      discountPrice: 9999,
+      discountPercentage: 13,
+      monthlyInstallment: 400,
+      stock: 5,
+      categoryId: "laptops",
+      brandId: "apple",
+      images: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80"],
+      isFeatured: true,
+      isFlashDeal: false,
+    },
+    {
+      id: "ps5-slim-digital",
+      title: "თამაშების კონსოლი Sony PlayStation 5 Slim Digital Edition White",
+      slug: "sony-playstation-5-slim-digital-edition-white",
+      sku: "SNY-PS5-SLIM-DIG",
+      description: "ახალი თაობის სათამაშო კონსოლი 4K 120Hz გრაფიკით, 1TB ultra-high speed SSD-ით და DualSense ტრიგერებით.",
+      price: 1799,
+      discountPrice: 1499,
+      discountPercentage: 17,
+      monthlyInstallment: 60,
+      stock: 12,
+      categoryId: "gaming",
+      brandId: "sony",
+      images: ["https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&q=80"],
+      isFeatured: true,
+      isFlashDeal: true,
+    },
+    {
+      id: "marshall-stanmore-3",
+      title: "აკუსტიკური სისტემა Marshall Stanmore III Bluetooth Speaker Black",
+      slug: "marshall-stanmore-iii-bluetooth-speaker-black",
+      sku: "MSH-STAN3-BLK",
+      description: "ლეგენდარული Marshall-ის აკუსტიკური დინამიკი სუფთა ბასებით და ვინტაჟური დიზაინით.",
+      price: 1499,
+      discountPrice: 1299,
+      discountPercentage: 13,
+      monthlyInstallment: 52,
+      stock: 10,
+      categoryId: "audio-systems",
+      brandId: "marshall",
+      images: ["https://images.unsplash.com/photo-1545454675-3531b543be5d?w=400&q=80"],
+      isFeatured: true,
+      isFlashDeal: false,
+    },
+  ];
+
+  for (const p of productsData) {
     await prisma.product.upsert({
-      where: { slug: p.slug },
-      update: {},
+      where: { id: p.id },
+      update: p,
       create: p,
     });
   }
+  console.log("✅ Seeded Products");
 
-  console.log('Database seeded successfully.');
+  // 4. Seed Admin Users
+  await prisma.adminUser.upsert({
+    where: { email: "admin@spilo.ge" },
+    update: { password: "admin123" },
+    create: {
+      name: "Admin User",
+      email: "admin@spilo.ge",
+      password: "admin123",
+      role: "SUPER_ADMIN",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.adminUser.upsert({
+    where: { email: "beka@spilo.ge" },
+    update: { password: "admin123" },
+    create: {
+      name: "Beka Papiashvili",
+      email: "beka@spilo.ge",
+      password: "admin123",
+      role: "SUPER_ADMIN",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.adminUser.upsert({
+    where: { email: "nino@spilo.ge" },
+    update: {},
+    create: {
+      name: "Nino Beridze",
+      email: "nino@spilo.ge",
+      role: "STORE_MANAGER",
+      status: "ACTIVE",
+    },
+  });
+  console.log("✅ Seeded Admin Users");
+
+  // 5. Seed Sample Customer User
+  await prisma.user.upsert({
+    where: { phone: "995551008897" },
+    update: {},
+    create: {
+      phone: "995551008897",
+      email: "papicha@gmail.com",
+      name: "ბექა პაპიაშვილი",
+      role: "CUSTOMER",
+    },
+  });
+  console.log("✅ Seeded Sample Customer User");
+
+  console.log("🎉 MySQL Seed Completed Successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed Error:", e);
     process.exit(1);
   })
   .finally(async () => {

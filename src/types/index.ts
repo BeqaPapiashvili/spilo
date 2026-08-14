@@ -49,6 +49,7 @@ export interface Product {
   brandId: string;
   brandName: string;
   brandLogo?: string;
+  image?: string;
   images: string[];
   specs?: SpecGroup[];
   variants?: ProductVariant[];

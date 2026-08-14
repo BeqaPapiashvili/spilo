@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, ChevronRight, ArrowUpDown, Check } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { PRODUCTS_DATA } from "@/data/products";
+import { dataService } from "@/services/dataService";
+import { Product } from "@/types";
+import { useEffect } from "react";
+import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
 
 type SortOption = "default" | "price-desc" | "price-asc" | "rating";
 
@@ -16,26 +19,38 @@ function SearchContent() {
   const query = filters.searchQuery;
   const cleanQuery = query.trim().toLowerCase();
 
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setProductsList(dataService.getProducts());
+    setIsLoading(false);
+    const unsub = dataService.subscribe(() => {
+      setProductsList(dataService.getProducts());
+    });
+    return () => unsub();
+  }, []);
+
   // Search Results Matching Logic
   const filteredProducts = useMemo(() => {
-    return PRODUCTS_DATA.filter((product) => {
+    return productsList.filter((product) => {
       if (!cleanQuery) return true;
 
       return (
         product.title.toLowerCase().includes(cleanQuery) ||
         product.sku.toLowerCase().includes(cleanQuery) ||
-        product.categoryName.toLowerCase().includes(cleanQuery) ||
-        product.brandName.toLowerCase().includes(cleanQuery)
+        (product.categoryName && product.categoryName.toLowerCase().includes(cleanQuery)) ||
+        (product.brandName && product.brandName.toLowerCase().includes(cleanQuery))
       );
     }).sort((a, b) => {
       const priceA = a.discountPrice || a.price;
       const priceB = b.discountPrice || b.price;
       if (filters.sort === "price-asc") return priceA - priceB;
       if (filters.sort === "price-desc") return priceB - priceA;
-      if (filters.sort === "rating") return b.rating - a.rating;
+      if (filters.sort === "rating") return (b.rating || 5) - (a.rating || 5);
       return 0;
     });
-  }, [cleanQuery, filters.sort]);
+  }, [cleanQuery, filters.sort, productsList]);
 
   return (
     <div className="container mx-auto px-4 lg:px-8 max-w-7xl space-y-8">

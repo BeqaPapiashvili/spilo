@@ -1,8 +1,7 @@
 import { MetadataRoute } from "next";
-import { PRODUCTS_DATA } from "@/data/products";
-import { CATEGORIES_DATA } from "@/data/categories";
+import { prisma } from "@/lib/prisma";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://spilo.ge";
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -38,21 +37,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Dynamic Product Pages
-  const productPages: MetadataRoute.Sitemap = PRODUCTS_DATA.map((p) => ({
-    url: `${baseUrl}/product/${p.id}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  try {
+    const products = await prisma.product.findMany({ select: { id: true, slug: true, updatedAt: true } });
+    const categories = await prisma.category.findMany({ select: { id: true, slug: true, updatedAt: true } });
 
-  // Dynamic Category Pages
-  const categoryPages: MetadataRoute.Sitemap = CATEGORIES_DATA.map((c) => ({
-    url: `${baseUrl}/categories/${c.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }));
+    const productPages: MetadataRoute.Sitemap = products.map((p) => ({
+      url: `${baseUrl}/product/${p.slug || p.id}`,
+      lastModified: p.updatedAt || new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    }));
 
-  return [...staticPages, ...categoryPages, ...productPages];
+    const categoryPages: MetadataRoute.Sitemap = categories.map((c) => ({
+      url: `${baseUrl}/categories/${c.slug}`,
+      lastModified: c.updatedAt || new Date(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }));
+
+    return [...staticPages, ...categoryPages, ...productPages];
+  } catch {
+    return staticPages;
+  }
 }

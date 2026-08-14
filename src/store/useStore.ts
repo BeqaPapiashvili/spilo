@@ -45,6 +45,8 @@ interface StoreState {
   compareList: string[];
   highlightDifferencesOnly: boolean;
   user: UserProfile | null;
+  adminUser: { id: string; name: string; email: string; role: string } | null;
+  adminToken: string | null;
   isAuthModalOpen: boolean;
   toasts: ToastMessage[];
   recentlyViewed: WishlistItem[];
@@ -52,6 +54,10 @@ interface StoreState {
 
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
+
+  // Admin Auth Actions
+  setAdminSession: (admin: { id: string; name: string; email: string; role: string } | null, token: string | null) => void;
+  logoutAdmin: () => void;
 
   // Cart Actions
   addToCart: (item: Omit<CartItem, 'quantity'>, openCart?: boolean) => void;
@@ -116,6 +122,8 @@ export const useStore = create<StoreState>()(
       compareList: [],
       highlightDifferencesOnly: false,
       user: null,
+      adminUser: null,
+      adminToken: null,
       isAuthModalOpen: false,
       toasts: [],
       recentlyViewed: [],
@@ -123,6 +131,9 @@ export const useStore = create<StoreState>()(
 
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+
+      setAdminSession: (adminUser, adminToken) => set({ adminUser, adminToken }),
+      logoutAdmin: () => set({ adminUser: null, adminToken: null }),
 
       // Cart
       addToCart: (item, openCart = false) =>
@@ -278,11 +289,15 @@ export const useStore = create<StoreState>()(
         compareList: state.compareList,
         highlightDifferencesOnly: state.highlightDifferencesOnly,
         user: state.user,
+        adminUser: state.adminUser,
+        adminToken: state.adminToken,
         recentlyViewed: state.recentlyViewed,
         recentSearches: state.recentSearches,
       }),
       onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
+        if (state) {
+          state.setHasHydrated(true);
+        }
       },
     }
   )

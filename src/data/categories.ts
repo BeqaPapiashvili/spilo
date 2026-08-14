@@ -10,97 +10,145 @@ export const CATEGORIES_DATA: Category[] = [
     featuredBrands: ["Apple", "Samsung", "Xiaomi", "POCO", "Google"],
     children: [
       { 
-        id: "mobile-brands", 
+        id: "mobiles-brands", 
         name: "მობილურის ბრენდები", 
-        slug: "mobile-brands", 
-        productCount: 130,
+        slug: "mobiles-brands", 
+        productCount: 210,
         items: [
-          { id: "apple-phones", name: "Apple iPhones", slug: "iphones", brandQuery: "apple", productCount: 32 },
-          { id: "samsung-phones", name: "Samsung Galaxy", slug: "androids", brandQuery: "samsung", productCount: 45 },
-          { id: "xiaomi-phones", name: "Xiaomi & Redmi", slug: "androids", brandQuery: "xiaomi", productCount: 28 },
-          { id: "poco-phones", name: "POCO Series", slug: "androids", brandQuery: "poco", productCount: 15 },
-          { id: "google-pixel", name: "Google Pixel", slug: "androids", brandQuery: "google", productCount: 12 },
+          { id: "mob-apple", name: "Apple", slug: "iphones", brandQuery: "apple" },
+          { id: "mob-samsung", name: "Samsung", slug: "androids", brandQuery: "samsung" },
+          { id: "mob-xiaomi", name: "Xiaomi", slug: "androids", brandQuery: "xiaomi" },
+          { id: "mob-poco", name: "Poco", slug: "androids", brandQuery: "poco" },
+          { id: "mob-vivo", name: "Vivo", slug: "androids", brandQuery: "vivo" },
+          { id: "mob-google", name: "Google", slug: "androids", brandQuery: "google" },
+          { id: "mob-nothing", name: "Nothing", slug: "androids", brandQuery: "nothing" },
+          { id: "mob-oneplus", name: "OnePlus", slug: "androids", brandQuery: "oneplus" },
+          { id: "mob-realme", name: "Realme", slug: "androids", brandQuery: "realme" },
+          { id: "mob-oppo", name: "Oppo", slug: "androids", brandQuery: "oppo" },
+          { id: "mob-zte", name: "ZTE", slug: "androids", brandQuery: "zte" },
+          { id: "mob-motorola", name: "Motorola", slug: "androids", brandQuery: "motorola" },
+          { id: "mob-blackview", name: "Blackview", slug: "androids", brandQuery: "blackview" },
         ]
       },
       { 
-        id: "earphones", 
-        name: "ყურსასმენები", 
-        slug: "earphones", 
-        productCount: 95,
-        items: [
-          { id: "airpods", name: "Apple AirPods", slug: "wireless-earphones", brandQuery: "apple", productCount: 18 },
-          { id: "galaxy-buds", name: "Samsung Galaxy Buds", slug: "wireless-earphones", brandQuery: "samsung", productCount: 16 },
-          { id: "xiaomi-buds", name: "Xiaomi Buds", slug: "wireless-earphones", brandQuery: "xiaomi", productCount: 22 },
-          { id: "sony-buds", name: "Sony Wireless Buds", slug: "wireless-earphones", brandQuery: "sony", productCount: 14 },
-          { id: "marshall-earphones", name: "Marshall Motif & Minor", slug: "wireless-earphones", brandQuery: "marshall", productCount: 10 },
-        ]
-      },
-      { 
-        id: "mobile-cases", 
-        name: "მობილურის ჩასადებები", 
-        slug: "mobile-cases", 
-        productCount: 150,
-        items: [
-          { id: "magsafe-cases", name: "MagSafe ჩასადებები", slug: "phone-cases", productCount: 45 },
-          { id: "clear-cases", name: "გამჭვირვალე სილიკონები", slug: "phone-cases", productCount: 35 },
-          { id: "leather-cases", name: "ტყავის ქეისები", slug: "phone-cases", productCount: 25 },
-          { id: "armor-cases", name: "დარტყმაგამძლე ქეისები", slug: "phone-cases", productCount: 35 },
-        ]
-      },
-      { 
-        id: "smartwatches-sub", 
-        name: "სმარტ საათები", 
-        slug: "smartwatches-sub", 
-        productCount: 65,
-        items: [
-          { id: "apple-watch", name: "Apple Watch Series & Ultra", slug: "smartwatches", brandQuery: "apple", productCount: 24 },
-          { id: "galaxy-watch", name: "Samsung Galaxy Watch", slug: "smartwatches", brandQuery: "samsung", productCount: 18 },
-          { id: "smart-bands", name: "Xiaomi Smart Band", slug: "smartwatches", brandQuery: "xiaomi", productCount: 12 },
-          { id: "garmin-watch", name: "Garmin & Huawei Watch", slug: "smartwatches", brandQuery: "garmin", productCount: 8 },
-        ]
-      },
-      { 
-        id: "wireless-chargers", 
+        id: "wireless-chargers-sub", 
         name: "უსადენო დამტენები", 
         slug: "wireless-chargers", 
-        productCount: 35,
-        items: [
-          { id: "magsafe-chargers", name: "Apple MagSafe Charger", slug: "chargers", brandQuery: "apple", productCount: 15 },
-          { id: "samsung-wireless-pad", name: "Samsung Wireless Fast Charger", slug: "chargers", brandQuery: "samsung", productCount: 12 },
-          { id: "3in1-charging-stations", name: "3in1 Charging Stations", slug: "chargers", productCount: 8 },
-        ]
-      },
-      { 
-        id: "charger-adapters", 
-        name: "დამტენი ადაპტერები", 
-        slug: "charger-adapters", 
         productCount: 85,
         items: [
-          { id: "fast-adapters-20w", name: "20W / 25W Fast Adapters", slug: "chargers", productCount: 40 },
-          { id: "turbo-adapters-67w", name: "45W / 67W Turbo Chargers", slug: "chargers", productCount: 25 },
-          { id: "usbc-lightning-cables", name: "Type-C & Lightning Cables", slug: "chargers", productCount: 20 },
+          { id: "wc-apple", name: "Apple", slug: "chargers", brandQuery: "apple" },
+          { id: "wc-samsung", name: "Samsung", slug: "chargers", brandQuery: "samsung" },
+          { id: "wc-xiaomi", name: "Xiaomi", slug: "chargers", brandQuery: "xiaomi" },
+          { id: "wc-ugreen", name: "Ugreen", slug: "chargers", brandQuery: "ugreen" },
+          { id: "wc-belkin", name: "Belkin", slug: "chargers", brandQuery: "belkin" },
+          { id: "wc-havit", name: "Havit", slug: "chargers", brandQuery: "havit" },
+          { id: "wc-hoco", name: "Hoco", slug: "chargers", brandQuery: "hoco" },
+          { id: "wc-anker", name: "Anker", slug: "chargers", brandQuery: "anker" },
         ]
       },
       { 
-        id: "mobile-accessories", 
+        id: "earphones-buds", 
+        name: "ყურსასმენები Buds", 
+        slug: "earphones-buds", 
+        productCount: 140,
+        items: [
+          { id: "eb-airpods", name: "Apple Airpods", slug: "wireless-earphones", brandQuery: "apple" },
+          { id: "eb-galaxy", name: "Galaxy Buds", slug: "wireless-earphones", brandQuery: "samsung" },
+          { id: "eb-xiaomi", name: "Xiaomi Buds", slug: "wireless-earphones", brandQuery: "xiaomi" },
+          { id: "eb-sony", name: "Sony Buds", slug: "wireless-earphones", brandQuery: "sony" },
+          { id: "eb-nothing", name: "Nothing Buds", slug: "wireless-earphones", brandQuery: "nothing" },
+          { id: "eb-realme", name: "Realme Buds", slug: "wireless-earphones", brandQuery: "realme" },
+          { id: "eb-jbl", name: "JBL Buds", slug: "wireless-earphones", brandQuery: "jbl" },
+          { id: "eb-oneplus", name: "OnePlus Buds", slug: "wireless-earphones", brandQuery: "oneplus" },
+          { id: "eb-marshall", name: "Marshall Buds", slug: "wireless-earphones", brandQuery: "marshall" },
+          { id: "eb-motorola", name: "Motorola Buds", slug: "wireless-earphones", brandQuery: "motorola" },
+          { id: "eb-vivo", name: "Vivo Buds", slug: "wireless-earphones", brandQuery: "vivo" },
+          { id: "eb-accs", name: "Buds-ის აქსესუარები", slug: "wireless-earphones" },
+        ]
+      },
+      { 
+        id: "charger-adapters-main", 
+        name: "დამტენი ადაპტერი", 
+        slug: "charger-adapters", 
+        productCount: 95,
+        items: [
+          { id: "ca-apple", name: "Apple Adapter", slug: "chargers", brandQuery: "apple" },
+          { id: "ca-samsung", name: "Samsung Adapter", slug: "chargers", brandQuery: "samsung" },
+          { id: "ca-anker", name: "Anker Adapter", slug: "chargers", brandQuery: "anker" },
+          { id: "ca-spigen", name: "Spigen Adapter", slug: "chargers", brandQuery: "spigen" },
+          { id: "ca-belkin", name: "Belkin Adapter", slug: "chargers", brandQuery: "belkin" },
+          { id: "ca-ugreen", name: "Ugreen Adapter", slug: "chargers", brandQuery: "ugreen" },
+          { id: "ca-xiaomi", name: "Xiaomi adapter", slug: "chargers", brandQuery: "xiaomi" },
+          { id: "ca-baseus", name: "Baseus Adapter", slug: "chargers", brandQuery: "baseus" },
+        ]
+      },
+      { 
+        id: "mobile-cases-main", 
+        name: "მობილურის ჩასადებები", 
+        slug: "mobile-cases", 
+        productCount: 180,
+        items: [
+          { id: "mc-google", name: "For Google", slug: "phone-cases", brandQuery: "google" },
+          { id: "mc-realme", name: "For Realme", slug: "phone-cases", brandQuery: "realme" },
+          { id: "mc-apple", name: "For Apple", slug: "phone-cases", brandQuery: "apple" },
+          { id: "mc-samsung", name: "For Samsung", slug: "phone-cases", brandQuery: "samsung" },
+          { id: "mc-honor", name: "For Honor", slug: "phone-cases", brandQuery: "honor" },
+          { id: "mc-xiaomi", name: "For Xiaomi", slug: "phone-cases", brandQuery: "xiaomi" },
+          { id: "mc-oppo", name: "For Oppo", slug: "phone-cases", brandQuery: "oppo" },
+          { id: "mc-motorola", name: "For Motorola", slug: "phone-cases", brandQuery: "motorola" },
+          { id: "mc-nothing", name: "For Nothing", slug: "phone-cases", brandQuery: "nothing" },
+          { id: "mc-oneplus", name: "For Oneplus", slug: "phone-cases", brandQuery: "oneplus" },
+        ]
+      },
+      { 
+        id: "mobile-accessories-main", 
         name: "მობილურის აქსესუარები", 
         slug: "mobile-accessories", 
-        productCount: 90,
+        productCount: 160,
         items: [
-          { id: "screen-protectors", name: "ეკრანის ბრონირებული დამცავები", slug: "phone-cases", productCount: 40 },
-          { id: "car-holders", name: "მანქანის მობილურის სამაგრები", slug: "phone-cases", productCount: 30 },
-          { id: "selfie-sticks", name: "სელფის ჯოხები & შტატივები", slug: "phone-cases", productCount: 20 },
+          { id: "ma-screen", name: "ეკრანის დამცავები", slug: "phone-cases" },
+          { id: "ma-stabs", name: "მობილურის სტაბილიზატორები", slug: "phone-cases" },
+          { id: "ma-connectors", name: "კონექტორები", slug: "phone-cases" },
+          { id: "ma-cables", name: "კაბელები", slug: "phone-cases" },
+          { id: "ma-triggers", name: "სათამაშო ტრიგერები", slug: "phone-cases" },
+          { id: "ma-memory", name: "მეხსიერების ბარათი", slug: "phone-cases" },
+          { id: "ma-gps", name: "GPS ტრეკერები", slug: "phone-cases" },
+          { id: "ma-camera-prot", name: "კამერის დამცავები", slug: "phone-cases" },
+          { id: "ma-selfie", name: "სელფის ჯოხები", slug: "phone-cases" },
+          { id: "ma-otg", name: "OTG ფლეშ მეხსიერებები", slug: "phone-cases" },
         ]
       },
       { 
-        id: "powerbanks", 
-        name: "პოვერ ბანკები", 
-        slug: "powerbanks", 
-        productCount: 40,
+        id: "smartwatches-sub-main", 
+        name: "სმარტ საათები", 
+        slug: "smartwatches-sub", 
+        productCount: 120,
         items: [
-          { id: "anker-powerbanks", name: "Anker Powerbanks", slug: "chargers", brandQuery: "anker", productCount: 15 },
-          { id: "xiaomi-powerbanks", name: "Xiaomi Powerbanks 10000 / 20000mAh", slug: "chargers", brandQuery: "xiaomi", productCount: 18 },
-          { id: "magsafe-battery", name: "MagSafe Battery Packs", slug: "chargers", brandQuery: "apple", productCount: 7 },
+          { id: "sw-apple", name: "Apple Watch", slug: "smartwatches", brandQuery: "apple" },
+          { id: "sw-galaxy", name: "Galaxy Watch", slug: "smartwatches", brandQuery: "samsung" },
+          { id: "sw-xiaomi", name: "Xiaomi Watch", slug: "smartwatches", brandQuery: "xiaomi" },
+          { id: "sw-google", name: "Google Watch", slug: "smartwatches", brandQuery: "google" },
+          { id: "sw-amazfit", name: "Amazfit Watch", slug: "smartwatches", brandQuery: "amazfit" },
+          { id: "sw-garmin", name: "Garmin Watch", slug: "smartwatches", brandQuery: "garmin" },
+          { id: "sw-oneplus", name: "OnePlus Watch", slug: "smartwatches", brandQuery: "oneplus" },
+          { id: "sw-nothing", name: "Nothing Watch", slug: "smartwatches", brandQuery: "nothing" },
+          { id: "sw-accs", name: "საათის აქსესუარები", slug: "smartwatches" },
+          { id: "sw-lagenio", name: "Lagenio Watch", slug: "smartwatches", brandQuery: "lagenio" },
+        ]
+      },
+      { 
+        id: "power-banks-main", 
+        name: "Power banks", 
+        slug: "power-banks", 
+        productCount: 90,
+        items: [
+          { id: "pb-anker", name: "Anker", slug: "chargers", brandQuery: "anker" },
+          { id: "pb-ugreen", name: "Ugreen", slug: "chargers", brandQuery: "ugreen" },
+          { id: "pb-xiaomi", name: "Xiaomi", slug: "chargers", brandQuery: "xiaomi" },
+          { id: "pb-lenovo", name: "Lenovo", slug: "chargers", brandQuery: "lenovo" },
+          { id: "pb-ecoflow", name: "EcoFlow", slug: "chargers", brandQuery: "ecoflow" },
+          { id: "pb-belkin", name: "Belkin", slug: "chargers", brandQuery: "belkin" },
+          { id: "pb-samsung", name: "Samsung", slug: "chargers", brandQuery: "samsung" },
         ]
       },
     ],
@@ -113,7 +161,7 @@ export const CATEGORIES_DATA: Category[] = [
     children: [
       { 
         id: "tablet-brands", 
-        name: "ტაბების ბრენდები", 
+        name: "ბრენდები", 
         slug: "tablet-brands", 
         productCount: 50,
         items: [
@@ -142,7 +190,7 @@ export const CATEGORIES_DATA: Category[] = [
     children: [
       { 
         id: "watch-brands", 
-        name: "საათების ბრენდები", 
+        name: "ბრენდები", 
         slug: "watch-brands", 
         productCount: 65,
         items: [
@@ -166,13 +214,13 @@ export const CATEGORIES_DATA: Category[] = [
   },
   {
     id: "laptops",
-    name: "ლეპტოპები",
+    name: "ლეპტოპები | IT",
     slug: "laptops",
     icon: "Laptop",
     children: [
       { 
         id: "laptop-brands", 
-        name: "ლეპტოპების ბრენდები", 
+        name: "ბრენდები", 
         slug: "laptop-brands", 
         productCount: 95,
         items: [
@@ -201,24 +249,88 @@ export const CATEGORIES_DATA: Category[] = [
     icon: "Headphones",
     children: [
       { 
-        id: "portable-speakers", 
-        name: "პორტატული დინამიკები", 
-        slug: "portable-speakers", 
-        productCount: 60,
+        id: "audio-brands", 
+        name: "ბრენდები", 
+        slug: "audio-brands", 
+        productCount: 120,
         items: [
-          { id: "jbl-speakers", name: "JBL Boombox, Charge & Flip", slug: "speakers", brandQuery: "jbl", productCount: 25 },
-          { id: "marshall-speakers", name: "Marshall Stanmore, Acton & Emberton", slug: "speakers", brandQuery: "marshall", productCount: 20 },
-          { id: "bose-speakers", name: "Bose SoundLink & Portable", slug: "speakers", brandQuery: "bose", productCount: 15 },
+          { id: "brand-apple", name: "Apple", slug: "audio-systems", brandQuery: "apple" },
+          { id: "brand-samsung", name: "Samsung", slug: "audio-systems", brandQuery: "samsung" },
+          { id: "brand-xiaomi", name: "Xiaomi", slug: "audio-systems", brandQuery: "xiaomi" },
+          { id: "brand-jbl", name: "JBL", slug: "audio-systems", brandQuery: "jbl" },
+          { id: "brand-sony", name: "Sony", slug: "audio-systems", brandQuery: "sony" },
+          { id: "brand-bose", name: "Bose", slug: "audio-systems", brandQuery: "bose" },
+          { id: "brand-beats", name: "Beats", slug: "audio-systems", brandQuery: "beats" },
+          { id: "brand-realme", name: "Realme", slug: "audio-systems", brandQuery: "realme" },
+          { id: "brand-marshall", name: "Marshall", slug: "audio-systems", brandQuery: "marshall" },
         ]
       },
       { 
-        id: "soundbars-home", 
-        name: "საუნდბარები & სახლის აუდიო", 
-        slug: "soundbars-home", 
-        productCount: 25,
+        id: "headphones-sub", 
+        name: "ყურსასმენები", 
+        slug: "headphones", 
+        productCount: 95,
         items: [
-          { id: "sony-soundbars", name: "Sony Soundbars 5.1 & Dolby Atmos", slug: "soundbars", brandQuery: "sony", productCount: 12 },
-          { id: "jbl-soundbars", name: "JBL Cinema Soundbars", slug: "soundbars", brandQuery: "jbl", productCount: 13 },
+          { id: "head-headphones", name: "Headphones", slug: "headphones" },
+          { id: "head-buds", name: "Buds", slug: "headphones" },
+          { id: "head-earphones", name: "Earphones", slug: "headphones" },
+          { id: "head-gaming", name: "Gaming", slug: "headphones" },
+          { id: "head-sport", name: "სპორტული", slug: "headphones" },
+          { id: "head-kids", name: "საბავშვო", slug: "headphones" },
+        ]
+      },
+      { 
+        id: "audio-equipment", 
+        name: "აუდიო ტექნიკა", 
+        slug: "audio-equipment", 
+        productCount: 75,
+        items: [
+          { id: "eq-portable", name: "პორტატული დინამიკები", slug: "audio-equipment" },
+          { id: "eq-home", name: "სახლის დინამიკები", slug: "audio-equipment" },
+          { id: "eq-turntables", name: "ფირსაკრავები", slug: "audio-equipment" },
+          { id: "eq-smart", name: "სმარტ ასისტენტები", slug: "audio-equipment" },
+          { id: "eq-soundbar", name: "Soundbar", slug: "audio-equipment" },
+        ]
+      },
+      { 
+        id: "microphones", 
+        name: "მიკროფონები", 
+        slug: "microphones", 
+        productCount: 50,
+        items: [
+          { id: "mic-streaming", name: "სტრიმინგ მიკროფონები", slug: "microphones" },
+          { id: "mic-gaming", name: "გეიმინგ მიკროფონები", slug: "microphones" },
+          { id: "mic-lavalier", name: "ლაველური მიკროფონები", slug: "microphones" },
+          { id: "mic-wireless", name: "უსადენო მიკროფონები", slug: "microphones" },
+          { id: "mic-camera", name: "ფოტოაპარატის მიკროფონები", slug: "microphones" },
+        ]
+      },
+      { 
+        id: "audio-accessories", 
+        name: "აქსესუარები", 
+        slug: "audio-accessories", 
+        productCount: 65,
+        items: [
+          { id: "acc-powerbanks", name: "Power Banks", slug: "accessories" },
+          { id: "acc-extensions", name: "დენის დამაგრძელებლები", slug: "accessories" },
+          { id: "acc-cables", name: "კაბელები", slug: "accessories" },
+          { id: "acc-wireless-chargers", name: "უსადენო დამტენები", slug: "accessories" },
+        ]
+      },
+      { 
+        id: "charging-adapters", 
+        name: "დამტენი ადაპტერი", 
+        slug: "charging-adapters", 
+        productCount: 80,
+        items: [
+          { id: "ad-apple", name: "Apple Adapter", slug: "chargers" },
+          { id: "ad-samsung", name: "Samsung Adapter", slug: "chargers" },
+          { id: "ad-anker", name: "Anker Adapter", slug: "chargers" },
+          { id: "ad-spigen", name: "Spigen Adapter", slug: "chargers" },
+          { id: "ad-belkin", name: "Belkin Adapter", slug: "chargers" },
+          { id: "ad-ugreen", name: "Ugreen Adapter", slug: "chargers" },
+          { id: "ad-xiaomi", name: "Xiaomi adapter", slug: "chargers" },
+          { id: "ad-baseus", name: "Baseus Adapter", slug: "chargers" },
         ]
       },
     ],

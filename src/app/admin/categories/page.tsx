@@ -49,9 +49,14 @@ export default function AdminCategoriesPage() {
   const [icon, setIcon] = useState("Smartphone");
 
   useEffect(() => {
-    setCategories(dataService.getCategories());
+    const loadCats = async () => {
+      await dataService.syncFromBackend(true);
+      setCategories([...dataService.getCategories()]);
+    };
+    loadCats();
+
     const unsub = dataService.subscribe(() => {
-      setCategories(dataService.getCategories());
+      setCategories([...dataService.getCategories()]);
     });
     return () => unsub();
   }, []);
@@ -267,16 +272,24 @@ export default function AdminCategoriesPage() {
         <div className="space-y-4">
           {categories.map((root) => {
             const isRootExpanded = expandedRootIds[root.id] ?? true;
-            const hasSubcategories = root.children && root.children.length > 0;
+            const subCount = root.children ? root.children.length : 0;
+            const hasSubcategories = subCount > 0;
 
             return (
               <div key={root.id} className="border border-gray-200/90 rounded-2xl overflow-hidden bg-white shadow-2xs">
                 
                 {/* LEVEL 1 ROW */}
-                <div className="flex items-center justify-between p-4 bg-gray-50/90 hover:bg-gray-100/70 transition-colors select-none">
+                <div 
+                  onClick={() => toggleExpandRoot(root.id)}
+                  className="flex items-center justify-between p-4 bg-gray-50/90 hover:bg-gray-100/70 transition-colors select-none cursor-pointer"
+                >
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => toggleExpandRoot(root.id)}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpandRoot(root.id);
+                      }}
                       className="p-1 text-gray-500 hover:text-gray-900 rounded-lg cursor-pointer"
                     >
                       {isRootExpanded ? (
@@ -294,12 +307,15 @@ export default function AdminCategoriesPage() {
                         <span className="px-2 py-0.5 text-[9px] bg-blue-600 text-white rounded-full font-bold uppercase tracking-wider">
                           Level 1
                         </span>
+                        <span className="px-2 py-0.5 text-[10px] bg-gray-200 text-gray-700 rounded-full font-bold">
+                          {subCount} ქვეკატეგორია
+                        </span>
                       </div>
                       <p className="text-[11px] text-gray-400 font-mono">slug: /{root.slug}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleOpenAddSub(root.id)}
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
@@ -325,9 +341,10 @@ export default function AdminCategoriesPage() {
                 </div>
 
                 {/* LEVEL 2 & LEVEL 3 CONTAINER */}
-                {isRootExpanded && hasSubcategories && (
+                {isRootExpanded && (
                   <div className="p-4 bg-white border-t border-gray-100 space-y-4">
-                    {root.children!.map((sub) => {
+                    {hasSubcategories ? (
+                      root.children!.map((sub) => {
                       const isSubExpanded = expandedSubIds[sub.id] ?? true;
                       const hasItems = sub.items && sub.items.length > 0;
 
@@ -431,7 +448,19 @@ export default function AdminCategoriesPage() {
 
                         </div>
                       );
-                    })}
+                    })
+                  ) : (
+                    <div className="flex items-center justify-between text-xs text-gray-400 italic p-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <span>ამ კატეგორიაში სუბკატეგორიები (Level 2) ჯერ არ არის დამატებული.</span>
+                      <button
+                        onClick={() => handleOpenAddSub(root.id)}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Level 2-ის დამატება</span>
+                      </button>
+                    </div>
+                  )}
                   </div>
                 )}
 

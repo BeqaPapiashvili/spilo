@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Smartphone, Laptop, Watch, Headphones, Gamepad2, Tv, Camera, Home, Sparkles } from "lucide-react";
-import { CATEGORIES_DATA } from "@/data/categories";
+import { dataService } from "@/services/dataService";
+import { Category } from "@/types";
+import { CategoryBarSkeleton } from "@/components/skeletons/CategoryBarSkeleton";
 
 const iconMap: Record<string, any> = {
   Smartphone,
@@ -17,7 +20,24 @@ const iconMap: Record<string, any> = {
 };
 
 export default function FeaturedCategories() {
-  const topCategories = CATEGORIES_DATA.slice(0, 8);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const cats = dataService.getCategories();
+    setCategories(cats);
+    setIsLoading(false);
+    const unsub = dataService.subscribe(() => {
+      setCategories(dataService.getCategories());
+    });
+    return () => unsub();
+  }, []);
+
+  if (isLoading && categories.length === 0) {
+    return <CategoryBarSkeleton />;
+  }
+
+  const topCategories = categories.slice(0, 8);
 
   return (
     <section className="py-4">

@@ -60,7 +60,7 @@ function CheckoutContent() {
     );
   }
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -83,12 +83,35 @@ function CheckoutContent() {
       paymentMethodText = "ნაღდი ანგარიშსწორება მიწოდებისას";
     }
 
+    const orderPayload = {
+      items: [...cart],
+      customer: {
+        name: fullName,
+        phone: contactPhone,
+      },
+      totalAmount: cartSubtotal,
+      paymentMethod: paymentMethodText,
+      address: `${city}, ${address}${apt ? `, ბინა/სართული ${apt}` : ""}`,
+    };
+
+    // Save order in local Zustand store
     const orderId = addOrder({
       items: [...cart],
       totalAmount: cartSubtotal,
       paymentMethod: paymentMethodText,
       address: `${city}, ${address}${apt ? `, ბინა/სართული ${apt}` : ""}`,
     });
+
+    // Post to MySQL API Endpoint asynchronously
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+    } catch (err) {
+      console.warn("Failed to persist order to MySQL:", err);
+    }
 
     clearCart();
     router.push(`/checkout/success?orderId=${orderId}`);

@@ -12,17 +12,30 @@ import {
   ShieldCheck, 
   Settings, 
   ChevronDown,
-  LayoutDashboard
+  LogOut
 } from "lucide-react";
 import { dataService } from "@/services/dataService";
+import { useStore } from "@/store/useStore";
 
 export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSidebar }) => {
   const router = useRouter();
+  const { adminUser, logoutAdmin, addToast } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const auditLogs = dataService.getAuditLogs().slice(0, 5);
+
+  const handleAdminLogout = () => {
+    logoutAdmin();
+    setIsProfileOpen(false);
+    addToast({
+      title: "სესიის დასრულება",
+      message: "თქვენ გამოხვედით ადმინ პანელიდან",
+      type: "info",
+    });
+    router.push("/admin/login");
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,16 +87,6 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
       {/* Right: Quick actions + Notifications + Profile */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         
-        <Link
-          href="/admin/products/new"
-          className="adm-btn-primary"
-          style={{ display: "none" }}
-        >
-          <Plus className="w-4 h-4" />
-          <span>ახალი</span>
-        </Link>
-
-        {/* Show on sm+ */}
         <Link
           href="/admin/products/new"
           className="adm-btn-primary hidden sm:inline-flex"
@@ -151,10 +154,10 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
               background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
               color: "#fff", fontSize: "0.65rem", display: "flex",
               alignItems: "center", justifyContent: "center"
-            }}>BP</div>
+            }} className="font-semibold">{adminUser?.name ? adminUser.name.slice(0, 2).toUpperCase() : "AD"}</div>
             <div style={{ textAlign: "left" }} className="hidden md:block">
-              <p style={{ fontSize: "0.75rem", color: "#0f172a", lineHeight: 1.2 }}>Beka Papiashvili</p>
-              <p style={{ fontSize: "0.65rem", color: "#94a3b8", lineHeight: 1.2 }}>Super Admin</p>
+              <p style={{ fontSize: "0.75rem", color: "#0f172a", lineHeight: 1.2 }}>{adminUser?.name || "Admin User"}</p>
+              <p style={{ fontSize: "0.65rem", color: "#94a3b8", lineHeight: 1.2 }}>{adminUser?.role || "SUPER_ADMIN"}</p>
             </div>
             <ChevronDown className="w-3 h-3" style={{ color: "#94a3b8" }} />
           </button>
@@ -168,8 +171,8 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
               }}
             >
               <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9" }}>
-                <p style={{ fontSize: "0.8rem", color: "#0f172a" }}>Beka Papiashvili</p>
-                <p style={{ fontSize: "0.7rem", color: "#94a3b8" }}>beka@spilo.ge</p>
+                <p style={{ fontSize: "0.8rem", color: "#0f172a" }}>{adminUser?.name || "Admin User"}</p>
+                <p style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{adminUser?.email || "admin@spilo.ge"}</p>
               </div>
               <div style={{ padding: "0.375rem" }}>
                 <Link href="/admin/settings" onClick={() => setIsProfileOpen(false)}
@@ -180,22 +183,15 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
                   <Settings className="w-4 h-4" style={{ color: "#94a3b8" }} />
                   <span>პარამეტრები</span>
                 </Link>
-                <Link href="/admin/users" onClick={() => setIsProfileOpen(false)}
-                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#475569", transition: "background 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+                <button
+                  onClick={handleAdminLogout}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#ef4444", marginTop: "0.25rem", borderTop: "1px solid #f1f5f9", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#fef2f2")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <ShieldCheck className="w-4 h-4" style={{ color: "#94a3b8" }} />
-                  <span>ადმინები & როლები</span>
-                </Link>
-                <Link href="/"
-                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#6366f1", marginTop: "0.25rem", borderTop: "1px solid #f1f5f9", transition: "background 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#f5f3ff")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Storefront-ზე გადასვლა</span>
-                </Link>
+                  <LogOut className="w-4 h-4 text-red-500" />
+                  <span>ადმინპანელიდან გამოსვლა</span>
+                </button>
               </div>
             </div>
           )}

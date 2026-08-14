@@ -1,10 +1,59 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import ProductCarousel from "@/components/ProductCarousel";
+import { dataService } from "@/services/dataService";
+import { Product } from "@/types";
+import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
 
 export default function FlashDealsSection() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const list = dataService.getProducts();
+    setProducts(list);
+    setIsLoading(false);
+    const unsub = dataService.subscribe(() => {
+      setProducts(dataService.getProducts());
+    });
+    return () => unsub();
+  }, []);
+
+  const formatForCarousel = (items: Product[]) =>
+    items.map((p) => ({
+      ...p,
+      image: p.image || (p.images && p.images[0]) || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80",
+    }));
+
+  const djiProducts = formatForCarousel(
+    products.filter(
+      (p) => (p.brandId === "dji" || (p.brandName && p.brandName.toLowerCase() === "dji") || p.categoryId === "photo-video")
+    )
+  );
+  const mobileProducts = formatForCarousel(
+    products.filter(
+      (p) => p.categoryId === "mobiles" || (p.categoryName && p.categoryName.toLowerCase().includes("მობილურ"))
+    )
+  );
+  const laptopProducts = formatForCarousel(
+    products.filter(
+      (p) => p.categoryId === "laptops" || p.categoryId === "gaming" || (p.categoryName && p.categoryName.toLowerCase().includes("ლეპტოპ"))
+    )
+  );
+
+  const fallbackList = formatForCarousel(products);
+
+  if (isLoading && products.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <ProductGridSkeleton count={4} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-14">
       {/* Product Carousel 1: DJI Drones & Accessories */}
@@ -26,53 +75,7 @@ export default function FlashDealsSection() {
           </div>
 
           <ProductCarousel 
-            products={[
-              { 
-                id: "dji-neo", 
-                title: "დრონი DJI Neo Drone Gray", 
-                price: 799, 
-                discountPrice: 699, 
-                monthlyInstallment: 28, 
-                image: "https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg", 
-                discountPercentage: 12 
-              },
-              { 
-                id: "dji-mini-4", 
-                title: "დრონი DJI Mini 4 Pro Fly More Combo", 
-                price: 3899, 
-                discountPrice: 3299, 
-                monthlyInstallment: 132, 
-                image: "https://veli.store/media-cdn/__sized__/product/DJI-ZM700_20250710210650-thumbnail-200x200-95.jpg", 
-                discountPercentage: 15 
-              },
-              { 
-                id: "dji-pocket-3", 
-                title: "სტაბილიზატორი DJI Osmo Pocket 3 Creator Combo", 
-                price: 2499, 
-                discountPrice: 2199, 
-                monthlyInstallment: 88, 
-                image: "https://veli.store/media-cdn/__sized__/product/DJI-ZPK300-C1-8_20250710160051-thumbnail-200x200-95.jpg", 
-                discountPercentage: 12 
-              },
-              { 
-                id: "dji-osmo-6", 
-                title: "სმარტფონის სტაბილიზატორი DJI Osmo Mobile 6", 
-                price: 599, 
-                discountPrice: 499, 
-                monthlyInstallment: 20, 
-                image: "https://veli.store/media-cdn/__sized__/product/DJI_Osmo_Mobile_7P-thumbnail-200x200-95.jpg", 
-                discountPercentage: 17 
-              },
-              { 
-                id: "dji-rc-n3", 
-                title: "დისტანციური მართვის პულტი DJI RC-N3 Remote Controller", 
-                price: 449, 
-                discountPrice: 379, 
-                monthlyInstallment: 15, 
-                image: "https://veli.store/media-cdn/__sized__/product/DJI_RC-N3-1-thumbnail-200x200-95.jpg", 
-                discountPercentage: 15 
-              },
-            ]} 
+            products={djiProducts.length > 0 ? djiProducts : fallbackList} 
           />
         </div>
       </section>
@@ -96,53 +99,7 @@ export default function FlashDealsSection() {
           </div>
 
           <ProductCarousel 
-            products={[
-              { 
-                id: "iphone-16-pro-max", 
-                title: "სმარტფონი Apple iPhone 16 Pro Max 256GB Desert Titanium", 
-                price: 4899, 
-                discountPrice: 4399, 
-                monthlyInstallment: 175, 
-                image: "https://veli.store/media-cdn/__sized__/product/Apple_iPhone_16_Pro_Desert_Titanium_1-thumbnail-200x200-95.png", 
-                discountPercentage: 10 
-              },
-              { 
-                id: "samsung-s25-ultra", 
-                title: "სმარტფონი Samsung Galaxy S25 Ultra 12GB/512GB Titanium Black", 
-                price: 4599, 
-                discountPrice: 3999, 
-                monthlyInstallment: 160, 
-                image: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&q=80", 
-                discountPercentage: 13 
-              },
-              { 
-                id: "google-pixel-9-pro", 
-                title: "სმარტფონი Google Pixel 9 Pro XL 16GB/256GB Obsidian", 
-                price: 3699, 
-                discountPrice: 3199, 
-                monthlyInstallment: 128, 
-                image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&q=80", 
-                discountPercentage: 14 
-              },
-              { 
-                id: "airpods-pro-2", 
-                title: "უსადენო ყურსასმენი Apple AirPods Pro 2 USB-C Case", 
-                price: 899, 
-                discountPrice: 749, 
-                monthlyInstallment: 30, 
-                image: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&q=80", 
-                discountPercentage: 17 
-              },
-              { 
-                id: "magsafe-charger", 
-                title: "უსადენო დამტენი Apple MagSafe Charger 25W White", 
-                price: 199, 
-                discountPrice: 169, 
-                monthlyInstallment: 7, 
-                image: "https://images.unsplash.com/photo-1622445268465-843d31ed157c?w=400&q=80", 
-                discountPercentage: 15 
-              },
-            ]} 
+            products={mobileProducts.length > 0 ? mobileProducts : fallbackList} 
           />
         </div>
       </section>
@@ -166,53 +123,7 @@ export default function FlashDealsSection() {
           </div>
 
           <ProductCarousel 
-            products={[
-              { 
-                id: "macbook-pro-16", 
-                title: "ლეპტოპი Apple MacBook Pro 16\" M3 Max / 36GB / 1TB Space Black", 
-                price: 11499, 
-                discountPrice: 9999, 
-                monthlyInstallment: 400, 
-                image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80", 
-                discountPercentage: 13 
-              },
-              { 
-                id: "asus-rog-zephyrus", 
-                title: "გეიმინგ ლეპტოპი ASUS ROG Zephyrus G16 OLED i9/32GB/1TB RTX 4080", 
-                price: 8999, 
-                discountPrice: 7999, 
-                monthlyInstallment: 320, 
-                image: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400&q=80", 
-                discountPercentage: 11 
-              },
-              { 
-                id: "dell-xps-15", 
-                title: "ლეპტოპი Dell XPS 15 9530 i7 / 16GB / 512GB RTX 4050 Silver", 
-                price: 5499, 
-                discountPrice: 4799, 
-                monthlyInstallment: 192, 
-                image: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&q=80", 
-                discountPercentage: 13 
-              },
-              { 
-                id: "logitech-mx-master-3s", 
-                title: "უსადენო მაუსი Logitech MX Master 3S Performance Graphite", 
-                price: 389, 
-                discountPrice: 329, 
-                monthlyInstallment: 13, 
-                image: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400&q=80", 
-                discountPercentage: 15 
-              },
-              { 
-                id: "samsung-odyssey-g9", 
-                title: "მონიტორი Samsung Odyssey OLED G9 49\" 240Hz Gaming", 
-                price: 4999, 
-                discountPrice: 4299, 
-                monthlyInstallment: 172, 
-                image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&q=80", 
-                discountPercentage: 14 
-              },
-            ]} 
+            products={laptopProducts.length > 0 ? laptopProducts : fallbackList} 
           />
         </div>
       </section>

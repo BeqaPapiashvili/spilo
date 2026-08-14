@@ -15,7 +15,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }, []);
 
   useEffect(() => {
-    if (!isMounted || !_hasHydrated) return;
+    const isStoreHydrated = _hasHydrated || (useStore.persist?.hasHydrated ? useStore.persist.hasHydrated() : true);
+    if (!isMounted || !isStoreHydrated) return;
 
     if (!user) {
       addToast({

@@ -20,12 +20,14 @@ import {
   X
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { PRODUCTS_DATA } from "@/data/products";
+import { dataService } from "@/services/dataService";
+import { Product } from "@/types";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { RecentlyViewedCarousel } from "@/components/RecentlyViewedCarousel";
+import { ProductDetailSkeleton } from "@/components/skeletons/ProductDetailSkeleton";
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -40,8 +42,43 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     addToast
   } = useStore();
 
-  // Find product from PRODUCTS_DATA or fallback to first
-  const product = PRODUCTS_DATA.find((p) => p.id === resolvedParams.id) || PRODUCTS_DATA[0];
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch live product from dataService / MySQL API
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
+    const loadProduct = () => {
+      const found = dataService.getProductById(resolvedParams.id);
+      if (found) {
+        if (isMounted) {
+          setProduct(found);
+          setIsLoading(false);
+        }
+      } else {
+        fetch(`/api/products/${resolvedParams.id}`)
+          .then((res) => res.json())
+          .then((json) => {
+            if (isMounted && json.success && json.data) {
+              setProduct(json.data);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (isMounted) setIsLoading(false);
+          });
+      }
+    };
+
+    loadProduct();
+    const unsub = dataService.subscribe(loadProduct);
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, [resolvedParams.id]);
 
   // States
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -53,21 +90,31 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "", author: "" });
 
-  const isLiked = isInWishlist(product.id);
-  const isCompared = compareList.includes(product.id);
-
   // Track product in recently viewed
   useEffect(() => {
-    addRecentlyViewed({
-      id: product.id,
-      title: product.title,
-      price: product.price,
-      discountPrice: product.discountPrice,
-      monthlyInstallment: product.monthlyInstallment,
-      image: product.images[0],
-      discountPercentage: product.discountPercentage,
-    });
+    if (product) {
+      addRecentlyViewed({
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        discountPrice: product.discountPrice,
+        monthlyInstallment: product.monthlyInstallment,
+        image: product.images?.[0] || product.image || "",
+        discountPercentage: product.discountPercentage,
+      });
+    }
   }, [product, addRecentlyViewed]);
+
+  if (isLoading || !product) {
+    return (
+      <main className="min-h-screen bg-gray-50/50 py-8">
+        <ProductDetailSkeleton />
+      </main>
+    );
+  }
+
+  const isLiked = isInWishlist(product.id);
+  const isCompared = compareList.includes(product.id);
 
   const currentPrice = product.discountPrice || product.price;
 

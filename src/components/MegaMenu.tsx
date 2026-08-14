@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -18,7 +18,8 @@ import {
   Tablet,
   Sparkle
 } from "lucide-react";
-import { CATEGORIES_DATA } from "@/data/categories";
+import { dataService } from "@/services/dataService";
+import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
   Camera: <Camera className="w-4 h-4 text-gray-600" />,
@@ -38,9 +39,26 @@ export interface MegaMenuProps {
 }
 
 export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
-  const [activeCategoryId, setActiveCategoryId] = useState<string>(CATEGORIES_DATA[0].id);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string>("");
 
-  const activeCategory = CATEGORIES_DATA.find((cat) => cat.id === activeCategoryId) || CATEGORIES_DATA[0];
+  useEffect(() => {
+    const cats = dataService.getCategories();
+    setCategories(cats);
+    if (cats.length > 0 && !activeCategoryId) {
+      setActiveCategoryId(cats[0].id);
+    }
+    const unsub = dataService.subscribe(() => {
+      const updated = dataService.getCategories();
+      setCategories(updated);
+      if (updated.length > 0 && !activeCategoryId) {
+        setActiveCategoryId(updated[0].id);
+      }
+    });
+    return () => unsub();
+  }, [activeCategoryId]);
+
+  const activeCategory = categories.find((cat) => cat.id === activeCategoryId || cat.slug === activeCategoryId) || categories[0];
 
   return (
     <AnimatePresence>
@@ -68,7 +86,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
               {/* 1. Left Sidebar: Main Categories List with Custom Sleek Scrollbar */}
               <div className="w-[250px] bg-[#F4F5F7] border-r border-gray-200/80 py-3 px-2.5 pr-1.5 overflow-y-auto shrink-0 select-none custom-sidebar-scrollbar">
                 <div className="flex flex-col gap-1">
-                  {CATEGORIES_DATA.map((category) => {
+                  {categories.map((category) => {
                     const isSelected = category.id === activeCategoryId;
                     return (
                       <button

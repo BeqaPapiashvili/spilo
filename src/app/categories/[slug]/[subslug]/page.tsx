@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use } from "react";
+import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ChevronRight, 
@@ -16,7 +16,8 @@ import {
   Watch,
   Camera
 } from "lucide-react";
-import { CATEGORIES_DATA } from "@/data/categories";
+import { dataService } from "@/services/dataService";
+import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
   Camera: <Camera className="w-12 h-12 stroke-[1.6]" />,
@@ -37,7 +38,17 @@ export default function DeepSubCategoryItemsPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { slug, subslug } = resolvedParams;
 
-  const category = CATEGORIES_DATA.find((c) => c.slug === slug || c.id === slug);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    setCategories(dataService.getCategories());
+    const unsub = dataService.subscribe(() => {
+      setCategories(dataService.getCategories());
+    });
+    return () => unsub();
+  }, []);
+
+  const category = categories.find((c) => c.slug === slug || c.id === slug);
   const subCategory = category?.children?.find((s) => s.slug === subslug || s.id === subslug);
 
   if (!category || !subCategory) {

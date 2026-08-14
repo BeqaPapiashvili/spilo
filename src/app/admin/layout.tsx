@@ -4,10 +4,18 @@ import React, { useState } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 
+import { usePathname } from "next/navigation";
 import AdminRoute from "@/components/auth/AdminRoute";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isLoginPage = pathname === "/admin/login";
+
+  if (isLoginPage) {
+    return <AdminRoute>{children}</AdminRoute>;
+  }
 
   return (
     <AdminRoute>

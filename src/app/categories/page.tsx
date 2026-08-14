@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ChevronRight, 
@@ -16,7 +16,8 @@ import {
   Camera,
   Tablet
 } from "lucide-react";
-import { CATEGORIES_DATA } from "@/data/categories";
+import { dataService } from "@/services/dataService";
+import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
   Camera: <Camera className="w-12 h-12 stroke-[1.6]" />,
@@ -32,10 +33,19 @@ const iconMap: Record<string, React.ReactNode> = {
 
 export default function MainCategoriesPage() {
   const [filterQuery, setFilterQuery] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    setCategories(dataService.getCategories());
+    const unsub = dataService.subscribe(() => {
+      setCategories(dataService.getCategories());
+    });
+    return () => unsub();
+  }, []);
 
   const cleanQuery = filterQuery.trim().toLowerCase();
 
-  const filteredCategories = CATEGORIES_DATA.filter((cat) => {
+  const filteredCategories = categories.filter((cat) => {
     if (!cleanQuery) return true;
     return (
       cat.name.toLowerCase().includes(cleanQuery) ||

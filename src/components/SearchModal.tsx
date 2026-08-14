@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, History, TrendingUp, ArrowRight, Tag } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { PRODUCTS_DATA } from "@/data/products";
-import { CATEGORIES_DATA } from "@/data/categories";
+import { dataService } from "@/services/dataService";
+import { Product, Category } from "@/types";
 
 export interface SearchModalProps {
   isOpen: boolean;
@@ -17,15 +17,27 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   const router = useRouter();
   const { recentSearches, addRecentSearch, clearRecentSearches } = useStore();
   const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    setProducts(dataService.getProducts());
+    setCategories(dataService.getCategories());
+    const unsub = dataService.subscribe(() => {
+      setProducts(dataService.getProducts());
+      setCategories(dataService.getCategories());
+    });
+    return () => unsub();
+  }, []);
 
   const cleanQuery = query.trim().toLowerCase();
 
   const filteredProducts = cleanQuery
-    ? PRODUCTS_DATA.filter(
+    ? products.filter(
         (p) =>
           p.title.toLowerCase().includes(cleanQuery) ||
-          p.brandName.toLowerCase().includes(cleanQuery) ||
-          p.categoryName.toLowerCase().includes(cleanQuery) ||
+          (p.brandName && p.brandName.toLowerCase().includes(cleanQuery)) ||
+          (p.categoryName && p.categoryName.toLowerCase().includes(cleanQuery)) ||
           p.sku.toLowerCase().includes(cleanQuery)
       )
     : [];
@@ -207,7 +219,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       კატეგორიები
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      {CATEGORIES_DATA.map((cat) => (
+                      {categories.slice(0, 6).map((cat) => (
                         <div
                           key={cat.id}
                           onClick={() => {

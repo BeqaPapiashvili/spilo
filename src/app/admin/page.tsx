@@ -14,25 +14,39 @@ export default function AdminDashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const storeOrders = useStore((state) => state.orders);
 
   useEffect(() => {
     setIsMounted(true);
     setProducts(dataService.getProducts());
     setAuditLogs(dataService.getAuditLogs());
+
+    fetch("/api/orders")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && resData.success && Array.isArray(resData.data)) {
+          setOrders(resData.data);
+        } else {
+          setOrders(storeOrders);
+        }
+      })
+      .catch(() => setOrders(storeOrders));
+
     const unsub = dataService.subscribe(() => {
       setProducts(dataService.getProducts());
       setAuditLogs(dataService.getAuditLogs());
     });
     return () => unsub();
-  }, []);
+  }, [storeOrders]);
 
+  const activeOrders = orders.length > 0 ? orders : storeOrders;
   const outOfStockCount = products.filter((p) => p.stock === 0).length;
   const lowStockCount = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
-  const totalRevenue = storeOrders.reduce((s, o) => s + (o.totalAmount || 0), 0) + 148920;
-  const avgOrderValue = storeOrders.length > 0 
-    ? Math.round((totalRevenue) / (storeOrders.length + 428)) 
-    : 347;
+  const totalRevenue = activeOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
+  const avgOrderValue = activeOrders.length > 0 
+    ? Math.round(totalRevenue / activeOrders.length) 
+    : 0;
 
   const fmtNum = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
@@ -171,14 +185,16 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {storeOrders.length > 0 ? (
-                  storeOrders.map((ord) => (
-                    <tr key={ord.id}>
-                      <td style={{ fontFamily: "monospace", color: "#0f172a" }}>#{ord.id}</td>
-                      <td style={{ color: "#64748b" }}>{ord.date}</td>
+                {activeOrders.length > 0 ? (
+                  activeOrders.slice(0, 10).map((ord) => (
+                    <tr key={ord.id || ord.orderNumber}>
+                      <td style={{ fontFamily: "monospace", color: "#0f172a" }}>#{ord.orderNumber || ord.id}</td>
+                      <td style={{ color: "#64748b" }}>
+                        {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("ka-GE") : ord.date || "ახალი"}
+                      </td>
                       <td style={{ color: "#0f172a" }}>{ord.totalAmount} ₾</td>
                       <td style={{ color: "#64748b" }}>{ord.paymentMethod}</td>
-                      <td><span className={statusStyle(ord.status)}>{ord.status}</span></td>
+                      <td><span className={statusStyle(ord.status)}>{ord.status === "PENDING" ? "მუშავდება" : ord.status}</span></td>
                       <td style={{ textAlign: "right" }}>
                         <Link href={`/admin/orders/${ord.id}`} className="adm-icon-btn adm-icon-btn-blue">
                           <Eye size={15} />

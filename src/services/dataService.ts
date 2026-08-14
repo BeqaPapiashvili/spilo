@@ -124,6 +124,8 @@ class DataService {
   private roles: Role[] = [];
   private listeners: Set<() => void> = new Set();
   private channel: BroadcastChannel | null = null;
+  private isSyncing = false;
+  private static hasSyncedInitial = false;
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -132,17 +134,19 @@ class DataService {
         this.channel = new BroadcastChannel("spilo_live_data_sync");
         this.channel.onmessage = (event) => {
           if (event.data?.type === "SYNC") {
-            this.initData();
-            this.listeners.forEach((listener) => listener());
+            this.readFromLocalStorage();
+            this.notify(false);
           }
         };
       } catch (e) {
         // BroadcastChannel fallback
       }
 
-      window.addEventListener("storage", () => {
-        this.initData();
-        this.listeners.forEach((listener) => listener());
+      window.addEventListener("storage", (e) => {
+        if (e.key && Object.values(STORAGE_KEYS).includes(e.key)) {
+          this.readFromLocalStorage();
+          this.notify(false);
+        }
       });
     } else {
       this.products = [...PRODUCTS_DATA];
@@ -151,15 +155,45 @@ class DataService {
     }
   }
 
-  private initData() {
+  private readFromLocalStorage() {
     const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    this.products = savedProducts ? JSON.parse(savedProducts) : [...PRODUCTS_DATA];
+    if (savedProducts) this.products = JSON.parse(savedProducts);
 
     const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    this.categories = savedCategories ? JSON.parse(savedCategories) : [...CATEGORIES_DATA];
+    if (savedCategories) {
+      try {
+        const parsed = JSON.parse(savedCategories);
+        // Verify parsed categories have non-empty children for mobiles, otherwise refresh from CATEGORIES_DATA
+        const mob = parsed.find((c: any) => c.id === "mobiles");
+        if (mob && Array.isArray(mob.children) && mob.children.length >= 6) {
+          this.categories = parsed;
+        } else {
+          this.categories = [...CATEGORIES_DATA];
+          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
+        }
+      } catch {
+        this.categories = [...CATEGORIES_DATA];
+      }
+    } else {
+      this.categories = [...CATEGORIES_DATA];
+    }
 
     const savedBrands = localStorage.getItem(STORAGE_KEYS.BRANDS);
-    this.brands = savedBrands ? JSON.parse(savedBrands) : [...BRANDS_DATA];
+    if (savedBrands) this.brands = JSON.parse(savedBrands);
+  }
+
+  private initData() {
+    this.readFromLocalStorage();
+    if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) this.products = [...PRODUCTS_DATA];
+    if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
+      this.categories = [...CATEGORIES_DATA];
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.BRANDS)) this.brands = [...BRANDS_DATA];
+
+    if (typeof window !== "undefined") {
+      this.syncFromBackend(true);
+    }
 
     const savedPromotions = localStorage.getItem(STORAGE_KEYS.PROMOTIONS);
     this.promotions = savedPromotions
@@ -347,11 +381,81 @@ class DataService {
     };
   }
 
-  private notify() {
+  public notify(broadcast = true) {
     this.listeners.forEach((listener) => listener());
+    if (broadcast) {
+      try {
+        this.channel?.postMessage({ type: "SYNC", timestamp: Date.now() });
+      } catch (e) {}
+    }
+  }
+
+  public async syncFromBackend(force = false) {
+    if (typeof window === "undefined" || this.isSyncing) return;
+    if (!force && DataService.hasSyncedInitial) return;
+
+    DataService.hasSyncedInitial = true;
+    this.isSyncing = true;
     try {
-      this.channel?.postMessage({ type: "SYNC", timestamp: Date.now() });
-    } catch (e) {}
+      const [resProd, resCat, resBrand, resPromo, resCoupon, resBanner, resAdmin] = await Promise.all([
+        fetch("/api/products").then((r) => r.json()).catch(() => null),
+        fetch("/api/categories").then((r) => r.json()).catch(() => null),
+        fetch("/api/brands").then((r) => r.json()).catch(() => null),
+        fetch("/api/promotions").then((r) => r.json()).catch(() => null),
+        fetch("/api/coupons").then((r) => r.json()).catch(() => null),
+        fetch("/api/banners").then((r) => r.json()).catch(() => null),
+        fetch("/api/admin/users").then((r) => r.json()).catch(() => null),
+      ]);
+
+      let hasChanges = false;
+
+      if (resProd && resProd.success && Array.isArray(resProd.data) && resProd.data.length > 0) {
+        this.products = resProd.data;
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
+        hasChanges = true;
+      }
+      if (resCat && resCat.success && Array.isArray(resCat.data) && resCat.data.length > 0) {
+        this.categories = resCat.data.map((cat: any) => {
+          if (!cat.children || !Array.isArray(cat.children) || cat.children.length === 0) {
+            const fallback = CATEGORIES_DATA.find((c) => c.id === cat.id || c.slug === cat.slug);
+            if (fallback && fallback.children && fallback.children.length > 0) {
+              return { ...cat, children: fallback.children };
+            }
+          }
+          return cat;
+        });
+        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
+        hasChanges = true;
+      }
+      if (resBrand && resBrand.success && Array.isArray(resBrand.data) && resBrand.data.length > 0) {
+        this.brands = resBrand.data;
+        hasChanges = true;
+      }
+      if (resPromo && resPromo.success && Array.isArray(resPromo.data) && resPromo.data.length > 0) {
+        this.promotions = resPromo.data;
+        hasChanges = true;
+      }
+      if (resCoupon && resCoupon.success && Array.isArray(resCoupon.data) && resCoupon.data.length > 0) {
+        this.coupons = resCoupon.data;
+        hasChanges = true;
+      }
+      if (resBanner && resBanner.success && Array.isArray(resBanner.data) && resBanner.data.length > 0) {
+        this.banners = resBanner.data;
+        hasChanges = true;
+      }
+      if (resAdmin && resAdmin.success && Array.isArray(resAdmin.data) && resAdmin.data.length > 0) {
+        this.adminUsers = resAdmin.data;
+        hasChanges = true;
+      }
+
+      if (hasChanges) {
+        this.notify(false); // Only notify local React subscribers without broadcast loops
+      }
+    } catch (err) {
+      console.warn("syncFromBackend fallback to local storage:", err);
+    } finally {
+      this.isSyncing = false;
+    }
   }
 
   // --- PRODUCTS ---
@@ -404,6 +508,20 @@ class DataService {
 
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
     this.notify();
+
+    // Async sync to MySQL
+    if (typeof window !== "undefined") {
+      const isUpdate = Boolean(productData.id && existingIndex >= 0);
+      const url = isUpdate ? `/api/products/${productData.id}` : "/api/products";
+      const method = isUpdate ? "PUT" : "POST";
+
+      fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedProduct),
+      }).catch((err) => console.warn("Failed async sync to MySQL:", err));
+    }
+
     return updatedProduct;
   }
 
@@ -415,6 +533,10 @@ class DataService {
       this.logAction("Beka Papiashvili", "DELETE_PRODUCT", `Product #${id}`, `წაიშალა პროდუქტი: ${product.title}`);
     }
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/products/${id}`, { method: "DELETE" }).catch((err) => console.warn("Failed async delete on MySQL:", err));
+    }
   }
 
   // --- CATEGORIES ---
@@ -443,6 +565,19 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
     this.logAction("Beka Papiashvili", "SAVE_CATEGORY", `Category #${updatedCategory.id}`, `შენახულია კატეგორია: ${updatedCategory.name}`);
     this.notify();
+
+    if (typeof window !== "undefined") {
+      const isUpdate = Boolean(categoryData.id && existingIndex >= 0);
+      const url = "/api/categories";
+      const method = isUpdate ? "PUT" : "POST";
+
+      fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedCategory),
+      }).catch((err) => console.warn("Failed async sync category to MySQL:", err));
+    }
+
     return updatedCategory;
   }
 
@@ -451,6 +586,10 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
     this.logAction("Beka Papiashvili", "DELETE_CATEGORY", `Category #${id}`, `წაიშალა კატეგორია ID: ${id}`);
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => console.warn("Failed async delete category on MySQL:", err));
+    }
   }
 
   // --- BRANDS ---
@@ -479,6 +618,19 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.BRANDS, JSON.stringify(this.brands));
     this.logAction("Beka Papiashvili", "SAVE_BRAND", `Brand #${updatedBrand.id}`, `შენახულია ბრენდი: ${updatedBrand.name}`);
     this.notify();
+
+    if (typeof window !== "undefined") {
+      const isUpdate = Boolean(brandData.id && existingIndex >= 0);
+      const url = "/api/brands";
+      const method = isUpdate ? "PUT" : "POST";
+
+      fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedBrand),
+      }).catch((err) => console.warn("Failed async sync brand to MySQL:", err));
+    }
+
     return updatedBrand;
   }
 
@@ -486,6 +638,10 @@ class DataService {
     this.brands = this.brands.filter((b) => b.id !== id);
     localStorage.setItem(STORAGE_KEYS.BRANDS, JSON.stringify(this.brands));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/brands?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => console.warn("Failed async delete brand on MySQL:", err));
+    }
   }
 
   // --- PROMOTIONS ---
@@ -503,12 +659,24 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.PROMOTIONS, JSON.stringify(this.promotions));
     this.logAction("Beka Papiashvili", "SAVE_PROMOTION", `Promo #${promo.id}`, `შენახულია აქცია: ${promo.name}`);
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(promo),
+      }).catch((err) => console.warn("Failed async sync promo to MySQL:", err));
+    }
   }
 
   public deletePromotion(id: string): void {
     this.promotions = this.promotions.filter((p) => p.id !== id);
     localStorage.setItem(STORAGE_KEYS.PROMOTIONS, JSON.stringify(this.promotions));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/promotions?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => console.warn("Failed async delete promo on MySQL:", err));
+    }
   }
 
   // --- COUPONS ---
@@ -526,12 +694,24 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(this.coupons));
     this.logAction("Beka Papiashvili", "SAVE_COUPON", `Coupon #${coupon.code}`, `შენახულია კუპონი: ${coupon.code}`);
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(coupon),
+      }).catch((err) => console.warn("Failed async sync coupon to MySQL:", err));
+    }
   }
 
   public deleteCoupon(id: string): void {
     this.coupons = this.coupons.filter((c) => c.id !== id);
     localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(this.coupons));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/coupons?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => console.warn("Failed async delete coupon on MySQL:", err));
+    }
   }
 
   // --- BANNERS ---
@@ -548,12 +728,24 @@ class DataService {
     }
     localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(this.banners));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(banner),
+      }).catch((err) => console.warn("Failed async sync banner to MySQL:", err));
+    }
   }
 
   public deleteBanner(id: string): void {
     this.banners = this.banners.filter((b) => b.id !== id);
     localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(this.banners));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/banners?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => console.warn("Failed async delete banner on MySQL:", err));
+    }
   }
 
   // --- CMS PAGES ---

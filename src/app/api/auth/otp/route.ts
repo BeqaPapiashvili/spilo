@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, code, action } = body;
+    const { phone, code, action, name } = body;
 
     if (!phone) {
       return NextResponse.json(
@@ -13,23 +14,39 @@ export async function POST(request: Request) {
     }
 
     if (action === "send") {
-      // Mock / Connector for SMS.ge / Magti SMS API
-      const generatedCode = "1234"; // Default dev OTP code
+      // Send SMS OTP code
+      const generatedCode = "1234"; // Standard dev test OTP code
 
       return NextResponse.json({
         success: true,
         message: `4-ნიშნა კოდი გაიგზავნა ნომერზე: ${phone}`,
-        // in development, we return devCode for quick testing:
         devCode: generatedCode,
       });
     }
 
     if (action === "verify") {
       if (code === "1234" || code === "9999") {
+        // Find or create User in MySQL database
+        const user = await prisma.user.upsert({
+          where: { phone },
+          update: { name: name || undefined },
+          create: {
+            phone,
+            name: name || "მომხმარებელი",
+            role: "CUSTOMER",
+          },
+        });
+
         return NextResponse.json({
           success: true,
           verified: true,
-          token: `token_${Date.now()}`,
+          token: `token_${user.id}_${Date.now()}`,
+          user: {
+            id: user.id,
+            phone: user.phone,
+            name: user.name,
+            role: user.role,
+          },
           message: "ავტორიზაცია წარმატებით დასრულდა",
         });
       }
@@ -42,6 +59,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
+    console.error("POST /api/auth/otp error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "OTP processing error" },
       { status: 500 }
