@@ -86,6 +86,48 @@ function CatalogContent() {
     return counts;
   }, [productsList]);
 
+  // Dynamic colors from products & palette
+  const dynamicColors = useMemo(() => {
+    const foundColors = new Set<string>();
+    productsList.forEach((p) => {
+      p.variants?.forEach((v) => {
+        if (v.type === "color") {
+          v.options.forEach((opt) => foundColors.add(opt.label));
+        }
+      });
+      p.specs?.forEach((sg) => {
+        sg.items.forEach((item) => {
+          if (item.label.toLowerCase().includes("ფერ") || item.label.toLowerCase().includes("color")) {
+            foundColors.add(item.value);
+          }
+        });
+      });
+    });
+
+    const list = [...COLOR_OPTIONS];
+    foundColors.forEach((fc) => {
+      if (fc && !list.some((c) => c.label.toLowerCase() === fc.toLowerCase())) {
+        list.push({ id: fc, label: fc, hex: "#6366F1" });
+      }
+    });
+    return list;
+  }, [productsList]);
+
+  // Dynamic storage options from products
+  const dynamicStorageOptions = useMemo(() => {
+    const foundStorage = new Set<string>(STORAGE_OPTIONS);
+    productsList.forEach((p) => {
+      p.specs?.forEach((sg) => {
+        sg.items.forEach((item) => {
+          if (item.label.toLowerCase().includes("მეხსიერება") || item.label.toLowerCase().includes("storage") || item.label.toLowerCase().includes("rom")) {
+            foundStorage.add(item.value);
+          }
+        });
+      });
+    });
+    return Array.from(foundStorage);
+  }, [productsList]);
+
   // Filter handlers
   const handleBrandToggle = (brand: string) => {
     setSelectedBrands((prev) =>
@@ -531,7 +573,7 @@ function CatalogContent() {
 
             {colorOpen && (
               <div className="flex items-center gap-2.5 pt-1 flex-wrap">
-                {COLOR_OPTIONS.map((c) => {
+                {dynamicColors.map((c) => {
                   const isSelected = selectedColors.includes(c.id);
 
                   return (
@@ -572,7 +614,7 @@ function CatalogContent() {
 
             {storageOpen && (
               <div className="grid grid-cols-2 gap-2 pt-1">
-                {STORAGE_OPTIONS.map((s) => {
+                {dynamicStorageOptions.map((s) => {
                   const isSelected = selectedStorage.includes(s);
 
                   return (
