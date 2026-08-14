@@ -598,7 +598,7 @@ class DataService {
 
   public logAction(userName: string, action: string, entity: string, details: string) {
     const newLog: AuditLog = {
-      id: `log-${Date.now()}`,
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       timestamp: new Date().toLocaleString("ka-GE"),
       userName,
       userEmail: "beka@spilo.ge",

@@ -89,8 +89,8 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
                 <span className="text-[10px] text-blue-600 font-medium">{auditLogs.length} ახალი</span>
               </div>
               <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
-                {auditLogs.map((log) => (
-                  <div key={log.id} className="p-3 hover:bg-gray-50 transition-colors text-left">
+                {auditLogs.map((log, idx) => (
+                  <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} className="p-3 hover:bg-gray-50 transition-colors text-left">
                     <p className="text-xs font-semibold text-gray-900">{log.action}</p>
                     <p className="text-xs text-gray-600">{log.details}</p>
                     <span className="text-[10px] text-gray-400 mt-1 block">{log.timestamp} • {log.userName}</span>

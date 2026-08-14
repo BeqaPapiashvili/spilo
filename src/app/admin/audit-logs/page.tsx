@@ -58,8 +58,8 @@ export default function AdminAuditLogsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-50/80 transition-colors">
+            {filtered.map((log, idx) => (
+              <tr key={log.id ? `${log.id}-${idx}` : `log-${idx}`} className="hover:bg-gray-50/80 transition-colors">
                 <td className="py-3 px-4 font-mono text-gray-500">{log.timestamp}</td>
                 <td className="py-3 px-4 font-semibold text-gray-900">{log.userName}</td>
                 <td className="py-3 px-4 font-mono text-blue-600 font-bold">{log.action}</td>
