@@ -23,7 +23,17 @@ import {
 import Link from "next/link";
 import OrderInvoiceModal from "@/components/OrderInvoiceModal";
 
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
 export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <ProfileContent />
+    </ProtectedRoute>
+  );
+}
+
+function ProfileContent() {
   const { user, setUser, orders, wishlist, toggleAuthModal } = useStore();
 
   // Active navigation tab

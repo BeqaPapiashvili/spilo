@@ -16,8 +16,17 @@ import {
   ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function CheckoutPage() {
+  return (
+    <ProtectedRoute>
+      <CheckoutContent />
+    </ProtectedRoute>
+  );
+}
+
+function CheckoutContent() {
   const router = useRouter();
   const { cart, clearCart, addOrder, user } = useStore();
 

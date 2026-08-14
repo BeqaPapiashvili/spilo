@@ -9,12 +9,12 @@ import { PRODUCTS_DATA } from "@/data/products";
 
 type SortOption = "default" | "price-desc" | "price-asc" | "rating";
 
-function SearchContent() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get("q") || "";
-  const cleanQuery = query.trim().toLowerCase();
+import { useCatalogFilters } from "@/hooks/useCatalogFilters";
 
-  const [sortBy, setSortBy] = useState<SortOption>("default");
+function SearchContent() {
+  const { filters, setSort } = useCatalogFilters();
+  const query = filters.searchQuery;
+  const cleanQuery = query.trim().toLowerCase();
 
   // Search Results Matching Logic
   const filteredProducts = useMemo(() => {
@@ -30,12 +30,12 @@ function SearchContent() {
     }).sort((a, b) => {
       const priceA = a.discountPrice || a.price;
       const priceB = b.discountPrice || b.price;
-      if (sortBy === "price-asc") return priceA - priceB;
-      if (sortBy === "price-desc") return priceB - priceA;
-      if (sortBy === "rating") return b.rating - a.rating;
+      if (filters.sort === "price-asc") return priceA - priceB;
+      if (filters.sort === "price-desc") return priceB - priceA;
+      if (filters.sort === "rating") return b.rating - a.rating;
       return 0;
     });
-  }, [cleanQuery, sortBy]);
+  }, [cleanQuery, filters.sort]);
 
   return (
     <div className="container mx-auto px-4 lg:px-8 max-w-7xl space-y-8">
@@ -54,8 +54,8 @@ function SearchContent() {
         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 shadow-2xs">
           <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
           <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            value={filters.sort}
+            onChange={(e) => setSort(e.target.value)}
             className="bg-transparent text-xs text-gray-800 focus:outline-none cursor-pointer"
           >
             <option value="default">პოპულარობით</option>

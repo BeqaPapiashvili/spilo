@@ -50,6 +50,9 @@ interface StoreState {
   recentlyViewed: WishlistItem[];
   recentSearches: string[];
 
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
+
   // Cart Actions
   addToCart: (item: Omit<CartItem, 'quantity'>, openCart?: boolean) => void;
   removeFromCart: (id: string) => void;
@@ -117,6 +120,9 @@ export const useStore = create<StoreState>()(
       toasts: [],
       recentlyViewed: [],
       recentSearches: ["DJI Neo", "iPhone 16", "MacBook Pro"],
+
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       // Cart
       addToCart: (item, openCart = false) =>
@@ -275,6 +281,9 @@ export const useStore = create<StoreState>()(
         recentlyViewed: state.recentlyViewed,
         recentSearches: state.recentSearches,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
