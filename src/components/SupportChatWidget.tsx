@@ -36,22 +36,13 @@ export default function SupportChatWidget() {
     },
   ]);
 
-  // Check if user is already authorized or in localStorage
+  // Populate fields from user if logged in, but keep auth step active unless explicitly started
   useEffect(() => {
-    if (user?.name) {
+    if (user?.name && !guestName) {
       setGuestName(user.name);
-      if (user.phone) setGuestPhone(user.phone);
-      setChatStep("chat");
-    } else {
-      const savedChatUser = localStorage.getItem("spilo_chat_guest");
-      if (savedChatUser) {
-        try {
-          const parsed = JSON.parse(savedChatUser);
-          setGuestName(parsed.name || "");
-          setGuestPhone(parsed.phone || "");
-          setChatStep("chat");
-        } catch (e) {}
-      }
+    }
+    if (user?.phone && !guestPhone) {
+      setGuestPhone(user.phone);
     }
   }, [user]);
 
@@ -109,12 +100,18 @@ export default function SupportChatWidget() {
 
   const handleStartAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guestName.trim()) return;
+    if (!guestName.trim()) {
+      alert("გთხოვთ შეიყვანოთ თქვენი სახელი");
+      return;
+    }
+    if (!guestPhone.trim()) {
+      alert("გთხოვთ შეიყვანოთ თქვენი მობილურის ნომერი");
+      return;
+    }
     setChatStep("consent");
   };
 
   const handleAcceptConsent = () => {
-    localStorage.setItem("spilo_chat_guest", JSON.stringify({ name: guestName, phone: guestPhone }));
     setChatStep("chat");
   };
 
@@ -137,12 +134,14 @@ export default function SupportChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg("");
 
-    // Send to dataService for Live Admin sync
+    // Send to dataService for Live Admin sync with Customer Name and Customer Phone!
+    const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
     const id = dataService.addUserSupportMessage(
-      guestName || "სტუმარი მომხმარებელი",
-      guestPhone ? `${guestPhone}@spilo.ge` : "guest@spilo.ge",
+      guestName.trim() || "მომხმარებელი",
+      formattedPhone,
       text,
-      "ონლაინ კონსულტაცია"
+      "ონლაინ კონსულტაცია",
+      `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`
     );
     setTicketId(id);
 
@@ -283,6 +282,7 @@ export default function SupportChatWidget() {
                               value={guestPhone}
                               onChange={(e) => setGuestPhone(e.target.value)}
                               placeholder="5XX XX XX XX"
+                              required
                               className="flex-1 h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/40 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
                             />
                           </div>

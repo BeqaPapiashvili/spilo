@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X } from "lucide-react";
+import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X, Phone } from "lucide-react";
 import { dataService, SupportTicket } from "@/services/dataService";
 
 export default function AdminSupportPage() {
@@ -168,8 +168,18 @@ export default function AdminSupportPage() {
                   </p>
 
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.65rem", color: "#94a3b8", marginTop: "2px" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                      <Clock size={10} /> {t.time}
+                    <span style={{ display: "flex", alignItems: "center", gap: "3px", color: t.customerPhone ? "#16a34a" : "#94a3b8" }}>
+                      {t.customerPhone ? (
+                        <>
+                          <Phone size={10} />
+                          <span>{t.customerPhone}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock size={10} />
+                          <span>{t.time}</span>
+                        </>
+                      )}
                     </span>
                     <span>{t.messages.length} შეტყობინება</span>
                   </div>
@@ -204,9 +214,30 @@ export default function AdminSupportPage() {
                     {activeTicket.status === "OPEN" ? "აქტიური დიალოგი" : "დახურული / დასრულებული"}
                   </span>
                 </div>
-                <p style={{ fontSize: "0.7rem", color: "#94a3b8", marginTop: "2px" }}>
-                  {activeTicket.customerEmail} · თემა: {activeTicket.topic}
-                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginTop: "4px", fontSize: "0.72rem", flexWrap: "wrap" }}>
+                  {activeTicket.customerPhone && (
+                    <a
+                      href={`tel:${activeTicket.customerPhone.replace(/\s+/g, "")}`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        background: "#f0fdf4",
+                        color: "#16a34a",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid #bbf7d0",
+                        textDecoration: "none",
+                      }}
+                      title="დარეკვა"
+                    >
+                      <Phone size={11} />
+                      <span>{activeTicket.customerPhone} (დარეკვა)</span>
+                    </a>
+                  )}
+                  <span style={{ color: "#64748b" }}>{activeTicket.customerEmail}</span>
+                  <span style={{ color: "#94a3b8" }}>· თემა: {activeTicket.topic}</span>
+                </div>
               </div>
 
               {/* Action Buttons: Close Chat / Reopen / Delete / Dismiss */}

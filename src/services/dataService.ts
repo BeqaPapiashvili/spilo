@@ -58,6 +58,7 @@ export interface NavigationItem {
 export interface SupportTicket {
   id: string;
   customerName: string;
+  customerPhone?: string;
   customerEmail: string;
   topic: string;
   status: "OPEN" | "CLOSED" | "RESOLVED";
@@ -598,16 +599,17 @@ class DataService {
     return [...this.supportTickets];
   }
 
-  public addUserSupportMessage(customerName: string, customerEmail: string, text: string, topic = "ზოგადი შეკითხვა"): string {
-    let ticket = this.supportTickets.find((t) => t.customerEmail === customerEmail && t.status !== "CLOSED");
+  public addUserSupportMessage(customerName: string, customerPhone: string, text: string, topic = "ონლაინ კონსულტაცია", customerEmail = ""): string {
+    let ticket = this.supportTickets.find((t) => (t.customerPhone === customerPhone || (t.customerName === customerName && customerName !== "სტუმარი")) && t.status !== "CLOSED");
     
     const timeStr = new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
 
     if (!ticket) {
       ticket = {
         id: `tkt-${Date.now()}`,
-        customerName: customerName || "სტუმარი მომხმარებელი",
-        customerEmail: customerEmail || "guest@spilo.ge",
+        customerName: customerName.trim() || "სტუმარი მომხმარებელი",
+        customerPhone: customerPhone.trim() || "+995 5XX XX XX XX",
+        customerEmail: customerEmail.trim() || `${customerPhone ? customerPhone.replace(/[^0-9]/g, "") : "guest"}@spilo.ge`,
         topic,
         status: "OPEN",
         time: "ახლახანს",
@@ -615,7 +617,13 @@ class DataService {
       };
       this.supportTickets = [ticket, ...this.supportTickets];
     } else {
-      this.supportTickets = this.supportTickets.map(t => t.id === ticket!.id ? { ...t, status: "OPEN" as const, time: "ახლახანს" } : t);
+      this.supportTickets = this.supportTickets.map(t => t.id === ticket!.id ? { 
+        ...t, 
+        customerName: customerName || t.customerName,
+        customerPhone: customerPhone || t.customerPhone,
+        status: "OPEN" as const, 
+        time: "ახლახანს" 
+      } : t);
     }
 
     ticket.messages.push({
