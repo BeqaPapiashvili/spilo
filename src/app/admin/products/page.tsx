@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search, Edit3, Copy, Eye, Trash2, CheckSquare, Square, Package } from "lucide-react";
+import { Plus, Search, Edit3, Copy, Eye, Trash2, CheckSquare, Square, Package, Download, UploadCloud } from "lucide-react";
 import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
+import { exportProductsToCSV } from "@/utils/exportImport";
+import { ProductImportModal } from "@/components/admin/ProductImportModal";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,6 +15,7 @@ export default function AdminProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedBrand, setSelectedBrand] = useState("ALL");
   const [stockFilter, setStockFilter] = useState("ALL");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   useEffect(() => {
     setProducts(dataService.getProducts());
@@ -65,9 +68,28 @@ export default function AdminProductsPage() {
           <h1 className="adm-page-title">პროდუქტები ({filtered.length})</h1>
           <p className="adm-page-desc">პროდუქტების სია, ფასები, მარაგები, SKU და სწრაფი მოქმედებები.</p>
         </div>
-        <Link href="/admin/products/new" className="adm-btn-primary">
-          <Plus size={15} /> ახალი პროდუქტი
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => exportProductsToCSV(products)}
+            className="adm-btn-secondary"
+          >
+            <Download size={14} />
+            <span>ექსპორტი (CSV)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="adm-btn-secondary"
+          >
+            <UploadCloud size={14} />
+            <span>იმპორტი (CSV)</span>
+          </button>
+          <Link href="/admin/products/new" className="adm-btn-primary">
+            <Plus size={15} />
+            <span>ახალი პროდუქტი</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -176,6 +198,12 @@ export default function AdminProductsPage() {
           </table>
         </div>
       </div>
+
+      {/* Product Import Modal */}
+      <ProductImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+      />
     </div>
   );
 }

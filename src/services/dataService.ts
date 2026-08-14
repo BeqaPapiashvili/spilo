@@ -578,6 +578,38 @@ class DataService {
     return this.supportTickets;
   }
 
+  public addUserSupportMessage(customerName: string, customerEmail: string, text: string, topic = "ზოგადი შეკითხვა"): string {
+    // Check if there is an open ticket for this user or create a new one
+    let ticket = this.supportTickets.find((t) => t.customerEmail === customerEmail && t.status !== "CLOSED");
+    
+    const timeStr = new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
+
+    if (!ticket) {
+      ticket = {
+        id: `tkt-${Date.now()}`,
+        customerName: customerName || "სტუმარი მომხმარებელი",
+        customerEmail: customerEmail || "guest@spilo.ge",
+        topic,
+        status: "OPEN",
+        time: "ახლახანს",
+        messages: [],
+      };
+      this.supportTickets.unshift(ticket);
+    }
+
+    ticket.messages.push({
+      sender: "user",
+      text,
+      time: timeStr,
+    });
+    ticket.time = "ახლახანს";
+    ticket.status = "OPEN";
+
+    localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+    this.notify();
+    return ticket.id;
+  }
+
   public addSupportReply(ticketId: string, replyText: string): void {
     const ticket = this.supportTickets.find((t) => t.id === ticketId);
     if (ticket) {

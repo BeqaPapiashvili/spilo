@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MessageSquare, X, Send, Bot, GitCompare } from "lucide-react";
+import { MessageSquare, X, Send, Bot, GitCompare, UserCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
+import { dataService } from "@/services/dataService";
 
 interface Message {
   id: string;
-  sender: "bot" | "user";
+  sender: "bot" | "user" | "admin";
   text: string;
   time: string;
 }
@@ -17,6 +18,7 @@ export default function SupportChatWidget() {
   const { compareList } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [inputMsg, setInputMsg] = useState("");
+  const [ticketId, setTicketId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -26,22 +28,61 @@ export default function SupportChatWidget() {
     },
   ]);
 
+  // Sync with dataService when Admin replies
+  useEffect(() => {
+    const unsub = dataService.subscribe(() => {
+      const tickets = dataService.getSupportTickets();
+      const currentTicket = ticketId
+        ? tickets.find((t) => t.id === ticketId)
+        : tickets[0];
+
+      if (currentTicket && currentTicket.messages.length > 0) {
+        const syncedMessages: Message[] = currentTicket.messages.map((m, idx) => ({
+          id: `msg-${idx}-${m.time}`,
+          sender: m.sender === "admin" ? "admin" : "user",
+          text: m.text,
+          time: m.time,
+        }));
+        setMessages([
+          {
+            id: "1",
+            sender: "bot",
+            text: "გამარჯობა! 👋 მე ვარ spilo-ს ასისტენტი. რით შემიძლია დაგეხმაროთ?",
+            time: "ახლახანს",
+          },
+          ...syncedMessages,
+        ]);
+      }
+    });
+    return () => unsub();
+  }, [ticketId]);
+
   const handleSend = (textToSend?: string) => {
     const text = textToSend || inputMsg;
     if (!text.trim()) return;
 
+    const timeStr = new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: "user",
       text: text,
-      time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+      time: timeStr,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg("");
 
+    // Send to dataService so admin receives it immediately
+    const id = dataService.addUserSupportMessage(
+      "სტუმარი მომხმარებელი",
+      "guest@spilo.ge",
+      text
+    );
+    setTicketId(id);
+
+    // Bot automated instant fallback response
     setTimeout(() => {
-      let replyText = "გმადლობთ კითხვისთვის! ჩვენი კონსულტანტი მალე დაგიკავშირდებათ. ოპერატორის ცხელი ხაზი: (032) 2 00 00 00.";
+      let replyText = "გმადლობთ შეტყობინებისთვის! ჩვენი ოპერატორი ჩათში მალე გიპასუხებთ.";
       
       const lower = text.toLowerCase();
       if (lower.includes("განვადება") || lower.includes("0%")) {

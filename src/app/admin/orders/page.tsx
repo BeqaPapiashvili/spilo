@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Search, Eye, ShoppingBag, ChevronRight } from "lucide-react";
+import { Search, Eye, ShoppingBag, ChevronRight, Download } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { exportOrdersToCSV } from "@/utils/exportImport";
 
 export default function AdminOrdersPage() {
   const orders = useStore((state) => state.orders);
@@ -29,12 +30,22 @@ export default function AdminOrdersPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
       
       {/* Header */}
-      <div className="adm-card" style={{ padding: "1.5rem 1.75rem" }}>
-        <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}>
-          <ShoppingBag size={13} /> გაყიდვების მართვა
+      <div className="adm-card" style={{ padding: "1.5rem 1.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+        <div>
+          <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}>
+            <ShoppingBag size={13} /> გაყიდვების მართვა
+          </div>
+          <h1 className="adm-page-title">შეკვეთები ({filtered.length})</h1>
+          <p className="adm-page-desc">შეკვეთების სრული ისტორია, სტატუსების მართვა და ინვოისები.</p>
         </div>
-        <h1 className="adm-page-title">შეკვეთები ({filtered.length})</h1>
-        <p className="adm-page-desc">შეკვეთების სრული ისტორია, სტატუსების მართვა და ინვოისები.</p>
+        <button
+          type="button"
+          onClick={() => exportOrdersToCSV(orders)}
+          className="adm-btn-secondary"
+        >
+          <Download size={14} />
+          <span>ექსპორტი (CSV)</span>
+        </button>
       </div>
 
       {/* Filters */}

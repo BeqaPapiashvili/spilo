@@ -115,8 +115,39 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     setNewReview({ rating: 5, comment: "", author: "" });
   };
 
+  // Schema.org Product structured data
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    image: product.images,
+    description: product.description,
+    sku: product.sku || product.code || product.id,
+    brand: {
+      "@type": "Brand",
+      name: product.brandName || "Spilo",
+    },
+    offers: {
+      "@type": "Offer",
+      url: `https://spilo.ge/product/${product.id}`,
+      priceCurrency: "GEL",
+      price: product.discountPrice || product.price,
+      itemCondition: "https://schema.org/NewCondition",
+      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      seller: {
+        "@type": "Organization",
+        name: "Spilo E-Commerce",
+      },
+    },
+  };
+
   return (
     <div className="bg-white min-h-screen pb-24">
+      {/* Google Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumbs */}
       <div className="bg-gray-50/70 border-b border-gray-100 py-3">
         <div className="container mx-auto px-4 lg:px-8">

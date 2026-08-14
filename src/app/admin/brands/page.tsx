@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Award, Plus, Search, Edit3, Trash2, Check, X, ExternalLink } from "lucide-react";
 import { dataService } from "@/services/dataService";
 import { Brand } from "@/types";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 
 export default function AdminBrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -108,8 +109,13 @@ export default function AdminBrandsPage() {
                   <input value={brandSlug} onChange={e => setBrandSlug(e.target.value)} className="adm-input" placeholder="apple" />
                 </div>
                 <div>
-                  <label className="adm-label">Logo URL</label>
-                  <input value={brandLogo} onChange={e => setBrandLogo(e.target.value)} className="adm-input" placeholder="https://..." />
+                  <ImageUploader
+                    images={brandLogo ? [brandLogo] : []}
+                    onChange={(imgs) => setBrandLogo(imgs[0] || "")}
+                    multiple={false}
+                    label="ბრენდის ლოგო"
+                    helperText="რეკომენდებულია გამჭვირვალე SVG ან PNG"
+                  />
                 </div>
                 <label style={{ display: "flex", alignItems: "center", gap: "0.625rem", cursor: "pointer" }}>
                   <input type="checkbox" checked={isFeatured} onChange={e => setIsFeatured(e.target.checked)} style={{ width: "1rem", height: "1rem", accentColor: "#6366f1" }} />

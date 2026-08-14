@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Image as ImageIcon, Plus, Trash2, X, Check, ExternalLink } from "lucide-react";
 import { dataService, Banner } from "@/services/dataService";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 
 export default function AdminBannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -109,8 +110,13 @@ export default function AdminBannersPage() {
                   <input value={subtitle} onChange={e => setSubtitle(e.target.value)} className="adm-input" placeholder="მოკლე აღწერა..." />
                 </div>
                 <div>
-                  <label className="adm-label">ბანერის სურათი (URL) *</label>
-                  <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="adm-input" placeholder="https://..." required />
+                  <ImageUploader
+                    images={imageUrl ? [imageUrl] : []}
+                    onChange={(imgs) => setImageUrl(imgs[0] || "")}
+                    multiple={false}
+                    label="ბანერის სურათი *"
+                    helperText="რეკომენდებული ზომა: 1920x600px ან 1200x400px"
+                  />
                 </div>
                 <div>
                   <label className="adm-label">CTA ლინკი</label>

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { dataService } from "@/services/dataService";
 import { Product, SpecGroup, ProductVariant } from "@/types";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 
 interface ProductFormProps {
   initialProduct?: Partial<Product>;
@@ -280,50 +281,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
 
         {/* TAB 2: MEDIA */}
         {activeTab === "media" && (
-          <div className="space-y-6 max-w-3xl">
-            <div>
-              <label className="block text-xs font-bold text-gray-900 mb-1.5">ახალი სურათის URL-ის დამატება</label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="flex-1 h-10 px-3.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddImage}
-                  className="px-4 bg-gray-900 hover:bg-black text-white text-xs font-semibold rounded-xl cursor-pointer"
-                >
-                  დამატება
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-900 mb-2">პროდუქტის გალერეა ({images.length})</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative group border border-gray-200 rounded-2xl p-2 bg-gray-50 flex flex-col items-center">
-                    <img src={img} alt={`Product ${idx}`} className="w-full h-32 object-contain rounded-xl" />
-                    {idx === 0 && (
-                      <span className="absolute top-3 left-3 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                        მთავარი
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(idx)}
-                      className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
-                      title="წაშლა"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="space-y-4 max-w-3xl">
+            <ImageUploader
+              images={images}
+              onChange={setImages}
+              multiple={true}
+              label="პროდუქტის სურათების გალერეა"
+              helperText="ატვირთეთ მაღალი რეზოლუციის სურათები (Drag & Drop ან აირჩიეთ ფაილი). პირველი სურათი იქნება მთავარი."
+            />
           </div>
         )}
 
