@@ -8,7 +8,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-gray-900 selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#F6F8FA] flex flex-col font-sans text-slate-900 selection:bg-blue-600 selection:text-white antialiased">
       {/* Sidebar */}
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
