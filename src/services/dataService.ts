@@ -122,10 +122,27 @@ class DataService {
   private adminUsers: AdminUser[] = [];
   private roles: Role[] = [];
   private listeners: Set<() => void> = new Set();
+  private channel: BroadcastChannel | null = null;
 
   constructor() {
     if (typeof window !== "undefined") {
       this.initData();
+      try {
+        this.channel = new BroadcastChannel("spilo_live_data_sync");
+        this.channel.onmessage = (event) => {
+          if (event.data?.type === "SYNC") {
+            this.initData();
+            this.listeners.forEach((listener) => listener());
+          }
+        };
+      } catch (e) {
+        // BroadcastChannel fallback
+      }
+
+      window.addEventListener("storage", () => {
+        this.initData();
+        this.listeners.forEach((listener) => listener());
+      });
     } else {
       this.products = [...PRODUCTS_DATA];
       this.categories = [...CATEGORIES_DATA];
@@ -331,6 +348,9 @@ class DataService {
 
   private notify() {
     this.listeners.forEach((listener) => listener());
+    try {
+      this.channel?.postMessage({ type: "SYNC", timestamp: Date.now() });
+    } catch (e) {}
   }
 
   // --- PRODUCTS ---
@@ -621,6 +641,28 @@ class DataService {
       localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
       this.notify();
     }
+  }
+
+  public updateSupportTicketStatus(ticketId: string, status: "OPEN" | "CLOSED" | "RESOLVED"): void {
+    const ticket = this.supportTickets.find((t) => t.id === ticketId);
+    if (ticket) {
+      ticket.status = status;
+      if (status === "RESOLVED" || status === "CLOSED") {
+        ticket.messages.push({
+          sender: "admin",
+          text: "🔒 საუბარი დასრულდა ოპერატორის მიერ. მადლობა რომ იყენებთ spilo-ს!",
+          time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+        });
+      }
+      localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+      this.notify();
+    }
+  }
+
+  public deleteSupportTicket(ticketId: string): void {
+    this.supportTickets = this.supportTickets.filter((t) => t.id !== ticketId);
+    localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+    this.notify();
   }
 
   // --- AUDIT LOGS ---
