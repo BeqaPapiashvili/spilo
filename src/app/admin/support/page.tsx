@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, UserCheck, ShieldCheck } from "lucide-react";
+import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X } from "lucide-react";
 import { dataService, SupportTicket } from "@/services/dataService";
 
 export default function AdminSupportPage() {
@@ -14,22 +14,10 @@ export default function AdminSupportPage() {
   useEffect(() => {
     setTickets(dataService.getSupportTickets());
     const unsub = dataService.subscribe(() => {
-      const updated = dataService.getSupportTickets();
-      setTickets(updated);
-      // Auto-select first ticket if none active
-      if (!activeTicketId && updated.length > 0) {
-        setActiveTicketId(updated[0].id);
-      }
+      setTickets(dataService.getSupportTickets());
     });
     return () => unsub();
-  }, [activeTicketId]);
-
-  // Set default active ticket on mount
-  useEffect(() => {
-    if (!activeTicketId && tickets.length > 0) {
-      setActiveTicketId(tickets[0].id);
-    }
-  }, [tickets, activeTicketId]);
+  }, []);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -54,6 +42,10 @@ export default function AdminSupportPage() {
 
   const handleCloseTicket = (ticketId: string) => {
     dataService.updateSupportTicketStatus(ticketId, "RESOLVED");
+    if (selectedFilter === "OPEN") {
+      const remainingOpen = tickets.filter(t => t.id !== ticketId && t.status === "OPEN");
+      setActiveTicketId(remainingOpen[0]?.id || null);
+    }
   };
 
   const handleReopenTicket = (ticketId: string) => {
@@ -217,7 +209,7 @@ export default function AdminSupportPage() {
                 </p>
               </div>
 
-              {/* Action Buttons: Close Chat / Reopen / Delete */}
+              {/* Action Buttons: Close Chat / Reopen / Delete / Dismiss */}
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 {activeTicket.status === "OPEN" ? (
                   <button
@@ -250,6 +242,16 @@ export default function AdminSupportPage() {
                   title="დიალოგის წაშლა"
                 >
                   <Trash2 size={15} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTicketId(null)}
+                  className="adm-icon-btn"
+                  title="ფანჯრის დახურვა"
+                  style={{ marginLeft: "4px" }}
+                >
+                  <X size={15} />
                 </button>
               </div>
             </div>

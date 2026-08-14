@@ -595,11 +595,10 @@ class DataService {
 
   // --- SUPPORT TICKETS ---
   public getSupportTickets(): SupportTicket[] {
-    return this.supportTickets;
+    return [...this.supportTickets];
   }
 
   public addUserSupportMessage(customerName: string, customerEmail: string, text: string, topic = "ზოგადი შეკითხვა"): string {
-    // Check if there is an open ticket for this user or create a new one
     let ticket = this.supportTickets.find((t) => t.customerEmail === customerEmail && t.status !== "CLOSED");
     
     const timeStr = new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
@@ -614,7 +613,9 @@ class DataService {
         time: "ახლახანს",
         messages: [],
       };
-      this.supportTickets.unshift(ticket);
+      this.supportTickets = [ticket, ...this.supportTickets];
+    } else {
+      this.supportTickets = this.supportTickets.map(t => t.id === ticket!.id ? { ...t, status: "OPEN" as const, time: "ახლახანს" } : t);
     }
 
     ticket.messages.push({
@@ -622,8 +623,6 @@ class DataService {
       text,
       time: timeStr,
     });
-    ticket.time = "ახლახანს";
-    ticket.status = "OPEN";
 
     localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
     this.notify();
@@ -631,32 +630,47 @@ class DataService {
   }
 
   public addSupportReply(ticketId: string, replyText: string): void {
-    const ticket = this.supportTickets.find((t) => t.id === ticketId);
-    if (ticket) {
-      ticket.messages.push({
-        sender: "admin",
-        text: replyText,
-        time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
-      });
-      localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
-      this.notify();
-    }
+    this.supportTickets = this.supportTickets.map((t) => {
+      if (t.id === ticketId) {
+        return {
+          ...t,
+          messages: [
+            ...t.messages,
+            {
+              sender: "admin" as const,
+              text: replyText,
+              time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+            },
+          ],
+        };
+      }
+      return t;
+    });
+    localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+    this.notify();
   }
 
   public updateSupportTicketStatus(ticketId: string, status: "OPEN" | "CLOSED" | "RESOLVED"): void {
-    const ticket = this.supportTickets.find((t) => t.id === ticketId);
-    if (ticket) {
-      ticket.status = status;
-      if (status === "RESOLVED" || status === "CLOSED") {
-        ticket.messages.push({
-          sender: "admin",
-          text: "🔒 საუბარი დასრულდა ოპერატორის მიერ. მადლობა რომ იყენებთ spilo-ს!",
-          time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
-        });
+    this.supportTickets = this.supportTickets.map((t) => {
+      if (t.id === ticketId) {
+        const updatedMessages = [...t.messages];
+        if (status === "RESOLVED" || status === "CLOSED") {
+          updatedMessages.push({
+            sender: "admin" as const,
+            text: "🔒 საუბარი დასრულდა ოპერატორის მიერ. მადლობა რომ იყენებთ spilo-ს!",
+            time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+          });
+        }
+        return {
+          ...t,
+          status,
+          messages: updatedMessages,
+        };
       }
-      localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
-      this.notify();
-    }
+      return t;
+    });
+    localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+    this.notify();
   }
 
   public deleteSupportTicket(ticketId: string): void {
