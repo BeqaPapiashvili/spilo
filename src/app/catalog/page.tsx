@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -15,7 +15,8 @@ import {
   Check
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { PRODUCTS_DATA } from "@/data/products";
+import { dataService } from "@/services/dataService";
+import { Product } from "@/types";
 
 const ABSOLUTE_MAX_PRICE = 10000;
 
@@ -35,6 +36,17 @@ function CatalogContent() {
   const urlCategory = searchParams.get("category") || "";
   const urlBrand = searchParams.get("brand") || "";
   const urlQuery = searchParams.get("search") || searchParams.get("q") || "";
+
+  // Products State synced with dataService
+  const [productsList, setProductsList] = useState<Product[]>([]);
+
+  useEffect(() => {
+    setProductsList(dataService.getProducts());
+    const unsub = dataService.subscribe(() => {
+      setProductsList(dataService.getProducts());
+    });
+    return () => unsub();
+  }, []);
 
   // State
   const [minPrice, setMinPrice] = useState<number>(0);
@@ -60,19 +72,19 @@ function CatalogContent() {
   // Dynamic Brand & Category counts
   const brandCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    PRODUCTS_DATA.forEach((p) => {
-      counts[p.brandName] = (counts[p.brandName] || 0) + 1;
+    productsList.forEach((p: Product) => {
+      if (p.brandName) counts[p.brandName] = (counts[p.brandName] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [productsList]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    PRODUCTS_DATA.forEach((p) => {
-      counts[p.categoryName] = (counts[p.categoryName] || 0) + 1;
+    productsList.forEach((p: Product) => {
+      if (p.categoryName) counts[p.categoryName] = (counts[p.categoryName] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [productsList]);
 
   // Filter handlers
   const handleBrandToggle = (brand: string) => {
@@ -130,7 +142,7 @@ function CatalogContent() {
 
   // Main Filter Logic
   const filteredProducts = useMemo(() => {
-    return PRODUCTS_DATA.filter((product) => {
+    return productsList.filter((product: Product) => {
       // URL search query
       if (urlQuery) {
         const q = urlQuery.toLowerCase();
@@ -171,7 +183,7 @@ function CatalogContent() {
       if (onlyDiscounted && !product.discountPrice) return false;
 
       return true;
-    }).sort((a, b) => {
+    }).sort((a: Product, b: Product) => {
       const priceA = a.discountPrice || a.price;
       const priceB = b.discountPrice || b.price;
       if (sortBy === "price-asc") return priceA - priceB;
@@ -181,6 +193,7 @@ function CatalogContent() {
       return 0;
     });
   }, [
+    productsList,
     urlQuery,
     minPrice,
     maxPrice,
