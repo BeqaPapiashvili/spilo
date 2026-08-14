@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
   Search, 
@@ -14,191 +15,89 @@ import {
   Check
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
+import { PRODUCTS_DATA } from "@/data/products";
 
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  discountPrice?: number;
-  discountPercentage?: number;
-  monthlyInstallment?: number;
-  image: string;
-  sku: string;
-  brand: string;
-  category: string;
-  color: string;
-  storage?: string;
-  inStock: boolean;
-}
-
-const CATALOG_DATABASE: Product[] = [
-  {
-    id: "dji-neo",
-    title: "დრონი DJI Neo Drone Gray",
-    price: 799,
-    discountPrice: 699,
-    discountPercentage: 12,
-    monthlyInstallment: 28,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg",
-    sku: "172122",
-    brand: "DJI",
-    category: "დრონები",
-    color: "ნაცრისფერი",
-    inStock: true,
-  },
-  {
-    id: "dji-mini-4",
-    title: "დრონი DJI Mini 4 Pro Fly More Combo",
-    price: 3899,
-    discountPrice: 3299,
-    discountPercentage: 15,
-    monthlyInstallment: 132,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI-ZM700_20250710210650-thumbnail-200x200-95.jpg",
-    sku: "172123",
-    brand: "DJI",
-    category: "დრონები",
-    color: "ნაცრისფერი",
-    inStock: true,
-  },
-  {
-    id: "dji-pocket-3",
-    title: "სტაბილიზატორი DJI Osmo Pocket 3 Creator Combo",
-    price: 2499,
-    discountPrice: 2199,
-    discountPercentage: 12,
-    monthlyInstallment: 88,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI-ZPK300-C1-8_20250710160051-thumbnail-200x200-95.jpg",
-    sku: "172124",
-    brand: "DJI",
-    category: "სტაბილიზატორები",
-    color: "შავი",
-    inStock: true,
-  },
-  {
-    id: "dji-osmo-6",
-    title: "სმარტფონის სტაბილიზატორი DJI Osmo Mobile 6",
-    price: 599,
-    discountPrice: 499,
-    discountPercentage: 17,
-    monthlyInstallment: 20,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_Osmo_Mobile_7P-thumbnail-200x200-95.jpg",
-    sku: "172125",
-    brand: "DJI",
-    category: "სტაბილიზატორები",
-    color: "შავი",
-    inStock: true,
-  },
-  {
-    id: "dji-rc-n3",
-    title: "დისტანციური მართვის პულტი DJI RC-N3 Remote Controller",
-    price: 449,
-    discountPrice: 379,
-    discountPercentage: 15,
-    monthlyInstallment: 15,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_RC-N3-1-thumbnail-200x200-95.jpg",
-    sku: "172126",
-    brand: "DJI",
-    category: "აქსესუარები",
-    color: "ნაცრისფერი",
-    inStock: true,
-  },
-  {
-    id: "iphone-15-pro",
-    title: "სმარტფონი Apple iPhone 15 Pro 128GB Natural Titanium",
-    price: 3699,
-    discountPrice: 3399,
-    discountPercentage: 8,
-    monthlyInstallment: 135,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI-ZM700_20250710210650-thumbnail-200x200-95.jpg",
-    sku: "180900",
-    brand: "Apple",
-    category: "სმარტფონები",
-    color: "ნაცრისფერი",
-    storage: "128GB",
-    inStock: true,
-  },
-  {
-    id: "samsung-s24-ultra",
-    title: "სმარტფონი Samsung Galaxy S24 Ultra 512GB Titanium Black",
-    price: 4299,
-    discountPrice: 3899,
-    discountPercentage: 9,
-    monthlyInstallment: 155,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI-ZPK300-C1-8_20250710160051-thumbnail-200x200-95.jpg",
-    sku: "180901",
-    brand: "Samsung",
-    category: "სმარტფონები",
-    color: "შავი",
-    storage: "512GB",
-    inStock: true,
-  },
-  {
-    id: "xiaomi-14-ultra",
-    title: "სმარტფონი Xiaomi 14 Ultra 512GB Black",
-    price: 3199,
-    discountPrice: 2899,
-    discountPercentage: 9,
-    monthlyInstallment: 115,
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_Osmo_Mobile_7P-thumbnail-200x200-95.jpg",
-    sku: "180902",
-    brand: "Xiaomi",
-    category: "სმარტფონები",
-    color: "შავი",
-    storage: "512GB",
-    inStock: true,
-  },
-];
+const ABSOLUTE_MAX_PRICE = 10000;
 
 const COLOR_OPTIONS = [
-  { id: "შავი", label: "შავი", hex: "#111111" },
   { id: "ნაცრისფერი", label: "ნაცრისფერი", hex: "#9CA3AF" },
+  { id: "შავი", label: "შავი", hex: "#111827" },
   { id: "თეთრი", label: "თეთრი", hex: "#FFFFFF" },
-  { id: "ლურჯი", label: "ლურჯი", hex: "#2563EB" },
+  { id: "Natural Titanium", label: "Natural Titanium", hex: "#C5C1B8" },
+  { id: "Space Black", label: "Space Black", hex: "#1F2937" },
+  { id: "ბეჟი", label: "ბეჟი", hex: "#F5F5DC" },
 ];
 
-const STORAGE_OPTIONS = ["128GB", "256GB", "512GB", "1TB"];
-const ABSOLUTE_MAX_PRICE = 5000;
-
-type SortOption = "default" | "all" | "price-desc" | "price-asc" | "name-asc" | "name-desc";
+const STORAGE_OPTIONS = ["128GB", "256GB", "512GB", "1TB", "22GB"];
 
 function CatalogContent() {
-  // Filter States
+  const searchParams = useSearchParams();
+  const urlCategory = searchParams.get("category") || "";
+  const urlBrand = searchParams.get("brand") || "";
+  const urlQuery = searchParams.get("search") || searchParams.get("q") || "";
+
+  // State
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(ABSOLUTE_MAX_PRICE);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(urlBrand ? [urlBrand] : []);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(urlCategory ? [urlCategory] : []);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedStorage, setSelectedStorage] = useState<string[]>([]);
-  const [onlyDiscounted, setOnlyDiscounted] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("default");
+  const [onlyDiscounted, setOnlyDiscounted] = useState<boolean>(false);
 
-  // Mobile Filter Drawer Toggle
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<"default" | "all" | "price-desc" | "price-asc" | "name-asc" | "name-desc">("default");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Accordion Section Toggle States
+  // Accordion Toggles
+  const [priceOpen, setPriceOpen] = useState(true);
   const [brandOpen, setBrandOpen] = useState(true);
   const [categoryOpen, setCategoryOpen] = useState(true);
-  const [priceOpen, setPriceOpen] = useState(true);
   const [colorOpen, setColorOpen] = useState(true);
   const [storageOpen, setStorageOpen] = useState(true);
 
-  // Available Brands & Categories with Counts
+  // Dynamic Brand & Category counts
   const brandCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    CATALOG_DATABASE.forEach(p => {
-      counts[p.brand] = (counts[p.brand] || 0) + 1;
+    PRODUCTS_DATA.forEach((p) => {
+      counts[p.brandName] = (counts[p.brandName] || 0) + 1;
     });
     return counts;
   }, []);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    CATALOG_DATABASE.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
+    PRODUCTS_DATA.forEach((p) => {
+      counts[p.categoryName] = (counts[p.categoryName] || 0) + 1;
     });
     return counts;
   }, []);
+
+  // Filter handlers
+  const handleBrandToggle = (brand: string) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    );
+  };
+
+  const handleCategoryToggle = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
+    );
+  };
+
+  const handleColorToggle = (color: string) => {
+    setSelectedColors((prev) =>
+      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
+    );
+  };
+
+  const handleStorageToggle = (storage: string) => {
+    setSelectedStorage((prev) =>
+      prev.includes(storage) ? prev.filter((s) => s !== storage) : [...prev, storage]
+    );
+  };
 
   const handleMinPriceChange = (val: number) => {
     const newMin = Math.min(val, maxPrice - 50);
@@ -208,30 +107,6 @@ function CatalogContent() {
   const handleMaxPriceChange = (val: number) => {
     const newMax = Math.max(val, minPrice + 50);
     setMaxPrice(Math.min(ABSOLUTE_MAX_PRICE, newMax));
-  };
-
-  const handleBrandToggle = (brand: string) => {
-    setSelectedBrands(prev =>
-      prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
-    );
-  };
-
-  const handleCategoryToggle = (cat: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-    );
-  };
-
-  const handleColorToggle = (color: string) => {
-    setSelectedColors(prev =>
-      prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
-    );
-  };
-
-  const handleStorageToggle = (storage: string) => {
-    setSelectedStorage(prev =>
-      prev.includes(storage) ? prev.filter(s => s !== storage) : [...prev, storage]
-    );
   };
 
   const resetFilters = () => {
@@ -245,32 +120,52 @@ function CatalogContent() {
     setSortBy("default");
   };
 
-  const activeFiltersCount = 
-    selectedBrands.length + 
-    selectedCategories.length + 
-    selectedColors.length + 
-    selectedStorage.length + 
-    (onlyDiscounted ? 1 : 0) + 
+  const activeFiltersCount =
+    selectedBrands.length +
+    selectedCategories.length +
+    selectedColors.length +
+    selectedStorage.length +
+    (onlyDiscounted ? 1 : 0) +
     (minPrice > 0 || maxPrice < ABSOLUTE_MAX_PRICE ? 1 : 0);
 
-  // Filter Logic
+  // Main Filter Logic
   const filteredProducts = useMemo(() => {
-    return CATALOG_DATABASE.filter(product => {
+    return PRODUCTS_DATA.filter((product) => {
+      // URL search query
+      if (urlQuery) {
+        const q = urlQuery.toLowerCase();
+        const matchesQuery =
+          product.title.toLowerCase().includes(q) ||
+          product.brandName.toLowerCase().includes(q) ||
+          product.categoryName.toLowerCase().includes(q) ||
+          product.sku.toLowerCase().includes(q);
+        if (!matchesQuery) return false;
+      }
+
       // Price filter
       const effectivePrice = product.discountPrice || product.price;
       if (effectivePrice < minPrice || effectivePrice > maxPrice) return false;
 
       // Brand filter
-      if (selectedBrands.length > 0 && !selectedBrands.includes(product.brand)) return false;
+      if (selectedBrands.length > 0 && !selectedBrands.includes(product.brandName)) return false;
 
       // Category filter
-      if (selectedCategories.length > 0 && !selectedCategories.includes(product.category)) return false;
+      if (selectedCategories.length > 0) {
+        const matchesCategory = selectedCategories.some(
+          (c) =>
+            product.categoryName.toLowerCase().includes(c.toLowerCase()) ||
+            product.categoryId.toLowerCase().includes(c.toLowerCase())
+        );
+        if (!matchesCategory) return false;
+      }
 
       // Color filter
-      if (selectedColors.length > 0 && !selectedColors.includes(product.color)) return false;
+      if (selectedColors.length > 0 && product.colorName && !selectedColors.includes(product.colorName))
+        return false;
 
       // Storage filter
-      if (selectedStorage.length > 0 && product.storage && !selectedStorage.includes(product.storage)) return false;
+      if (selectedStorage.length > 0 && product.storage && !selectedStorage.includes(product.storage))
+        return false;
 
       // Discount filter
       if (onlyDiscounted && !product.discountPrice) return false;
@@ -285,7 +180,17 @@ function CatalogContent() {
       if (sortBy === "name-desc") return b.title.localeCompare(a.title, "ka");
       return 0;
     });
-  }, [minPrice, maxPrice, selectedBrands, selectedCategories, selectedColors, selectedStorage, onlyDiscounted, sortBy]);
+  }, [
+    urlQuery,
+    minPrice,
+    maxPrice,
+    selectedBrands,
+    selectedCategories,
+    selectedColors,
+    selectedStorage,
+    onlyDiscounted,
+    sortBy,
+  ]);
 
   // Dual Slider Math
   const minPercent = (minPrice / ABSOLUTE_MAX_PRICE) * 100;
@@ -293,7 +198,6 @@ function CatalogContent() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 max-w-[1600px] space-y-8">
-      
       {/* Top Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200/80">
         <div>
@@ -315,7 +219,7 @@ function CatalogContent() {
             <span>ფილტრები ({activeFiltersCount})</span>
           </button>
 
-          {/* Clean Sort Pill Button */}
+          {/* Clean Sort Dropdown Pill */}
           <div className="relative">
             <button
               onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
@@ -331,7 +235,11 @@ function CatalogContent() {
                 {sortBy === "name-asc" && "დასახელება: A-Z"}
                 {sortBy === "name-desc" && "დასახელება: Z-A"}
               </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-0.5 transition-transform duration-200 ${isSortDropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-gray-400 ml-0.5 transition-transform duration-200 ${
+                  isSortDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {isSortDropdownOpen && (
@@ -353,9 +261,7 @@ function CatalogContent() {
                         setIsSortDropdownOpen(false);
                       }}
                       className={`flex items-center justify-between px-3.5 py-2 text-xs cursor-pointer transition-colors ${
-                        isSelected
-                          ? "bg-blue-50/80 text-blue-700"
-                          : "text-gray-700 hover:bg-gray-50"
+                        isSelected ? "bg-blue-50/80 text-blue-700" : "text-gray-700 hover:bg-gray-50"
                       }`}
                     >
                       <span>{opt.label}</span>
@@ -369,14 +275,14 @@ function CatalogContent() {
         </div>
       </div>
 
-      {/* Main Catalog Layout (Spacious 320px Sidebar + 4-Column Grid) */}
+      {/* Main Catalog Layout */}
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-        
-        {/* 100% Custom Roomy Left Filter Sidebar (320px Width) */}
-        <aside className={`w-full lg:w-[320px] shrink-0 bg-white rounded-2xl p-6 md:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.015)] space-y-6 ${
-          isMobileFilterOpen ? "block" : "hidden lg:block"
-        }`}>
-          
+        {/* Left Filter Sidebar */}
+        <aside
+          className={`w-full lg:w-[320px] shrink-0 bg-white rounded-2xl p-6 md:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.015)] space-y-6 ${
+            isMobileFilterOpen ? "block" : "hidden lg:block"
+          }`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-100">
             <div className="flex items-center gap-2 text-sm text-gray-900">
@@ -400,21 +306,24 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* 100% Custom Dual-Thumb Price Slider Section */}
+          {/* Dual-Thumb Price Slider Section */}
           <div className="space-y-4 pb-5 border-b border-gray-100">
             <button
               onClick={() => setPriceOpen(!priceOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
               <span>ფასის ინტერვალი (₾)</span>
-              {priceOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              {priceOpen ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
             </button>
 
             {priceOpen && (
               <div className="space-y-4 pt-1">
-                
                 <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  <div className="bg-[#F8FAFD] p-2.5 rounded-xl border border-gray-100 focus-within:border-blue-500 transition-colors">
+                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 focus-within:border-blue-500 transition-colors">
                     <span className="text-[10px] text-gray-400 block">დან</span>
                     <div className="flex items-center justify-between pt-0.5">
                       <input
@@ -429,7 +338,7 @@ function CatalogContent() {
                     </div>
                   </div>
 
-                  <div className="bg-[#F8FAFD] p-2.5 rounded-xl border border-gray-100 focus-within:border-blue-500 transition-colors">
+                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 focus-within:border-blue-500 transition-colors">
                     <span className="text-[10px] text-gray-400 block">მდე</span>
                     <div className="flex items-center justify-between pt-0.5">
                       <input
@@ -492,30 +401,33 @@ function CatalogContent() {
                       className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
                         minPrice === preset.min && maxPrice === preset.max
                           ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "bg-[#F8FAFD] text-gray-600 hover:bg-gray-100"
+                          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                       }`}
                     >
                       {preset.label}
                     </button>
                   ))}
                 </div>
-
               </div>
             )}
           </div>
 
-          {/* Custom Brand Filter */}
+          {/* Brand Filter */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
               onClick={() => setBrandOpen(!brandOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
               <span>ბრენდი</span>
-              {brandOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              {brandOpen ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
             </button>
 
             {brandOpen && (
-              <div className="space-y-2.5 pt-1 text-xs text-gray-700">
+              <div className="space-y-2.5 pt-1 text-xs text-gray-700 max-h-48 overflow-y-auto pr-1">
                 {Object.entries(brandCounts).map(([brand, count]) => {
                   const isChecked = selectedBrands.includes(brand);
 
@@ -530,7 +442,7 @@ function CatalogContent() {
                           className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
                             isChecked
                               ? "bg-blue-600 border border-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
-                              : "bg-[#F8FAFD] border border-gray-200 group-hover:border-blue-400"
+                              : "bg-gray-50 border border-gray-200 group-hover:border-blue-400"
                           }`}
                         >
                           {isChecked && <Check className="w-3.5 h-3.5" />}
@@ -545,18 +457,22 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* Custom Category Filter */}
+          {/* Category Filter */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
               onClick={() => setCategoryOpen(!categoryOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
               <span>კატეგორია</span>
-              {categoryOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              {categoryOpen ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
             </button>
 
             {categoryOpen && (
-              <div className="space-y-2.5 pt-1 text-xs text-gray-700">
+              <div className="space-y-2.5 pt-1 text-xs text-gray-700 max-h-48 overflow-y-auto pr-1">
                 {Object.entries(categoryCounts).map(([cat, count]) => {
                   const isChecked = selectedCategories.includes(cat);
 
@@ -571,7 +487,7 @@ function CatalogContent() {
                           className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
                             isChecked
                               ? "bg-blue-600 border border-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
-                              : "bg-[#F8FAFD] border border-gray-200 group-hover:border-blue-400"
+                              : "bg-gray-50 border border-gray-200 group-hover:border-blue-400"
                           }`}
                         >
                           {isChecked && <Check className="w-3.5 h-3.5" />}
@@ -586,14 +502,18 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* Custom Color Selector */}
+          {/* Color Selector */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
               onClick={() => setColorOpen(!colorOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
               <span>ფერი</span>
-              {colorOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              {colorOpen ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
             </button>
 
             {colorOpen && (
@@ -607,8 +527,8 @@ function CatalogContent() {
                       onClick={() => handleColorToggle(c.id)}
                       title={c.label}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
-                        isSelected 
-                          ? "ring-2 ring-blue-600 border-white shadow-xs" 
+                        isSelected
+                          ? "ring-2 ring-blue-600 border-white shadow-xs"
                           : "border-gray-200 hover:scale-105"
                       }`}
                       style={{ backgroundColor: c.hex }}
@@ -623,14 +543,18 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* Custom Storage Option Pills */}
+          {/* Storage Option Pills */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
               onClick={() => setStorageOpen(!storageOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
               <span>შიდა მეხსიერება</span>
-              {storageOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              {storageOpen ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
             </button>
 
             {storageOpen && (
@@ -645,7 +569,7 @@ function CatalogContent() {
                       className={`py-2 px-3 rounded-xl text-xs transition-all cursor-pointer text-center ${
                         isSelected
                           ? "bg-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
-                          : "bg-[#F8FAFD] text-gray-700 hover:bg-gray-100 border border-gray-100"
+                          : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-100"
                       }`}
                     >
                       {s}
@@ -656,7 +580,7 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* Custom Toggle Switch */}
+          {/* Toggle Switch: Discounted Only */}
           <div
             onClick={() => setOnlyDiscounted(!onlyDiscounted)}
             className="flex items-center justify-between pt-1 text-xs text-gray-900 cursor-pointer group"
@@ -678,16 +602,23 @@ function CatalogContent() {
               />
             </div>
           </div>
-
         </aside>
 
         {/* Right Product Grid */}
         <main className="flex-1 w-full space-y-6">
-          
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
               {filteredProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  title={product.title}
+                  price={product.price}
+                  discountPrice={product.discountPrice}
+                  monthlyInstallment={product.monthlyInstallment}
+                  image={product.images[0]}
+                  discountPercentage={product.discountPercentage}
+                />
               ))}
             </div>
           ) : (
@@ -711,19 +642,15 @@ function CatalogContent() {
               </div>
             </div>
           )}
-
         </main>
-
       </div>
-
     </div>
   );
 }
 
 export default function CatalogPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-gray-900 font-sans pb-24">
-      
+    <div className="min-h-screen bg-white text-gray-900 font-sans pb-24">
       {/* Top Breadcrumbs */}
       <div className="py-3.5 bg-white border-b border-gray-100 mb-8">
         <div className="container mx-auto px-4 lg:px-6 max-w-[1600px]">
@@ -738,11 +665,13 @@ export default function CatalogPage() {
       </div>
 
       <main>
-        <Suspense fallback={
-          <div className="container mx-auto px-4 py-12 text-center text-gray-400 text-sm">
-            იტვირთება კატალოგი...
-          </div>
-        }>
+        <Suspense
+          fallback={
+            <div className="container mx-auto px-4 py-12 text-center text-gray-400 text-sm">
+              იტვირთება კატალოგი...
+            </div>
+          }
+        >
           <CatalogContent />
         </Suspense>
       </main>

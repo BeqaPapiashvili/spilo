@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, X, Send, Bot, Sparkles, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { MessageSquare, X, Send, Bot, GitCompare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStore } from "@/store/useStore";
 
 interface Message {
   id: string;
@@ -12,6 +14,7 @@ interface Message {
 }
 
 export default function SupportChatWidget() {
+  const { compareList } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [inputMsg, setInputMsg] = useState("");
   const [messages, setMessages] = useState<Message[]>([
@@ -37,7 +40,6 @@ export default function SupportChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg("");
 
-    // Bot automated response simulation
     setTimeout(() => {
       let replyText = "გმადლობთ კითხვისთვის! ჩვენი კონსულტანტი მალე დაგიკავშირდებათ. ოპერატორის ცხელი ხაზი: (032) 2 00 00 00.";
       
@@ -61,8 +63,23 @@ export default function SupportChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50">
-      {/* Floating Toggle Button */}
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col items-end gap-3">
+      
+      {/* Floating Sticky Compare Button (positioned directly above help icon) */}
+      <Link
+        href="/compare"
+        className="relative bg-[#111111] hover:bg-black text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 border border-white/20"
+        title="პროდუქტების შედარება"
+      >
+        <GitCompare className="w-5 h-5 text-blue-400" />
+        {compareList.length > 0 && (
+          <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-[#111111]">
+            {compareList.length}
+          </span>
+        )}
+      </Link>
+
+      {/* Floating Toggle Help Button (Icon Only) */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
@@ -70,13 +87,13 @@ export default function SupportChatWidget() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className="bg-[#111111] hover:bg-black text-white p-4 rounded-full shadow-2xl flex items-center gap-2.5 cursor-pointer transition-transform hover:scale-105 border border-white/20"
+            className="bg-[#111111] hover:bg-black text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 border border-white/20"
+            title="დახმარება & ჩატი"
           >
             <div className="relative">
               <MessageSquare className="w-5 h-5 text-blue-400" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
             </div>
-            <span className="text-xs hidden sm:inline pr-1">დახმარება</span>
           </motion.button>
         )}
       </AnimatePresence>

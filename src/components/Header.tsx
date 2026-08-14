@@ -10,104 +10,25 @@ import {
   Plus, 
   Minus,
   LayoutGrid,
-  Percent
+  Percent,
+  ChevronDown
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-
-const SEARCH_PRODUCTS = [
-  { 
-    id: "dji-neo", 
-    sku: "172122",
-    code: "180697",
-    title: "დრონი DJI Neo Drone Gray", 
-    price: 699, 
-    cat: "დრონები",
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg" 
-  },
-  { 
-    id: "dji-mini-4", 
-    sku: "172123",
-    code: "180698",
-    title: "დრონი DJI Mini 4 Pro Fly More Combo", 
-    price: 3299, 
-    cat: "დრონები",
-    image: "https://veli.store/media-cdn/__sized__/product/DJI-ZM700_20250710210650-thumbnail-200x200-95.jpg" 
-  },
-  { 
-    id: "dji-pocket-3", 
-    sku: "172124",
-    code: "180699",
-    title: "სტაბილიზატორი DJI Osmo Pocket 3 Creator Combo", 
-    price: 2199, 
-    cat: "სტაბილიზატორები",
-    image: "https://veli.store/media-cdn/__sized__/product/DJI-ZPK300-C1-8_20250710160051-thumbnail-200x200-95.jpg" 
-  },
-  { 
-    id: "dji-osmo-6", 
-    sku: "172125",
-    code: "180700",
-    title: "სმარტფონის სტაბილიზატორი DJI Osmo Mobile 6", 
-    price: 499, 
-    cat: "სტაბილიზატორები",
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_Osmo_Mobile_7P-thumbnail-200x200-95.jpg" 
-  },
-  { 
-    id: "dji-rc-n3", 
-    sku: "172126",
-    code: "180701",
-    title: "დისტანციური მართვის პულტი DJI RC-N3 Remote Controller", 
-    price: 379, 
-    cat: "აქსესუარები",
-    image: "https://veli.store/media-cdn/__sized__/product/DJI_RC-N3-1-thumbnail-200x200-95.jpg" 
-  },
-];
+import { SearchModal } from "./SearchModal";
+import { MegaMenu } from "./MegaMenu";
 
 export default function Header() {
   const router = useRouter();
   const { toggleCart, cart, updateQuantity, removeFromCart, user, toggleAuthModal } = useStore();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [lang, setLang] = useState<"GE" | "EN">("GE");
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0);
-
-  const cleanQuery = searchQuery.trim().toLowerCase();
-
-  const filteredResults = SEARCH_PRODUCTS.filter((item) =>
-    item.title.toLowerCase().includes(cleanQuery) ||
-    item.id.toLowerCase().includes(cleanQuery) ||
-    item.sku.toLowerCase().includes(cleanQuery) ||
-    item.code.toLowerCase().includes(cleanQuery)
-  );
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cleanQuery) return;
-
-    const exactIdMatch = SEARCH_PRODUCTS.find(
-      (item) =>
-        item.id.toLowerCase() === cleanQuery ||
-        item.sku.toLowerCase() === cleanQuery ||
-        item.code.toLowerCase() === cleanQuery
-    );
-
-    if (exactIdMatch) {
-      router.push(`/product/${exactIdMatch.id}`);
-    } else {
-      router.push(`/search?q=${encodeURIComponent(cleanQuery)}`);
-    }
-
-    setIsSearchFocused(false);
-  };
-
-  const handleSelectProduct = (productId: string) => {
-    router.push(`/product/${productId}`);
-    setIsSearchFocused(false);
-  };
 
   return (
     <>
@@ -137,73 +58,31 @@ export default function Header() {
             <span className="text-blue-600">.</span>
           </Link>
 
-          {/* Search Input Bar (Matching Screenshot Pill Input) */}
-          <div className="flex-1 max-w-xl relative">
-            <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setIsSearchFocused(true);
-                }}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
-                placeholder="ძიება (მაგ: 172122, dji-neo)..."
-                className="w-full h-11 pl-11 pr-4 rounded-2xl border border-gray-200/80 focus:ring-2 focus:ring-blue-600 focus:border-transparent focus:outline-none text-xs md:text-sm bg-white text-gray-900 shadow-2xs placeholder:text-gray-400"
-              />
-              <button
-                type="submit"
-                className="absolute left-3.5 p-0.5 text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
-              >
-                <Search className="w-4.5 h-4.5" />
-              </button>
-            </form>
-
-            {/* Live Search Results Modal Dropdown */}
-            <AnimatePresence>
-              {isSearchFocused && searchQuery.trim() && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 z-50 p-2 text-gray-900"
-                >
-                  {filteredResults.length > 0 ? (
-                    <div className="flex flex-col">
-                      <div className="px-3 py-2 text-[11px] text-gray-500 uppercase tracking-wider flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
-                        <span>მოიძებნა ({filteredResults.length}) ნივთი</span>
-                        <span className="text-blue-600 text-[10px]">აირჩიეთ ნივთი</span>
-                      </div>
-                      {filteredResults.map((item) => (
-                        <div
-                          key={item.id}
-                          onMouseDown={() => handleSelectProduct(item.id)}
-                          className="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50/60 rounded-xl cursor-pointer transition-colors gap-3 group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={item.image} alt={item.title} className="w-10 h-10 object-contain shrink-0 mix-blend-multiply bg-gray-50 p-1 rounded-lg" />
-                            <div>
-                              <div className="text-gray-900 text-xs sm:text-sm group-hover:text-blue-600 transition-colors">{item.title}</div>
-                              <div className="text-[11px] text-gray-400">ID: <span className="text-gray-600">{item.sku}</span> • {item.cat}</div>
-                            </div>
-                          </div>
-                          <span className="text-gray-900 text-xs sm:text-sm shrink-0">{item.price} ₾</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-5 py-6 text-center text-gray-500 text-xs sm:text-sm">
-                      შედეგი არ მოიძებნა ID/დასახელებით &quot;{searchQuery}&quot;
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Mega Menu Toggle Button */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
+              className="hidden lg:flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-900 px-4 h-11 rounded-2xl border border-gray-200/80 shadow-2xs text-xs transition-colors cursor-pointer"
+            >
+              <LayoutGrid className="w-4 h-4 text-blue-600" />
+              <span>კატეგორიები</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isMegaMenuOpen ? "rotate-180" : ""}`} />
+            </button>
           </div>
 
-          {/* Right Action Icons (Hidden on Mobile since MobileBottomNav handles them) */}
-          <div className="hidden md:flex items-center gap-2 shrink-0 text-xs md:text-sm">
+          {/* Search Trigger Input (Opens full Search Modal) */}
+          <div className="flex-1 max-w-xl relative">
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className="w-full h-11 pl-11 pr-4 rounded-2xl border border-gray-200/80 bg-white text-gray-400 text-xs md:text-sm flex items-center justify-start text-left shadow-2xs hover:border-blue-500 transition-all cursor-pointer"
+            >
+              <Search className="w-4.5 h-4.5 text-blue-600 absolute left-3.5" />
+              <span>ძიება: DJI, iPhone 16 Pro, MacBook...</span>
+            </button>
+          </div>
+
+          {/* Right Action Icons (Matching Screenshot Pill Buttons) */}
+          <div className="flex items-center gap-2 shrink-0 text-xs md:text-sm">
 
             {/* Cart Button Container with Hover Dropdown Popup */}
             <div 
@@ -370,7 +249,13 @@ export default function Header() {
           </div>
 
         </div>
+
+        {/* MegaMenu Portal */}
+        <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setIsMegaMenuOpen(false)} />
       </header>
+
+      {/* Full Search Modal */}
+      <SearchModal isOpen={isSearchModalOpen} onClose={() => setIsSearchModalOpen(false)} />
     </>
   );
 }

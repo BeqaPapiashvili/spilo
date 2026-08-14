@@ -7,6 +7,7 @@ import AuthModal from "@/components/AuthModal";
 import SupportChatWidget from "@/components/SupportChatWidget";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 const notoGeorgian = Noto_Sans_Georgian({
   variable: "--font-noto-georgian",
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartDrawer />
         <AuthModal />
         <SupportChatWidget />
+        <ToastContainer />
         <main className="flex-1">
           {children}
         </main>
@@ -39,3 +41,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+

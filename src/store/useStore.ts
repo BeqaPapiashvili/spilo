@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ToastMessage, ToastType } from '@/types';
 
 export interface CartItem {
   id: string; // product id
@@ -42,9 +43,13 @@ interface StoreState {
   orders: OrderRecord[];
   isCartOpen: boolean;
   compareList: string[];
+  highlightDifferencesOnly: boolean;
   user: UserProfile | null;
   isAuthModalOpen: boolean;
-  
+  toasts: ToastMessage[];
+  recentlyViewed: WishlistItem[];
+  recentSearches: string[];
+
   // Cart Actions
   addToCart: (item: Omit<CartItem, 'quantity'>, openCart?: boolean) => void;
   removeFromCart: (id: string) => void;
@@ -63,9 +68,20 @@ interface StoreState {
   // Compare & Auth Actions
   addToCompare: (id: string) => void;
   removeFromCompare: (id: string) => void;
+  toggleCompare: (id: string) => void;
   clearCompare: () => void;
+  toggleHighlightDifferences: () => void;
   toggleAuthModal: (open?: boolean) => void;
   setUser: (user: UserProfile | null) => void;
+
+  // Toast Actions
+  addToast: (toast: { title: string; message?: string; type?: ToastType; duration?: number }) => void;
+  removeToast: (id: string) => void;
+
+  // Recently Viewed & Search Actions
+  addRecentlyViewed: (item: WishlistItem) => void;
+  addRecentSearch: (query: string) => void;
+  clearRecentSearches: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -94,25 +110,31 @@ export const useStore = create<StoreState>()(
         }
       ],
       isCartOpen: false,
-      compareList: ['dji-neo', 'dji-mini-4'],
+      compareList: [],
+      highlightDifferencesOnly: false,
       user: null,
       isAuthModalOpen: false,
+      toasts: [],
+      recentlyViewed: [],
+      recentSearches: ["DJI Neo", "iPhone 16", "MacBook Pro"],
 
       // Cart
       addToCart: (item, openCart = false) =>
         set((state) => {
           const existing = state.cart.find((i) => i.id === item.id);
-          if (existing) {
-            return {
-              cart: state.cart.map((i) =>
-                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-              ),
-              isCartOpen: openCart ? true : state.isCartOpen,
-            };
-          }
-          return { 
-            cart: [...state.cart, { ...item, quantity: 1 }], 
-            isCartOpen: openCart ? true : state.isCartOpen 
+          const newCart = existing
+            ? state.cart.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
+            : [...state.cart, { ...item, quantity: 1 }];
+          
+          get().addToast({
+            title: "დაემატა კალათაში",
+            message: item.title,
+            type: "success",
+          });
+
+          return {
+            cart: newCart,
+            isCartOpen: openCart ? true : state.isCartOpen,
           };
         }),
       removeFromCart: (id) =>
@@ -129,8 +151,18 @@ export const useStore = create<StoreState>()(
         set((state) => {
           const exists = state.wishlist.some((i) => i.id === item.id);
           if (exists) {
+            get().addToast({
+              title: "ამოიშალა სურვილების სიიდან",
+              message: item.title,
+              type: "info",
+            });
             return { wishlist: state.wishlist.filter((i) => i.id !== item.id) };
           }
+          get().addToast({
+            title: "დაემატა სურვილების სიაში",
+            message: item.title,
+            type: "success",
+          });
           return { wishlist: [...state.wishlist, item] };
         }),
       isInWishlist: (id) => get().wishlist.some((i) => i.id === id),
@@ -146,27 +178,103 @@ export const useStore = create<StoreState>()(
           status: "მუშავდება",
         };
         set((state) => ({ orders: [newOrder, ...state.orders] }));
+        get().addToast({
+          title: "შეკვეთა მიღებულია!",
+          message: `შეკვეთის N ${newId}`,
+          type: "success",
+        });
         return newId;
       },
 
       // Compare & Auth
       addToCompare: (id) =>
-        set((state) => ({
-          compareList: state.compareList.includes(id) 
-            ? state.compareList 
-            : [...state.compareList.slice(0, 3), id],
-        })),
+        set((state) => {
+          if (state.compareList.includes(id)) return state;
+          if (state.compareList.length >= 3) {
+            get().addToast({
+              title: "შედარების ლიმიტი",
+              message: "შეგიძლიათ შეადაროთ მაქსიმუმ 3 პროდუქტი",
+              type: "warning",
+            });
+            return state;
+          }
+          get().addToast({
+            title: "დაემატა შედარების სიაში",
+            type: "success",
+          });
+          return { compareList: [...state.compareList, id] };
+        }),
       removeFromCompare: (id) =>
         set((state) => ({
           compareList: state.compareList.filter((i) => i !== id),
         })),
+      toggleCompare: (id) =>
+        set((state) => {
+          const exists = state.compareList.includes(id);
+          if (exists) {
+            get().addToast({
+              title: "ამოიშალა შედარების სიიდან",
+              type: "info",
+            });
+            return { compareList: state.compareList.filter((i) => i !== id) };
+          }
+          if (state.compareList.length >= 3) {
+            get().addToast({
+              title: "შედარების ლიმიტი",
+              message: "შეგიძლიათ შეადაროთ მაქსიმუმ 3 პროდუქტი",
+              type: "warning",
+            });
+            return state;
+          }
+          get().addToast({
+            title: "დაემატა შედარების სიაში",
+            type: "success",
+          });
+          return { compareList: [...state.compareList, id] };
+        }),
       clearCompare: () => set({ compareList: [] }),
+      toggleHighlightDifferences: () =>
+        set((state) => ({ highlightDifferencesOnly: !state.highlightDifferencesOnly })),
       toggleAuthModal: (open) => 
         set((state) => ({ isAuthModalOpen: open !== undefined ? open : !state.isAuthModalOpen })),
       setUser: (user) => set({ user }),
+
+      // Toasts
+      addToast: ({ title, message, type = "success", duration = 4000 }) => {
+        const id = Math.random().toString(36).substring(2, 9);
+        set((state) => ({
+          toasts: [...state.toasts, { id, title, message, type, duration }],
+        }));
+      },
+      removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
+
+      // Recently Viewed & Search
+      addRecentlyViewed: (item) =>
+        set((state) => {
+          const filtered = state.recentlyViewed.filter((i) => i.id !== item.id);
+          return { recentlyViewed: [item, ...filtered].slice(0, 10) };
+        }),
+      addRecentSearch: (query) =>
+        set((state) => {
+          const clean = query.trim();
+          if (!clean) return state;
+          const filtered = state.recentSearches.filter((s) => s.toLowerCase() !== clean.toLowerCase());
+          return { recentSearches: [clean, ...filtered].slice(0, 5) };
+        }),
+      clearRecentSearches: () => set({ recentSearches: [] }),
     }),
     {
-      name: 'veli-cart-storage',
+      name: 'spilo-store-storage',
+      partialize: (state) => ({
+        cart: state.cart,
+        wishlist: state.wishlist,
+        orders: state.orders,
+        compareList: state.compareList,
+        highlightDifferencesOnly: state.highlightDifferencesOnly,
+        user: state.user,
+        recentlyViewed: state.recentlyViewed,
+        recentSearches: state.recentSearches,
+      }),
     }
   )
 );
