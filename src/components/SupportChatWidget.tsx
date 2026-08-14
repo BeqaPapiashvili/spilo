@@ -1,37 +1,47 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { MessageSquare, X, Send, Bot, GitCompare, Minus, ThumbsUp, ThumbsDown, Plus, ChevronDown, Sparkles } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { 
+  MessageSquare, 
+  X, 
+  Send, 
+  Minus, 
+  ThumbsUp, 
+  ThumbsDown, 
+  ChevronDown, 
+  Plus, 
+  GitCompare,
+  CheckCircle2,
+  ShieldCheck
+} from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { dataService } from "@/services/dataService";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 interface Message {
   id: string;
-  sender: "bot" | "user" | "admin";
+  sender: "user" | "bot" | "admin";
   text: string;
   time: string;
-  liked?: boolean;
+  liked?: boolean | null;
 }
 
 export default function SupportChatWidget() {
-  const { compareList, user } = useStore();
+  const { user, compareList } = useStore();
   const [isOpen, setIsOpen] = useState(false);
-  const [inputMsg, setInputMsg] = useState("");
-  const [ticketId, setTicketId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Chat Flow Steps: "auth" -> "consent" -> "chat"
   const [chatStep, setChatStep] = useState<"auth" | "consent" | "chat">("auth");
-  const [guestName, setGuestName] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
+  const [guestName, setGuestName] = useState(user?.name || "");
+  const [guestPhone, setGuestPhone] = useState(user?.phone || "");
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [inputMsg, setInputMsg] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       sender: "bot",
-      text: "ზუმერული სალამი! მე მერი ვარ, Spilo-ს AI ექსპერტი, მუდმივად ვვითარდები და ვუმჯობესდები. თქვენი გამოცდილების გასამარტივებლად, მზად ვარ ვუპასუხო პროდუქტთან თუ შეკვეთის სტატუსთან დაკავშირებულ ნებისმიერ კითხვას 🪄",
+      text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! მე მერი ვარ, Spilo-ს AI ექსპერტი. მზად ვარ დაგეხმაროთ პროდუქტის შერჩევაში, 0%-იან განვადებასა და შეკვეთის გადამოწმებაში 🪄",
       time: "ახლახანს",
     },
   ]);
@@ -64,29 +74,27 @@ export default function SupportChatWidget() {
     }
   }, [messages, isOpen, chatStep]);
 
-  // Load messages immediately on mount and sync on real-time updates
+  // Subscribe to real-time updates from dataService
   useEffect(() => {
+    if (!ticketId) return;
+
     const loadMessages = () => {
       const tickets = dataService.getSupportTickets();
-      const currentTicket = ticketId
-        ? tickets.find((t) => t.id === ticketId)
-        : tickets[0];
-
-      if (currentTicket && currentTicket.messages.length > 0) {
-        const syncedMessages: Message[] = currentTicket.messages.map((m, idx) => ({
-          id: `msg-${idx}-${m.time}`,
-          sender: m.sender === "admin" ? "admin" : "user",
-          text: m.text,
-          time: m.time,
-        }));
+      const current = tickets.find((t) => t.id === ticketId);
+      if (current && current.messages.length > 0) {
         setMessages([
           {
             id: "1",
             sender: "bot",
-            text: "ზუმერული სალამი! მე მერი ვარ, Spilo-ს AI ექსპერტი, მუდმივად ვვითარდები და ვუმჯობესდები. თქვენი გამოცდილების გასამარტივებლად, მზად ვარ ვუპასუხო პროდუქტთან თუ შეკვეთის სტატუსთან დაკავშირებულ ნებისმიერ კითხვას 🪄",
+            text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! მე მერი ვარ, Spilo-ს AI ექსპერტი. მზად ვარ დაგეხმაროთ პროდუქტის შერჩევაში, 0%-იან განვადებასა და შეკვეთის გადამოწმებაში 🪄",
             time: "ახლახანს",
           },
-          ...syncedMessages,
+          ...current.messages.map((m, idx) => ({
+            id: `msg-${idx}-${Date.now()}`,
+            sender: m.sender,
+            text: m.text,
+            time: m.time,
+          })),
         ]);
       }
     };
@@ -147,7 +155,7 @@ export default function SupportChatWidget() {
 
     // AI automated instant response
     setTimeout(() => {
-      let replyText = "გმადლობთ შეტყობინებისთვის! ჩვენი კონსულტანტი მალე გიპასუხებთ.";
+      let replyText = "გმადლობთ შეტყობინებისთვის! ჩვენი ოპერატორი მალე გიპასუხებთ.";
       
       const lower = text.toLowerCase();
       if (lower.includes("განვადება") || lower.includes("0%")) {
@@ -210,7 +218,7 @@ export default function SupportChatWidget() {
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-[340px] sm:w-[380px] h-[520px] rounded-[36px] p-2.5 sm:p-3 flex flex-col justify-between relative shadow-[0_25px_70px_-15px_rgba(0,0,0,0.2)] border border-white/80 overflow-hidden"
               style={{
-                background: "linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(245,247,250,0.95) 100%)",
+                background: "linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,244,250,0.98) 100%)",
                 backdropFilter: "blur(24px)",
                 WebkitBackdropFilter: "blur(24px)",
               }}
@@ -218,11 +226,11 @@ export default function SupportChatWidget() {
               {/* Top Glass Bar */}
               <div className="flex items-center justify-between px-2 pt-1 pb-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/60 shadow-xs">
-                  <div className="w-4 h-4 rounded-full bg-[#111111] text-white flex items-center justify-center text-[9px]">
-                    N
+                  <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px]">
+                    S
                   </div>
                   <span className="text-[11px] text-slate-700">
-                    Powered by <span className="text-slate-900">Spilo</span>
+                    Powered by <span className="text-blue-600">Spilo</span>
                   </span>
                 </div>
 
@@ -242,12 +250,12 @@ export default function SupportChatWidget() {
                 {/* STEP 1: AUTHORIZATION (ავტორიზაცია) */}
                 {chatStep === "auth" && (
                   <div className="p-6 flex-1 flex flex-col justify-between relative">
-                    {/* Decorative Concentric Rings Top Right */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 pointer-events-none opacity-40">
+                    {/* Decorative Concentric Rings Top Right in Spilo Blue */}
+                    <div className="absolute -top-10 -right-10 w-40 h-40 pointer-events-none opacity-30">
                       <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="70" cy="30" r="30" stroke="#FDBA74" strokeWidth="2.5" />
-                        <circle cx="70" cy="30" r="42" stroke="#FDBA74" strokeWidth="2.5" />
-                        <circle cx="70" cy="30" r="54" stroke="#FDBA74" strokeWidth="2.5" />
+                        <circle cx="70" cy="30" r="30" stroke="#93C5FD" strokeWidth="2.5" />
+                        <circle cx="70" cy="30" r="42" stroke="#93C5FD" strokeWidth="2.5" />
+                        <circle cx="70" cy="30" r="54" stroke="#93C5FD" strokeWidth="2.5" />
                       </svg>
                     </div>
 
@@ -266,14 +274,14 @@ export default function SupportChatWidget() {
                             onChange={(e) => setGuestName(e.target.value)}
                             placeholder="შეიყვანე შენი სახელი"
                             required
-                            className="w-full h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/40 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
+                            className="w-full h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all placeholder:text-slate-400"
                           />
                         </div>
 
                         <div>
                           <label className="block text-xs text-slate-700 mb-1.5">მობილური ნომერი</label>
                           <div className="flex gap-2">
-                            <div className="h-11 px-3 rounded-2xl border border-slate-200 bg-slate-50/40 flex items-center gap-1.5 text-xs text-slate-700">
+                            <div className="h-11 px-3 rounded-2xl border border-slate-200 bg-slate-50/50 flex items-center gap-1.5 text-xs text-slate-700">
                               <span>GE +995</span>
                               <ChevronDown size={12} className="text-slate-400" />
                             </div>
@@ -283,14 +291,14 @@ export default function SupportChatWidget() {
                               onChange={(e) => setGuestPhone(e.target.value)}
                               placeholder="5XX XX XX XX"
                               required
-                              className="flex-1 h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/40 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
+                              className="flex-1 h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all placeholder:text-slate-400"
                             />
                           </div>
                         </div>
 
                         <button
                           type="submit"
-                          className="w-full h-12 bg-[#E8592A] hover:bg-[#D94C1D] text-white rounded-2xl text-xs sm:text-sm cursor-pointer transition-all shadow-md shadow-[#E8592A]/20 mt-4 active:scale-[0.98]"
+                          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs sm:text-sm cursor-pointer transition-all shadow-md shadow-blue-500/20 mt-4 active:scale-[0.98]"
                         >
                           დაწყება
                         </button>
@@ -322,7 +330,7 @@ export default function SupportChatWidget() {
                       <button
                         type="button"
                         onClick={handleAcceptConsent}
-                        className="h-11 rounded-2xl bg-[#E8592A] hover:bg-[#D94C1D] text-white text-xs cursor-pointer transition-all shadow-md shadow-[#E8592A]/20"
+                        className="h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs cursor-pointer transition-all shadow-md shadow-blue-500/20"
                       >
                         თანხმობა
                       </button>
@@ -335,10 +343,10 @@ export default function SupportChatWidget() {
                   <div className="flex-1 flex flex-col h-full overflow-hidden">
                     
                     {/* Agent Header Card inside */}
-                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 p-0.5 overflow-hidden flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 overflow-hidden flex items-center justify-center">
                             <img
                               src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop&crop=face"
                               alt="მერი"
@@ -352,7 +360,7 @@ export default function SupportChatWidget() {
                         </div>
                         <div>
                           <h4 className="text-xs text-slate-900">მერი</h4>
-                          <p className="text-[10px] text-slate-500">AI ექსპერტი</p>
+                          <p className="text-[10px] text-blue-600">Spilo AI ექსპერტი</p>
                         </div>
                       </div>
                     </div>
@@ -380,7 +388,7 @@ export default function SupportChatWidget() {
                               <div
                                 className={`rounded-2xl px-4 py-3 text-xs leading-relaxed ${
                                   isUser
-                                    ? "bg-[#E8592A] text-white rounded-tr-none shadow-xs"
+                                    ? "bg-blue-600 text-white rounded-tr-none shadow-xs"
                                     : "bg-[#F2F4F8] text-slate-800 rounded-tl-none border border-slate-100"
                                 }`}
                               >
@@ -415,19 +423,19 @@ export default function SupportChatWidget() {
                         );
                       })}
 
-                      {/* Quick Action Chips */}
+                      {/* Quick Action Chips in Spilo Blue Theme */}
                       <div className="flex items-center gap-2 pt-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => handleSend("კონსულტაცია")}
-                          className="px-3.5 py-1.5 rounded-full border border-[#E8592A] text-[#E8592A] hover:bg-[#E8592A]/5 text-xs cursor-pointer transition-colors"
+                          className="px-3.5 py-1.5 rounded-full border border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100/60 text-xs cursor-pointer transition-colors"
                         >
                           კონსულტაცია
                         </button>
                         <button
                           type="button"
                           onClick={() => handleSend("შეკვეთის გადამოწმება")}
-                          className="px-3.5 py-1.5 rounded-full border border-[#E8592A] text-[#E8592A] hover:bg-[#E8592A]/5 text-xs cursor-pointer transition-colors"
+                          className="px-3.5 py-1.5 rounded-full border border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100/60 text-xs cursor-pointer transition-colors"
                         >
                           შეკვეთის გადამოწმება
                         </button>
@@ -458,12 +466,12 @@ export default function SupportChatWidget() {
                         value={inputMsg}
                         onChange={(e) => setInputMsg(e.target.value)}
                         placeholder="Ask me anything..."
-                        className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
+                        className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all placeholder:text-slate-400"
                       />
 
                       <button
                         type="submit"
-                        className="w-10 h-10 bg-[#E8592A] hover:bg-[#D94C1D] text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-[#E8592A]/20"
+                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-blue-500/20"
                       >
                         <Send size={14} />
                       </button>
@@ -478,13 +486,13 @@ export default function SupportChatWidget() {
           )}
         </AnimatePresence>
 
-        {/* Floating Trigger Button */}
+        {/* Floating Trigger Button in Spilo Deep Slate / Blue Theme */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border ${
             isOpen
-              ? "bg-[#E8592A] hover:bg-[#D94C1D] text-white border-orange-400/30"
+              ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-400/40 shadow-blue-500/30"
               : "bg-[#111111] hover:bg-black text-white border-white/20"
           }`}
           title={isOpen ? "ჩათის დახურვა" : "დახმარება & ჩატი"}
