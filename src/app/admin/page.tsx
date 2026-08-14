@@ -25,11 +25,13 @@ import { useStore } from "@/store/useStore";
 import { Product, OrderRecord } from "@/types";
 
 export default function AdminDashboardPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const storeOrders = useStore((state) => state.orders);
 
   useEffect(() => {
+    setIsMounted(true);
     setProducts(dataService.getProducts());
     setAuditLogs(dataService.getAuditLogs());
 
@@ -46,6 +48,10 @@ export default function AdminDashboardPage() {
 
   const totalRevenue = storeOrders.reduce((sum, ord) => sum + (ord.totalAmount || 0), 0);
   const avgOrderValue = storeOrders.length > 0 ? Math.round(totalRevenue / storeOrders.length) : 0;
+
+  const formattedRevenue = (totalRevenue + 148920)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
   return (
     <div className="space-y-6">
@@ -89,7 +95,7 @@ export default function AdminDashboardPage() {
           </div>
           <div>
             <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-              {(totalRevenue + 148920).toLocaleString("ka-GE")} ₾
+              {isMounted ? formattedRevenue : "148 920"} ₾
             </h3>
             <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1 font-medium">
               <ArrowUpRight className="w-4 h-4" />
@@ -263,8 +269,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-3.5">
-              {auditLogs.map((log) => (
-                <div key={log.id} className="text-xs space-y-1 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+              {auditLogs.map((log, idx) => (
+                <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} className="text-xs space-y-1 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-gray-900">{log.action}</span>
                     <span className="text-[10px] text-gray-400">{log.timestamp}</span>
