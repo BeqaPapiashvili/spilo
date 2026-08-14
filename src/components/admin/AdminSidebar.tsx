@@ -4,34 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  LayoutDashboard, 
-  Package, 
-  FolderTree, 
-  Award, 
-  ShoppingBag, 
-  Users, 
-  Warehouse, 
-  Tag, 
-  Ticket, 
-  MessageSquare, 
-  Image as ImageIcon, 
-  LayoutTemplate, 
-  Navigation, 
-  Truck, 
-  CreditCard, 
-  Banknote, 
-  Bell, 
-  Headphones, 
-  Globe, 
-  BarChart3, 
-  ShieldCheck, 
-  History, 
-  Settings, 
-  ChevronDown, 
-  ExternalLink,
-  X,
-  Sparkles,
-  Zap
+  LayoutDashboard, Package, FolderTree, Award, ShoppingBag, Users, Warehouse, Tag, 
+  Ticket, MessageSquare, Image as ImageIcon, LayoutTemplate, Navigation, Truck, 
+  CreditCard, Banknote, Bell, Headphones, Globe, BarChart3, ShieldCheck, History, 
+  Settings, ChevronDown, ExternalLink, X, Zap, Plus
 } from "lucide-react";
 
 interface MenuItem {
@@ -47,266 +23,201 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+const NAV: MenuSection[] = [
+  {
+    sectionTitle: "მთავარი",
+    items: [
+      { title: "Dashboard", href: "/admin", icon: <LayoutDashboard size={15} /> },
+    ],
+  },
+  {
+    sectionTitle: "კატალოგი",
+    items: [
+      {
+        title: "პროდუქტები",
+        icon: <Package size={15} />,
+        children: [
+          { title: "ყველა პროდუქტი", href: "/admin/products" },
+          { title: "ახალი პროდუქტი", href: "/admin/products/new" },
+        ],
+      },
+      { title: "კატეგორიები", href: "/admin/categories", icon: <FolderTree size={15} /> },
+      { title: "ბრენდები", href: "/admin/brands", icon: <Award size={15} /> },
+    ],
+  },
+  {
+    sectionTitle: "გაყიდვები",
+    items: [
+      { title: "შეკვეთები", href: "/admin/orders", icon: <ShoppingBag size={15} />, badge: "new" },
+      { title: "მომხმარებლები", href: "/admin/customers", icon: <Users size={15} /> },
+      { title: "შეფასებები", href: "/admin/reviews", icon: <MessageSquare size={15} /> },
+    ],
+  },
+  {
+    sectionTitle: "მარკეტინგი",
+    items: [
+      { title: "აქციები", href: "/admin/promotions", icon: <Tag size={15} /> },
+      { title: "კუპონები", href: "/admin/coupons", icon: <Ticket size={15} /> },
+      { title: "ბანერები", href: "/admin/banners", icon: <ImageIcon size={15} /> },
+    ],
+  },
+  {
+    sectionTitle: "Storefront CMS",
+    items: [
+      { title: "Homepage", href: "/admin/homepage", icon: <LayoutTemplate size={15} /> },
+      { title: "ნავიგაცია", href: "/admin/navigation", icon: <Navigation size={15} /> },
+      { title: "CMS გვერდები", href: "/admin/cms", icon: <Globe size={15} /> },
+      { title: "SEO მენეჯერი", href: "/admin/seo", icon: <Globe size={15} /> },
+    ],
+  },
+  {
+    sectionTitle: "ოპერაციები",
+    items: [
+      { title: "მარაგები", href: "/admin/inventory", icon: <Warehouse size={15} /> },
+      { title: "მიწოდება", href: "/admin/delivery", icon: <Truck size={15} /> },
+      { title: "გადახდები", href: "/admin/payments", icon: <CreditCard size={15} /> },
+      { title: "განვადებები", href: "/admin/installments", icon: <Banknote size={15} /> },
+      { title: "მხარდაჭერის ჩათი", href: "/admin/support", icon: <Headphones size={15} /> },
+    ],
+  },
+  {
+    sectionTitle: "სისტემა",
+    items: [
+      { title: "ანალიტიკა", href: "/admin/analytics", icon: <BarChart3 size={15} /> },
+      { title: "ადმინები & როლები", href: "/admin/users", icon: <ShieldCheck size={15} /> },
+      { title: "Audit Log", href: "/admin/audit-logs", icon: <History size={15} /> },
+      { title: "პარამეტრები", href: "/admin/settings", icon: <Settings size={15} /> },
+    ],
+  },
+];
+
 export const AdminSidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-    "პროდუქტები": true,
-  });
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({ "პროდუქტები": true });
 
-  const toggleSubmenu = (key: string) => {
-    setOpenSubmenus((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const menuSections: MenuSection[] = [
-    {
-      sectionTitle: "მთავარი",
-      items: [
-        {
-          title: "Dashboard",
-          href: "/admin",
-          icon: <LayoutDashboard className="w-4 h-4" />,
-        },
-      ],
-    },
-    {
-      sectionTitle: "კატალოგი (Catalog)",
-      items: [
-        {
-          title: "პროდუქტები",
-          icon: <Package className="w-4 h-4" />,
-          children: [
-            { title: "ყველა პროდუქტი", href: "/admin/products" },
-            { title: "ახალი პროდუქტი", href: "/admin/products/new" },
-          ],
-        },
-        {
-          title: "კატეგორიები",
-          href: "/admin/categories",
-          icon: <FolderTree className="w-4 h-4" />,
-        },
-        {
-          title: "ბრენდები",
-          href: "/admin/brands",
-          icon: <Award className="w-4 h-4" />,
-        },
-      ],
-    },
-    {
-      sectionTitle: "გაყიდვები (Sales)",
-      items: [
-        {
-          title: "შეკვეთები",
-          href: "/admin/orders",
-          icon: <ShoppingBag className="w-4 h-4" />,
-          badge: "ახალი",
-        },
-        {
-          title: "მომხმარებლები",
-          href: "/admin/customers",
-          icon: <Users className="w-4 h-4" />,
-        },
-        {
-          title: "შეფასებები (Reviews)",
-          href: "/admin/reviews",
-          icon: <MessageSquare className="w-4 h-4" />,
-        },
-      ],
-    },
-    {
-      sectionTitle: "მარკეტინგი (Marketing)",
-      items: [
-        {
-          title: "აქციები & ფასდაკლებები",
-          href: "/admin/promotions",
-          icon: <Tag className="w-4 h-4" />,
-        },
-        {
-          title: "კუპონები",
-          href: "/admin/coupons",
-          icon: <Ticket className="w-4 h-4" />,
-        },
-        {
-          title: "ბანერები",
-          href: "/admin/banners",
-          icon: <ImageIcon className="w-4 h-4" />,
-        },
-      ],
-    },
-    {
-      sectionTitle: "Storefront CMS",
-      items: [
-        {
-          title: "მთავარი გვერდი (Homepage)",
-          href: "/admin/homepage",
-          icon: <LayoutTemplate className="w-4 h-4" />,
-        },
-        {
-          title: "ნავიგაცია (MegaMenu)",
-          href: "/admin/navigation",
-          icon: <Navigation className="w-4 h-4" />,
-        },
-        {
-          title: "CMS გვერდები",
-          href: "/admin/cms",
-          icon: <Globe className="w-4 h-4" />,
-        },
-        {
-          title: "SEO მენეჯერი",
-          href: "/admin/seo",
-          icon: <Globe className="w-4 h-4" />,
-        },
-      ],
-    },
-    {
-      sectionTitle: "ოპერაციები & სერვისები",
-      items: [
-        {
-          title: "მარაგების კონტროლი",
-          href: "/admin/inventory",
-          icon: <Warehouse className="w-4 h-4" />,
-        },
-        {
-          title: "მიწოდების პარამეტრები",
-          href: "/admin/delivery",
-          icon: <Truck className="w-4 h-4" />,
-        },
-        {
-          title: "გადახდები",
-          href: "/admin/payments",
-          icon: <CreditCard className="w-4 h-4" />,
-        },
-        {
-          title: "ბანკის განვადებები",
-          href: "/admin/installments",
-          icon: <Banknote className="w-4 h-4" />,
-        },
-        {
-          title: "მხარდაჭერის ჩათი",
-          href: "/admin/support",
-          icon: <Headphones className="w-4 h-4" />,
-        },
-      ],
-    },
-    {
-      sectionTitle: "ანალიტიკა & სისტემა",
-      items: [
-        {
-          title: "ანალიტიკა",
-          href: "/admin/analytics",
-          icon: <BarChart3 className="w-4 h-4" />,
-        },
-        {
-          title: "ადმინები & როლები",
-          href: "/admin/users",
-          icon: <ShieldCheck className="w-4 h-4" />,
-        },
-        {
-          title: "Audit Log (ისტორია)",
-          href: "/admin/audit-logs",
-          icon: <History className="w-4 h-4" />,
-        },
-        {
-          title: "პარამეტრები (Settings)",
-          href: "/admin/settings",
-          icon: <Settings className="w-4 h-4" />,
-        },
-      ],
-    },
-  ];
+  const toggleSubmenu = (key: string) => setOpenSubmenus((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          style={{
+            position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
+            backdropFilter: "blur(4px)", zIndex: 40
+          }}
+          className="lg:hidden"
         />
       )}
 
-      {/* Sidebar Container */}
-      <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-[#0B132B] text-slate-300 flex flex-col transition-transform duration-300 ease-in-out border-r border-slate-800/80 shadow-2xl lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <aside style={{
+        position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50,
+        width: "15.5rem",
+        background: "#0C1322",
+        display: "flex", flexDirection: "column",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: "4px 0 24px rgba(0,0,0,0.25)",
+        transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+        transform: isOpen ? "translateX(0)" : undefined,
+      }}
+      className={`${!isOpen ? "-translate-x-full lg:translate-x-0" : ""}`}
       >
-        {/* Header Logo */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800/80 shrink-0 bg-[#070D1E]/90 backdrop-blur-md">
-          <Link href="/admin" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-900/40 group-hover:scale-105 transition-transform">
-              <Zap className="w-4.5 h-4.5 fill-current" />
+        
+        {/* Logo */}
+        <div style={{
+          height: "3.75rem", padding: "0 1.25rem",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(0,0,0,0.2)",
+        }}>
+          <Link href="/admin" style={{ display: "flex", alignItems: "center", gap: "0.625rem", textDecoration: "none" }}>
+            <div style={{
+              width: "2rem", height: "2rem", borderRadius: "0.625rem",
+              background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(99,102,241,0.4)",
+            }}>
+              <Zap size={14} style={{ color: "#fff", fill: "#fff" }} />
             </div>
-            <div className="flex flex-col">
-              <span className="text-base tracking-tight text-white leading-none">spilo</span>
-              <span className="text-[9px] text-blue-400 tracking-wider uppercase font-mono mt-0.5">Admin Control</span>
+            <div>
+              <div style={{ fontSize: "0.9rem", color: "#f8fafc", letterSpacing: "-0.02em", lineHeight: 1 }}>spilo</div>
+              <div style={{ fontSize: "0.55rem", color: "#818cf8", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", marginTop: "2px" }}>Admin Panel</div>
             </div>
           </Link>
-          <button
-            onClick={onClose}
-            className="lg:hidden text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="adm-icon-btn lg:hidden" style={{ color: "#94a3b8" }}>
+            <X size={16} />
           </button>
         </div>
 
-        {/* Back to Storefront Link */}
-        <div className="p-3 border-b border-slate-800/60 bg-[#070D1E]/40">
-          <Link
-            href="/"
-            className="w-full py-2.5 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 text-xs flex items-center justify-between transition-all border border-slate-700/50 group shadow-2xs"
+        {/* Storefront link */}
+        <div style={{ padding: "0.625rem 0.875rem", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <Link href="/" style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.5rem 0.875rem", borderRadius: "0.75rem",
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+            fontSize: "0.72rem", color: "#cbd5e1", textDecoration: "none",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
           >
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-              <span>Storefront-ზე დაბრუნება</span>
-            </span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            <span>← Storefront-ზე დაბრუნება</span>
+            <ExternalLink size={12} style={{ color: "#64748b" }} />
           </Link>
         </div>
 
-        {/* Navigation Items List */}
-        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-800 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {menuSections.map((section, idx) => (
-            <div key={idx} className="space-y-1">
-              <p className="px-3 text-[10px] uppercase text-slate-500 tracking-widest font-mono">
+        {/* Nav */}
+        <div
+          className="adm-scrollbar"
+          style={{ flex: 1, overflowY: "auto", padding: "1rem 0.875rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}
+        >
+          {NAV.map((section, si) => (
+            <div key={si}>
+              <p className="adm-section-label" style={{ color: "rgba(148,163,184,0.6)", paddingLeft: "0.5rem", marginBottom: "0.375rem" }}>
                 {section.sectionTitle}
               </p>
-              <div className="space-y-0.5">
-                {section.items.map((item, itemIdx) => {
+              <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                {section.items.map((item, ii) => {
                   if (item.children) {
-                    const key = item.title;
-                    const isExpanded = openSubmenus[key] ?? true;
-
+                    const isExpanded = openSubmenus[item.title] ?? false;
                     return (
-                      <div key={itemIdx} className="space-y-0.5">
+                      <div key={ii}>
                         <button
-                          onClick={() => toggleSubmenu(key)}
-                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all cursor-pointer"
+                          onClick={() => toggleSubmenu(item.title)}
+                          style={{
+                            width: "100%", display: "flex", alignItems: "center",
+                            justifyContent: "space-between", padding: "0.5rem 0.75rem",
+                            borderRadius: "0.625rem", cursor: "pointer",
+                            background: "transparent", border: "none",
+                            fontSize: "0.76rem", color: "#94a3b8",
+                            transition: "background 0.15s, color 0.15s",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#e2e8f0"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-slate-400">{item.icon}</span>
+                          <span style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                            <span style={{ color: "#64748b" }}>{item.icon}</span>
                             <span>{item.title}</span>
-                          </div>
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
-                              isExpanded ? "rotate-180 text-blue-400" : ""
-                            }`}
-                          />
+                          </span>
+                          <ChevronDown size={12} style={{ color: "#64748b", transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
                         </button>
-
                         {isExpanded && (
-                          <div className="pl-8 pr-2 space-y-0.5 border-l border-slate-800/70 ml-4 py-1">
-                            {item.children.map((child, childIdx) => {
+                          <div style={{ paddingLeft: "1.875rem", paddingTop: "2px", paddingBottom: "4px", marginLeft: "1.25rem", borderLeft: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", gap: "1px" }}>
+                            {item.children.map((child, ci) => {
                               const isActive = pathname === child.href;
                               return (
-                                <Link
-                                  key={childIdx}
-                                  href={child.href}
-                                  onClick={onClose}
-                                  className={`block py-1.5 px-3 rounded-lg text-xs transition-all ${
-                                    isActive
-                                      ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                                      : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                                  }`}
+                                <Link key={ci} href={child.href} onClick={onClose} style={{
+                                  display: "block", padding: "0.425rem 0.75rem",
+                                  borderRadius: "0.5rem", fontSize: "0.73rem",
+                                  textDecoration: "none",
+                                  background: isActive ? "rgba(99,102,241,0.2)" : "transparent",
+                                  color: isActive ? "#a5b4fc" : "#64748b",
+                                  border: isActive ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
+                                  transition: "background 0.15s, color 0.15s",
+                                }}
+                                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#cbd5e1"; }}}
+                                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#64748b"; }}}
                                 >
                                   {child.title}
                                 </Link>
@@ -319,28 +230,26 @@ export const AdminSidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = 
                   }
 
                   const isActive = pathname === item.href;
-
                   return (
-                    <Link
-                      key={itemIdx}
-                      href={item.href || "#"}
-                      onClick={onClose}
-                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
-                        isActive
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-950/60"
-                          : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
-                      }`}
+                    <Link key={ii} href={item.href || "#"} onClick={onClose}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "0.5rem 0.75rem", borderRadius: "0.625rem",
+                        fontSize: "0.76rem", textDecoration: "none",
+                        ...(isActive
+                          ? { background: "linear-gradient(135deg, #4f46e5, #6366f1)", color: "#fff", boxShadow: "0 2px 8px rgba(99,102,241,0.35)" }
+                          : { color: "#94a3b8" }),
+                        transition: "background 0.15s, color 0.15s",
+                      }}
+                      onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#e2e8f0"; }}}
+                      onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className={isActive ? "text-white" : "text-slate-400"}>
-                          {item.icon}
-                        </span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                        <span style={{ color: isActive ? "rgba(255,255,255,0.8)" : "#64748b" }}>{item.icon}</span>
                         <span>{item.title}</span>
-                      </div>
+                      </span>
                       {item.badge && (
-                        <span className="px-2 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">
-                          {item.badge}
-                        </span>
+                        <span className="adm-badge adm-badge-green" style={{ fontSize: "0.55rem" }}>{item.badge}</span>
                       )}
                     </Link>
                   );
@@ -350,16 +259,22 @@ export const AdminSidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = 
           ))}
         </div>
 
-        {/* Footer Admin User Info */}
-        <div className="p-3 border-t border-slate-800/80 bg-[#070D1E] flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-xs shrink-0 shadow-xs">
-              BP
-            </div>
-            <div className="truncate">
-              <p className="text-xs text-white truncate">Beka Papiashvili</p>
-              <p className="text-[10px] text-slate-400 truncate">Super Admin</p>
-            </div>
+        {/* Footer user */}
+        <div style={{
+          padding: "0.875rem 1.25rem",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          display: "flex", alignItems: "center", gap: "0.625rem",
+          background: "rgba(0,0,0,0.15)",
+        }}>
+          <div style={{
+            width: "2rem", height: "2rem", borderRadius: "0.5rem",
+            background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "0.6rem", color: "#fff", flexShrink: 0,
+          }}>BP</div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: "0.75rem", color: "#f1f5f9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Beka Papiashvili</p>
+            <p style={{ fontSize: "0.65rem", color: "#64748b" }}>Super Admin</p>
           </div>
         </div>
       </aside>

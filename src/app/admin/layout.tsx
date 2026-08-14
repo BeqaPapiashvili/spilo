@@ -8,17 +8,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] flex flex-col font-sans text-slate-900 selection:bg-blue-600 selection:text-white antialiased">
-      {/* Sidebar */}
+    <div style={{ minHeight: "100vh", background: "#F5F7FA", display: "flex", flexDirection: "column" }}>
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-      {/* Main Layout Wrap */}
-      <div className="lg:pl-64 flex flex-col flex-1 min-h-screen transition-all duration-300">
-        {/* Header */}
+      
+      {/* Content area pushed right of sidebar on lg+ */}
+      <div className="lg:pl-[15.5rem]" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: "100vh" }}>
         <AdminHeader onOpenSidebar={() => setIsSidebarOpen(true)} />
-
-        {/* Dynamic Admin Page Container */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main style={{ flex: 1, padding: "1.75rem 2rem", maxWidth: "80rem", width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           {children}
         </main>
       </div>

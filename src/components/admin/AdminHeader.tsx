@@ -11,7 +11,8 @@ import {
   ExternalLink, 
   ShieldCheck, 
   Settings, 
-  ChevronDown
+  ChevronDown,
+  LayoutDashboard
 } from "lucide-react";
 import { dataService } from "@/services/dataService";
 
@@ -31,139 +32,175 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
   };
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 shadow-2xs">
+    <header
+      style={{
+        height: "3.75rem",
+        background: "rgba(255,255,255,0.85)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(226, 232, 240, 0.7)",
+        position: "sticky",
+        top: 0,
+        zIndex: 30,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 1.5rem",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
+      }}
+    >
       
       {/* Left: Mobile Toggle & Global Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, maxWidth: "32rem" }}>
         <button
           onClick={onOpenSidebar}
-          className="p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 lg:hidden cursor-pointer transition-colors"
+          className="adm-icon-btn lg:hidden"
+          style={{ color: "#475569" }}
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Soft Search Input */}
-        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md">
+        <form onSubmit={handleSearchSubmit} style={{ position: "relative", flex: 1 }}>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ძიება: პროდუქტი, SKU, შეკვეთა #, კლიენტი..."
-            className="w-full h-9.5 pl-9.5 pr-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 text-xs md:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 transition-all placeholder:text-slate-400"
+            placeholder="ძიება: პროდუქტი, SKU, შეკვეთა, კლიენტი..."
+            className="adm-search-input"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4" style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} />
         </form>
       </div>
 
-      {/* Right: Actions, Notifications & Profile */}
-      <div className="flex items-center gap-2 md:gap-3">
+      {/* Right: Quick actions + Notifications + Profile */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         
-        {/* Quick Create Button */}
         <Link
           href="/admin/products/new"
-          className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer shadow-xs"
+          className="adm-btn-primary"
+          style={{ display: "none" }}
+        >
+          <Plus className="w-4 h-4" />
+          <span>ახალი</span>
+        </Link>
+
+        {/* Show on sm+ */}
+        <Link
+          href="/admin/products/new"
+          className="adm-btn-primary hidden sm:inline-flex"
         >
           <Plus className="w-4 h-4" />
           <span>პროდუქტი</span>
         </Link>
 
-        {/* Notifications Dropdown */}
-        <div className="relative">
+        {/* Notifications */}
+        <div style={{ position: "relative" }}>
           <button
-            onClick={() => {
-              setIsNotificationsOpen(!isNotificationsOpen);
-              setIsProfileOpen(false);
-            }}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors relative cursor-pointer"
+            onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); }}
+            className="adm-icon-btn"
+            style={{ position: "relative" }}
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+            <span style={{
+              position: "absolute", top: "4px", right: "4px",
+              width: "7px", height: "7px", background: "#ef4444", borderRadius: "50%",
+              border: "2px solid #fff"
+            }} />
           </button>
 
           {isNotificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200/80 py-3 z-50 animate-in fade-in zoom-in-95">
-              <div className="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-                <h4 className="text-xs text-slate-900">შეტყობინებები & ისტორია</h4>
-                <span className="text-[10px] text-blue-600">{auditLogs.length} ახალი</span>
+            <div
+              className="adm-modal"
+              style={{
+                position: "absolute", right: 0, top: "calc(100% + 8px)",
+                width: "22rem", maxHeight: "26rem", zIndex: 200,
+                borderRadius: "1.25rem",
+              }}
+            >
+              <div style={{ padding: "1rem 1.25rem 0.75rem", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "0.8rem", color: "#0f172a" }}>შეტყობინებები</span>
+                <span className="adm-badge adm-badge-purple">{auditLogs.length} ახალი</span>
               </div>
-              <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+              <div style={{ maxHeight: "18rem", overflowY: "auto" }}>
                 {auditLogs.map((log, idx) => (
-                  <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} className="p-3 hover:bg-slate-50 transition-colors text-left">
-                    <p className="text-xs text-slate-900">{log.action}</p>
-                    <p className="text-xs text-slate-600">{log.details}</p>
-                    <span className="text-[10px] text-slate-400 mt-1 block">{log.timestamp} • {log.userName}</span>
+                  <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} style={{ padding: "0.875rem 1.25rem", borderBottom: "1px solid #f8fafc" }}>
+                    <p style={{ fontSize: "0.75rem", color: "#0f172a" }}>{log.action}</p>
+                    <p style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "2px" }}>{log.details}</p>
+                    <span style={{ fontSize: "0.65rem", color: "#94a3b8", display: "block", marginTop: "4px" }}>{log.timestamp} · {log.userName}</span>
                   </div>
                 ))}
               </div>
-              <div className="px-4 pt-2 border-t border-slate-100 text-center">
-                <Link
-                  href="/admin/audit-logs"
-                  onClick={() => setIsNotificationsOpen(false)}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  სრული Audit Log-ის ნახვა
+              <div style={{ padding: "0.75rem 1.25rem", borderTop: "1px solid #f1f5f9", textAlign: "center" }}>
+                <Link href="/admin/audit-logs" onClick={() => setIsNotificationsOpen(false)} style={{ fontSize: "0.75rem", color: "#6366f1" }}>
+                  სრული ისტორიის ნახვა →
                 </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Admin Profile Dropdown */}
-        <div className="relative border-l border-slate-200/80 pl-3 ml-1">
+        {/* Profile */}
+        <div style={{ position: "relative", borderLeft: "1px solid #e2e8f0", paddingLeft: "0.75rem", marginLeft: "0.25rem" }}>
           <button
-            onClick={() => {
-              setIsProfileOpen(!isProfileOpen);
-              setIsNotificationsOpen(false);
-            }}
-            className="flex items-center gap-2 p-1 hover:bg-slate-100/80 rounded-xl transition-colors cursor-pointer text-left"
+            onClick={() => { setIsProfileOpen(!isProfileOpen); setIsNotificationsOpen(false); }}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.25rem 0.5rem 0.25rem 0.25rem", borderRadius: "0.875rem", cursor: "pointer", transition: "background 0.15s", background: "transparent", border: "none" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white text-xs flex items-center justify-center shadow-2xs">
-              BP
+            <div style={{
+              width: "2rem", height: "2rem", borderRadius: "0.625rem",
+              background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
+              color: "#fff", fontSize: "0.65rem", display: "flex",
+              alignItems: "center", justifyContent: "center"
+            }}>BP</div>
+            <div style={{ textAlign: "left" }} className="hidden md:block">
+              <p style={{ fontSize: "0.75rem", color: "#0f172a", lineHeight: 1.2 }}>Beka Papiashvili</p>
+              <p style={{ fontSize: "0.65rem", color: "#94a3b8", lineHeight: 1.2 }}>Super Admin</p>
             </div>
-            <div className="hidden md:block">
-              <p className="text-xs text-slate-900 leading-tight">Beka Papiashvili</p>
-              <p className="text-[10px] text-slate-400 leading-tight">Super Admin</p>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3 h-3" style={{ color: "#94a3b8" }} />
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/80 py-2 z-50 animate-in fade-in zoom-in-95">
-              <div className="px-4 py-2 border-b border-slate-100">
-                <p className="text-xs text-slate-900">Beka Papiashvili</p>
-                <p className="text-xs text-slate-400">beka@spilo.ge</p>
+            <div
+              className="adm-modal"
+              style={{
+                position: "absolute", right: 0, top: "calc(100% + 8px)",
+                width: "14rem", zIndex: 200, borderRadius: "1.25rem",
+              }}
+            >
+              <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9" }}>
+                <p style={{ fontSize: "0.8rem", color: "#0f172a" }}>Beka Papiashvili</p>
+                <p style={{ fontSize: "0.7rem", color: "#94a3b8" }}>beka@spilo.ge</p>
               </div>
-              <div className="py-1">
-                <Link
-                  href="/admin/settings"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+              <div style={{ padding: "0.375rem" }}>
+                <Link href="/admin/settings" onClick={() => setIsProfileOpen(false)}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#475569", transition: "background 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <Settings className="w-4 h-4 text-slate-400" />
+                  <Settings className="w-4 h-4" style={{ color: "#94a3b8" }} />
                   <span>პარამეტრები</span>
                 </Link>
-                <Link
-                  href="/admin/users"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                <Link href="/admin/users" onClick={() => setIsProfileOpen(false)}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#475569", transition: "background 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <ShieldCheck className="w-4 h-4 text-slate-400" />
-                  <span>როლები & ნებართვები</span>
+                  <ShieldCheck className="w-4 h-4" style={{ color: "#94a3b8" }} />
+                  <span>ადმინები & როლები</span>
                 </Link>
-                <Link
-                  href="/"
-                  className="flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:bg-blue-50 transition-colors border-t border-slate-100"
+                <Link href="/"
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#6366f1", marginTop: "0.25rem", borderTop: "1px solid #f1f5f9", transition: "background 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f5f3ff")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <ExternalLink className="w-4 h-4 text-blue-600" />
+                  <ExternalLink className="w-4 h-4" />
                   <span>Storefront-ზე გადასვლა</span>
                 </Link>
               </div>
             </div>
           )}
         </div>
-
       </div>
-
     </header>
   );
 };

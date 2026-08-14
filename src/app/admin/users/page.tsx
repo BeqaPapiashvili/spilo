@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, Plus, Users, Check, X, Lock } from "lucide-react";
+import { ShieldCheck, Lock, Check } from "lucide-react";
 import { dataService, AdminUser, Role } from "@/services/dataService";
 
 export default function AdminUsersPage() {
@@ -13,52 +13,89 @@ export default function AdminUsersPage() {
     setRoles(dataService.getRoles());
   }, []);
 
+  const roleColors: Record<string, { badge: string }> = {
+    "Super Admin": { badge: "adm-badge adm-badge-purple" },
+    "Product Manager": { badge: "adm-badge adm-badge-blue" },
+    "Order Manager": { badge: "adm-badge adm-badge-green" },
+    "Content Manager": { badge: "adm-badge adm-badge-amber" },
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-gray-200/80 shadow-xs">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">ადმინები & როლები (RBAC)</h1>
-          <p className="text-xs text-gray-500 mt-1">თანამშრომლების ანგარიშები, როლები და Granular Permissions მატრიცა.</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+      {/* Header */}
+      <div className="adm-card" style={{ padding: "1.5rem 1.75rem" }}>
+        <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}><ShieldCheck size={13} /> სისტემა</div>
+        <h1 className="adm-page-title">ადმინები & როლები (RBAC)</h1>
+        <p className="adm-page-desc">თანამშრომლების ანგარიშები, Role-Based Access Control და ნებართვების მართვა.</p>
+      </div>
+
+      {/* Users Table */}
+      <div className="adm-card" style={{ overflow: "hidden" }}>
+        <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f1f5f9" }}>
+          <h3 style={{ fontSize: "0.875rem", color: "#0f172a" }}>ადმინისტრატორების სია</h3>
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table className="adm-table">
+            <thead>
+              <tr>
+                <th>ადმინი</th>
+                <th>ელ-ფოსტა</th>
+                <th>ბოლო შესვლა</th>
+                <th>როლი</th>
+                <th>სტატუსი</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                      <div style={{ width: "2rem", height: "2rem", borderRadius: "0.5rem", background: "linear-gradient(135deg, #4f46e5, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: "#fff", flexShrink: 0 }}>
+                        {u.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                      </div>
+                      <span style={{ fontSize: "0.8rem", color: "#0f172a" }}>{u.name}</span>
+                    </div>
+                  </td>
+                  <td style={{ color: "#64748b", fontSize: "0.75rem" }}>{u.email}</td>
+                  <td style={{ color: "#94a3b8", fontSize: "0.72rem" }}>{u.lastLogin || "—"}</td>
+                  <td>
+                    <span className={roleColors[u.roleName]?.badge || "adm-badge adm-badge-slate"}>
+                      {u.roleName}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={u.status === "ACTIVE" ? "adm-badge adm-badge-green" : "adm-badge adm-badge-red"}>
+                      {u.status === "ACTIVE" ? "აქტიური" : "გათიშული"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Admin Users Table */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 space-y-4">
-        <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">ადმინისტრატორების სია</h3>
-        <table className="w-full text-left text-xs text-gray-700">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-[10px]">
-            <tr>
-              <th className="py-2.5 px-3">სახელი</th>
-              <th className="py-2.5 px-3">ელ-ფოსტა</th>
-              <th className="py-2.5 px-3">როლი</th>
-              <th className="py-2.5 px-3">სტატუსი</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td className="py-3 px-3 font-bold text-gray-900">{u.name}</td>
-                <td className="py-3 px-3 text-gray-600">{u.email}</td>
-                <td className="py-3 px-3"><span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold rounded-full">{u.roleName}</span></td>
-                <td className="py-3 px-3"><span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-full">{u.status}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Permissions Matrix */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 space-y-4">
-        <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">როლების ნებართვების მატრიცა (Permissions Matrix)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {roles.map((r) => (
-            <div key={r.id} className="p-4 border border-gray-200 rounded-xl bg-gray-50 space-y-2">
-              <h4 className="text-xs font-bold text-gray-900">{r.name}</h4>
-              <p className="text-[11px] text-gray-500">{r.description}</p>
-              <div className="pt-2 border-t border-gray-200 space-y-1">
+      {/* Roles Permissions Matrix */}
+      <div className="adm-card" style={{ padding: "1.5rem" }}>
+        <div style={{ marginBottom: "1.25rem", paddingBottom: "0.875rem", borderBottom: "1px solid #f1f5f9" }}>
+          <h3 style={{ fontSize: "0.875rem", color: "#0f172a" }}>როლების ნებართვების მატრიცა (Permissions Matrix)</h3>
+          <p style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "3px" }}>Granular Access Control — ყველა როლის დაშვებები</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.875rem" }}>
+          {roles.map(r => (
+            <div key={r.id} style={{ padding: "1.25rem", borderRadius: "0.875rem", border: "1px solid #f1f5f9", background: "#f8fafc" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.625rem" }}>
+                <div style={{ width: "1.75rem", height: "1.75rem", borderRadius: "0.5rem", background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Lock size={13} style={{ color: "#6366f1" }} />
+                </div>
+                <h4 style={{ fontSize: "0.8rem", color: "#0f172a" }}>{r.name}</h4>
+              </div>
+              <p style={{ fontSize: "0.68rem", color: "#94a3b8", marginBottom: "0.875rem" }}>{r.description}</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
                 {r.permissions.map((perm, idx) => (
-                  <span key={idx} className="inline-block px-2 py-0.5 bg-white text-gray-700 border border-gray-200 text-[10px] font-mono rounded mr-1 mb-1">
-                    ✓ {perm}
+                  <span key={idx} style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "0.2rem 0.5rem", borderRadius: "9999px", background: "#fff", border: "1px solid #e2e8f0", fontSize: "0.6rem", color: "#475569", fontFamily: "monospace" }}>
+                    <Check size={9} style={{ color: "#16a34a" }} />{perm}
                   </span>
                 ))}
               </div>

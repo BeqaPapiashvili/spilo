@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Headphones, MessageSquare, Send, CheckCircle2, X } from "lucide-react";
+import { Headphones, Send, MessageSquare, Clock } from "lucide-react";
 import { dataService, SupportTicket } from "@/services/dataService";
 
 export default function AdminSupportPage() {
@@ -11,118 +11,125 @@ export default function AdminSupportPage() {
 
   useEffect(() => {
     setTickets(dataService.getSupportTickets());
-    const unsub = dataService.subscribe(() => {
-      setTickets(dataService.getSupportTickets());
-    });
+    const unsub = dataService.subscribe(() => setTickets(dataService.getSupportTickets()));
     return () => unsub();
   }, []);
 
-  const activeTicket = tickets.find((t) => t.id === activeTicketId);
+  const activeTicket = tickets.find(t => t.id === activeTicketId);
 
   const handleSendReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTicketId || !replyText.trim()) return;
-
     dataService.addSupportReply(activeTicketId, replyText.trim());
     setReplyText("");
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-gray-200/80 shadow-xs">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">მხარდაჭერის ჩათი (Live Support)</h1>
-          <p className="text-xs text-gray-500 mt-1">მომხმარებელთა შეკითხვები, რეალური ჩათი და პასუხების გაგზავნა.</p>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+      {/* Header */}
+      <div className="adm-card" style={{ padding: "1.5rem 1.75rem" }}>
+        <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}><Headphones size={13} /> ოპერაციები</div>
+        <h1 className="adm-page-title">მხარდაჭერის ჩათი (Live Support)</h1>
+        <p className="adm-page-desc">მომხმარებელთა შეკითხვები, პრობლემები და პასუხების გაგზავნა.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Tickets List */}
-        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-4 space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 pb-2 border-b border-gray-100">
-            აქტიური ბილეთები ({tickets.length})
-          </h3>
-          <div className="space-y-2">
-            {tickets.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTicketId(t.id)}
-                className={`w-full p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                  activeTicketId === t.id
-                    ? "bg-blue-50 border-blue-500/40 text-blue-900"
-                    : "bg-gray-50/80 border-gray-200 hover:bg-gray-100/60 text-gray-900"
-                }`}
+      {/* Main Support Layout */}
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.25rem", alignItems: "start" }}>
+
+        {/* Ticket List */}
+        <div className="adm-card" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9" }}>
+            <h3 style={{ fontSize: "0.8rem", color: "#0f172a" }}>ბილეთები ({tickets.length})</h3>
+          </div>
+          <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
+            {tickets.map(t => (
+              <button key={t.id} onClick={() => setActiveTicketId(t.id)}
+                style={{
+                  width: "100%", padding: "1rem 1.25rem", textAlign: "left",
+                  borderBottom: "1px solid #f8fafc", cursor: "pointer",
+                  background: activeTicketId === t.id ? "#f5f3ff" : "transparent",
+                  borderLeft: activeTicketId === t.id ? "3px solid #6366f1" : "3px solid transparent",
+                  transition: "all 0.15s", border: "none",
+                  display: "flex", flexDirection: "column", gap: "0.25rem",
+                }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs">{t.customerName}</span>
-                  <span className="text-[10px] text-gray-400">{t.time}</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "0.78rem", color: "#0f172a" }}>{t.customerName}</span>
+                  <span className={t.status === "OPEN" ? "adm-badge adm-badge-amber" : t.status === "RESOLVED" ? "adm-badge adm-badge-green" : "adm-badge adm-badge-blue"} style={{ fontSize: "0.55rem" }}>
+                    {t.status}
+                  </span>
                 </div>
-                <p className="text-xs text-gray-600 truncate mt-1">{t.topic}</p>
+                <p style={{ fontSize: "0.7rem", color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.topic}</p>
+                <span style={{ fontSize: "0.65rem", color: "#64748b", display: "flex", alignItems: "center", gap: "3px" }}>
+                  <Clock size={10} /> {t.time}
+                </span>
               </button>
             ))}
+            {tickets.length === 0 && (
+              <div style={{ padding: "2rem", textAlign: "center", color: "#94a3b8", fontSize: "0.75rem" }}>ბილეთები არ არის</div>
+            )}
           </div>
         </div>
 
-        {/* Chat Box */}
-        <div className="md:col-span-2 bg-white rounded-2xl border border-gray-200/80 shadow-xs p-5 flex flex-col justify-between min-h-[400px]">
-          {activeTicket ? (
-            <>
-              <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">{activeTicket.customerName}</h3>
-                  <p className="text-xs text-gray-500">{activeTicket.topic}</p>
-                </div>
-                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[10px]">
-                  {activeTicket.status}
-                </span>
+        {/* Chat View */}
+        {activeTicket ? (
+          <div className="adm-card" style={{ display: "flex", flexDirection: "column", height: "70vh" }}>
+            {/* Ticket Header */}
+            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <h3 style={{ fontSize: "0.875rem", color: "#0f172a" }}>{activeTicket.topic}</h3>
+                <p style={{ fontSize: "0.7rem", color: "#94a3b8", marginTop: "2px" }}>კლიენტი: {activeTicket.customerName} · {activeTicket.customerEmail}</p>
               </div>
-
-              {/* Messages area */}
-              <div className="flex-1 my-4 space-y-3 overflow-y-auto max-h-[300px] p-2 bg-gray-50 rounded-xl">
-                {activeTicket.messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex flex-col ${m.sender === "admin" ? "items-end" : "items-start"}`}
-                  >
-                    <div
-                      className={`max-w-[80%] p-3 rounded-2xl text-xs ${
-                        m.sender === "admin"
-                          ? "bg-blue-600 text-white rounded-br-none"
-                          : "bg-white text-gray-900 border border-gray-200 rounded-bl-none shadow-xs"
-                      }`}
-                    >
-                      <p>{m.text}</p>
-                    </div>
-                    <span className="text-[9px] text-gray-400 mt-0.5 px-1">{m.time}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Reply Form */}
-              <form onSubmit={handleSendReply} className="flex gap-2 pt-2 border-t border-gray-100">
-                <input
-                  type="text"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="ჩაწერეთ პასუხი მომხმარებლისთვის..."
-                  className="flex-1 h-10 px-3.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer flex items-center gap-1"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>გაგზავნა</span>
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 text-xs space-y-2">
-              <MessageSquare className="w-8 h-8 text-gray-300" />
-              <p>აირჩიეთ ბილეთი მარცხენა სიიდან ჩათის დასაწყებად</p>
+              <span className={activeTicket.status === "OPEN" ? "adm-badge adm-badge-amber" : activeTicket.status === "RESOLVED" ? "adm-badge adm-badge-green" : "adm-badge adm-badge-blue"}>
+                {activeTicket.status}
+              </span>
             </div>
-          )}
-        </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {activeTicket.messages.map((msg, idx) => {
+                const isAdmin = msg.sender === "admin";
+                return (
+                  <div key={idx} style={{ display: "flex", justifyContent: isAdmin ? "flex-end" : "flex-start" }}>
+                    <div style={{
+                      maxWidth: "75%", padding: "0.75rem 1rem", borderRadius: isAdmin ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+                      background: isAdmin ? "linear-gradient(135deg, #4f46e5, #6366f1)" : "#f8fafc",
+                      border: isAdmin ? "none" : "1px solid #f1f5f9",
+                      color: isAdmin ? "#fff" : "#0f172a",
+                      fontSize: "0.8rem", lineHeight: 1.5,
+                    }}>
+                      <p>{msg.text}</p>
+                      <span style={{ fontSize: "0.6rem", opacity: 0.7, display: "block", marginTop: "4px", textAlign: isAdmin ? "right" : "left" }}>
+                        {msg.time}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Reply Input */}
+            <form onSubmit={handleSendReply} style={{ padding: "1rem 1.25rem", borderTop: "1px solid #f1f5f9", display: "flex", gap: "0.625rem" }}>
+              <input
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder="პასუხის გაგზავნა..."
+                className="adm-input"
+                style={{ flex: 1 }}
+              />
+              <button type="submit" className="adm-btn-primary" style={{ flexShrink: 0 }}>
+                <Send size={15} /> გაგზავნა
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="adm-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "70vh", gap: "0.75rem" }}>
+            <MessageSquare size={36} style={{ color: "#e2e8f0" }} />
+            <p style={{ fontSize: "0.8rem", color: "#94a3b8" }}>ბილეთი ასარჩევია</p>
+            <p style={{ fontSize: "0.72rem", color: "#cbd5e1" }}>მარცხნიდან ბილეთი ასარჩევია პასუხის გასაგზავნად</p>
+          </div>
+        )}
       </div>
     </div>
   );

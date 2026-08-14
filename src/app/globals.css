@@ -71,3 +71,516 @@ body {
 .custom-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #A3A3A3;
 }
+
+/* ============================================================
+   ADMIN DESIGN SYSTEM — Soft, Airy, Modern
+   ============================================================ */
+
+/* Admin page wrapper background */
+.admin-bg {
+  background: #F5F7FA;
+}
+
+/* Admin Card — the standard container */
+.adm-card {
+  background: #ffffff;
+  border-radius: 1.25rem;         /* 20px */
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.adm-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.07);
+}
+
+/* Admin Section Title (inline badge) */
+.adm-eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Metric Icon Box */
+.adm-icon-box {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Admin Primary Button */
+.adm-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+  border-radius: 0.875rem;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  border: none;
+}
+
+.adm-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Admin Secondary Button */
+.adm-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.adm-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* Admin Danger Button */
+.adm-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 0.875rem;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.adm-btn-danger:hover {
+  background: #fee2e2;
+}
+
+/* Admin Table */
+.adm-table {
+  width: 100%;
+  text-align: left;
+  font-size: 0.75rem;
+  color: #475569;
+  border-collapse: collapse;
+}
+
+.adm-table thead {
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.adm-table th {
+  padding: 0.875rem 1.25rem;
+}
+
+.adm-table td {
+  padding: 1rem 1.25rem;
+}
+
+.adm-table tbody tr {
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.15s;
+}
+
+.adm-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.adm-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Admin Badge — Status pills */
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+}
+
+.adm-badge-green {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.adm-badge-blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.adm-badge-amber {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.adm-badge-red {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.adm-badge-purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
+.adm-badge-slate {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* Admin Input */
+.adm-input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.adm-input:focus {
+  border-color: #6366f1;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.adm-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Admin Textarea */
+.adm-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.adm-textarea:focus {
+  border-color: #6366f1;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+/* Admin Select */
+.adm-select {
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: 0.875rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.adm-select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+/* Admin Icon Button */
+.adm-icon-btn {
+  padding: 0.45rem;
+  border-radius: 0.625rem;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adm-icon-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.adm-icon-btn-blue:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.adm-icon-btn-red:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Admin Modal Overlay */
+.adm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: adm-fadeIn 0.15s ease;
+}
+
+.adm-modal {
+  background: #fff;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.15);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: adm-slideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.adm-modal-lg {
+  max-width: 700px;
+}
+
+.adm-modal-header {
+  padding: 1.5rem 1.75rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adm-modal-body {
+  padding: 1.5rem 1.75rem;
+}
+
+.adm-modal-footer {
+  padding: 1rem 1.75rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+/* Admin Form Label */
+.adm-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.375rem;
+}
+
+/* Admin page heading */
+.adm-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.adm-page-title {
+  font-size: 1.5rem;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.adm-page-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+}
+
+/* Admin Alert Banner */
+.adm-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+}
+
+.adm-alert-amber {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.adm-alert-green {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #14532d;
+}
+
+.adm-alert-blue {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+}
+
+/* Animations */
+@keyframes adm-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes adm-slideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Admin sidebar scrollbar */
+.adm-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+
+.adm-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.adm-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.adm-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 9999px;
+}
+
+/* Search input with left padding for icon */
+.adm-search-input {
+  width: 100%;
+  height: 2.5rem;
+  padding-left: 2.5rem;
+  padding-right: 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.adm-search-input:focus {
+  border-color: #6366f1;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.adm-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Stat metric number */
+.adm-metric-num {
+  font-size: 1.625rem;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* Section divider label */
+.adm-section-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  padding: 0 0.25rem;
+  margin-bottom: 0.25rem;
+  font-family: ui-monospace, monospace;
+}
+
+/* Tab buttons row */
+.adm-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+}
+
+.adm-tab {
+  padding: 0.4rem 0.875rem;
+  border-radius: 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  color: #64748b;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.adm-tab-active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.1);
+}
+
+/* Progress bar */
+.adm-progress-track {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.adm-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 0.6s ease;
+}
+
+/* Sidebar active item glow */
+.adm-sidebar-active {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+}
