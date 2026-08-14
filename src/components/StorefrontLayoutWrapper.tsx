@@ -8,6 +8,7 @@ import AuthModal from "@/components/AuthModal";
 import SupportChatWidget from "@/components/SupportChatWidget";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
+import { NetworkStatusToast } from "@/components/ui/NetworkStatusToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 
 export function StorefrontLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ export function StorefrontLayoutWrapper({ children }: { children: React.ReactNod
   if (isAdmin) {
     return (
       <>
+        <NetworkStatusToast />
         <ToastContainer />
         {children}
       </>
@@ -25,6 +27,7 @@ export function StorefrontLayoutWrapper({ children }: { children: React.ReactNod
 
   return (
     <>
+      <NetworkStatusToast />
       <Header />
       <CartDrawer />
       <AuthModal />
