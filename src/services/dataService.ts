@@ -14,9 +14,6 @@ export interface Promotion {
   endDate: string;
   status: "ACTIVE" | "SCHEDULED" | "EXPIRED";
   bannerImage?: string;
-  applicableCategoryIds?: string[];
-  applicableBrandIds?: string[];
-  applicableProductIds?: string[];
 }
 
 export interface Coupon {
@@ -25,10 +22,8 @@ export interface Coupon {
   discountType: "percentage" | "fixed";
   discountValue: number;
   minOrderAmount?: number;
-  maxDiscountAmount?: number;
   startDate: string;
   endDate: string;
-  usageLimit?: number;
   usedCount: number;
   status: "ACTIVE" | "EXPIRED" | "DISABLED";
 }
@@ -40,10 +35,34 @@ export interface Banner {
   ctaText?: string;
   ctaLink?: string;
   imageDesktop: string;
-  imageMobile?: string;
   position: "HERO" | "MID_PAGE" | "CATEGORY" | "SIDEBAR";
   isActive: boolean;
   priority: number;
+}
+
+export interface CMSPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  lastUpdated: string;
+}
+
+export interface NavigationItem {
+  id: string;
+  label: string;
+  url: string;
+  order: number;
+}
+
+export interface SupportTicket {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  topic: string;
+  status: "OPEN" | "CLOSED" | "RESOLVED";
+  time: string;
+  messages: { sender: "user" | "admin"; text: string; time: string }[];
 }
 
 export interface AuditLog {
@@ -51,9 +70,9 @@ export interface AuditLog {
   timestamp: string;
   userName: string;
   userEmail: string;
-  action: string; // e.g. "CREATE_PRODUCT", "UPDATE_PRICE", "CHANGE_ORDER_STATUS"
-  entity: string; // e.g. "Product #dji-neo"
-  details: string; // e.g. "Price changed from 2999₾ to 2799₾"
+  action: string;
+  entity: string;
+  details: string;
 }
 
 export interface Role {
@@ -69,12 +88,10 @@ export interface AdminUser {
   email: string;
   roleId: string;
   roleName: string;
-  avatar?: string;
   status: "ACTIVE" | "INACTIVE";
   lastLogin?: string;
 }
 
-// Global Storage Keys
 const STORAGE_KEYS = {
   PRODUCTS: "spilo_admin_products",
   CATEGORIES: "spilo_admin_categories",
@@ -82,9 +99,13 @@ const STORAGE_KEYS = {
   PROMOTIONS: "spilo_admin_promotions",
   COUPONS: "spilo_admin_coupons",
   BANNERS: "spilo_admin_banners",
+  CMS_PAGES: "spilo_admin_cms_pages",
+  NAVIGATION: "spilo_admin_navigation",
+  SUPPORT: "spilo_admin_support",
   AUDIT_LOGS: "spilo_admin_audit_logs",
   ADMIN_USERS: "spilo_admin_users",
   ROLES: "spilo_admin_roles",
+  DELIVERY: "spilo_admin_delivery",
 };
 
 class DataService {
@@ -94,6 +115,9 @@ class DataService {
   private promotions: Promotion[] = [];
   private coupons: Coupon[] = [];
   private banners: Banner[] = [];
+  private cmsPages: CMSPage[] = [];
+  private navItems: NavigationItem[] = [];
+  private supportTickets: SupportTicket[] = [];
   private auditLogs: AuditLog[] = [];
   private adminUsers: AdminUser[] = [];
   private roles: Role[] = [];
@@ -110,19 +134,15 @@ class DataService {
   }
 
   private initData() {
-    // Products
     const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
     this.products = savedProducts ? JSON.parse(savedProducts) : [...PRODUCTS_DATA];
 
-    // Categories
     const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
     this.categories = savedCategories ? JSON.parse(savedCategories) : [...CATEGORIES_DATA];
 
-    // Brands
     const savedBrands = localStorage.getItem(STORAGE_KEYS.BRANDS);
     this.brands = savedBrands ? JSON.parse(savedBrands) : [...BRANDS_DATA];
 
-    // Promotions Mock Initial
     const savedPromotions = localStorage.getItem(STORAGE_KEYS.PROMOTIONS);
     this.promotions = savedPromotions
       ? JSON.parse(savedPromotions)
@@ -141,7 +161,6 @@ class DataService {
           },
         ];
 
-    // Coupons
     const savedCoupons = localStorage.getItem(STORAGE_KEYS.COUPONS);
     this.coupons = savedCoupons
       ? JSON.parse(savedCoupons)
@@ -170,7 +189,6 @@ class DataService {
           },
         ];
 
-    // Banners
     const savedBanners = localStorage.getItem(STORAGE_KEYS.BANNERS);
     this.banners = savedBanners
       ? JSON.parse(savedBanners)
@@ -199,7 +217,56 @@ class DataService {
           },
         ];
 
-    // Audit Logs
+    const savedCMS = localStorage.getItem(STORAGE_KEYS.CMS_PAGES);
+    this.cmsPages = savedCMS
+      ? JSON.parse(savedCMS)
+      : [
+          { id: "about", title: "ჩვენ შესახებ (About Us)", slug: "about", content: "Spilo არის თანამედროვე ონლაინ მაღაზია საქართველოში...", lastUpdated: "2026-08-10" },
+          { id: "terms", title: "წესები და პირობები (Terms)", slug: "terms", content: "მაღაზიით სარგებლობის წესები და პირობები...", lastUpdated: "2026-08-01" },
+          { id: "privacy", title: "კონფიდენციალურობა (Privacy)", slug: "privacy", content: "პერსონალური მონაცემების დაცვის პოლიტიკა...", lastUpdated: "2026-08-01" },
+          { id: "faq", title: "ხშირად დასმული კითხვები (FAQ)", slug: "faq", content: "პასუხები ხშირად დასმულ კითხვებზე...", lastUpdated: "2026-08-12" },
+        ];
+
+    const savedNav = localStorage.getItem(STORAGE_KEYS.NAVIGATION);
+    this.navItems = savedNav
+      ? JSON.parse(savedNav)
+      : [
+          { id: "nav-1", label: "მობილურები", url: "/categories/mobiles", order: 1 },
+          { id: "nav-2", label: "ტაბები", url: "/categories/tablets", order: 2 },
+          { id: "nav-3", label: "სმარტ საათები", url: "/categories/smartwatches", order: 3 },
+          { id: "nav-4", label: "ლეპტოპები", url: "/categories/laptops", order: 4 },
+          { id: "nav-5", label: "აუდიო სისტემა", url: "/categories/audio-systems", order: 5 },
+          { id: "nav-6", label: "Gaming", url: "/categories/gaming", order: 6 },
+        ];
+
+    const savedSupport = localStorage.getItem(STORAGE_KEYS.SUPPORT);
+    this.supportTickets = savedSupport
+      ? JSON.parse(savedSupport)
+      : [
+          {
+            id: "conv-1",
+            customerName: "Beka Papiashvili",
+            customerEmail: "beka@spilo.ge",
+            topic: "iPhone 16 Pro-ს მიწოდების ვადა",
+            status: "OPEN",
+            time: "10:30",
+            messages: [
+              { sender: "user", text: "გამარჯობა, თბილისში რამდენ დღეში მოიტანთ?", time: "10:30" },
+            ],
+          },
+          {
+            id: "conv-2",
+            customerName: "Nino Beridze",
+            customerEmail: "nino@gmail.com",
+            topic: "განვადების დამტკიცების კითხვა",
+            status: "OPEN",
+            time: "09:45",
+            messages: [
+              { sender: "user", text: "TBC განვადებით შეძენას რამდენი წუთი სჭირდება?", time: "09:45" },
+            ],
+          },
+        ];
+
     const savedAuditLogs = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
     this.auditLogs = savedAuditLogs
       ? JSON.parse(savedAuditLogs)
@@ -213,18 +280,8 @@ class DataService {
             entity: "iPhone 16 Pro Max",
             details: "ფასი შეიცვალა: 3899₾ -> 3699₾",
           },
-          {
-            id: "log-2",
-            timestamp: "2026-08-14 09:15",
-            userName: "Admin Manager",
-            userEmail: "admin@spilo.ge",
-            action: "UPDATE_ORDER_STATUS",
-            entity: "Order #SPL-92841",
-            details: "სტატუსი შეიცვალა: PENDING -> SHIPPED",
-          },
         ];
 
-    // Roles & Admin Users
     this.roles = [
       {
         id: "super_admin",
@@ -236,36 +293,33 @@ class DataService {
         id: "store_manager",
         name: "Store Manager",
         description: "პროდუქტების, შეკვეთების, აქციებისა და კლიენტების მართვა",
-        permissions: ["products.*", "categories.*", "brands.*", "orders.*", "promotions.*", "inventory.*"],
-      },
-      {
-        id: "support_agent",
-        name: "Support Agent",
-        description: "მომხმარებელთა მხარდაჭერა და მიმოხილვების მოდერაცია",
-        permissions: ["support.*", "orders.view", "customers.view", "reviews.moderate"],
+        permissions: ["products.*", "categories.*", "brands.*", "orders.*"],
       },
     ];
 
-    this.adminUsers = [
-      {
-        id: "usr-1",
-        name: "Beka Papiashvili",
-        email: "beka@spilo.ge",
-        roleId: "super_admin",
-        roleName: "Super Admin",
-        status: "ACTIVE",
-        lastLogin: "2026-08-14 10:45",
-      },
-      {
-        id: "usr-2",
-        name: "Nino Beridze",
-        email: "nino@spilo.ge",
-        roleId: "store_manager",
-        roleName: "Store Manager",
-        status: "ACTIVE",
-        lastLogin: "2026-08-13 18:20",
-      },
-    ];
+    const savedUsers = localStorage.getItem(STORAGE_KEYS.ADMIN_USERS);
+    this.adminUsers = savedUsers
+      ? JSON.parse(savedUsers)
+      : [
+          {
+            id: "usr-1",
+            name: "Beka Papiashvili",
+            email: "beka@spilo.ge",
+            roleId: "super_admin",
+            roleName: "Super Admin",
+            status: "ACTIVE",
+            lastLogin: "2026-08-14 10:45",
+          },
+          {
+            id: "usr-2",
+            name: "Nino Beridze",
+            email: "nino@spilo.ge",
+            roleId: "store_manager",
+            roleName: "Store Manager",
+            status: "ACTIVE",
+            lastLogin: "2026-08-13 18:20",
+          },
+        ];
   }
 
   public subscribe(listener: () => void) {
@@ -277,11 +331,6 @@ class DataService {
 
   private notify() {
     this.listeners.forEach((listener) => listener());
-  }
-
-  // --- BANNERS ---
-  public getBanners(): Banner[] {
-    return this.banners;
   }
 
   // --- PRODUCTS ---
@@ -435,6 +484,12 @@ class DataService {
     this.notify();
   }
 
+  public deletePromotion(id: string): void {
+    this.promotions = this.promotions.filter((p) => p.id !== id);
+    localStorage.setItem(STORAGE_KEYS.PROMOTIONS, JSON.stringify(this.promotions));
+    this.notify();
+  }
+
   // --- COUPONS ---
   public getCoupons(): Coupon[] {
     return this.coupons;
@@ -450,6 +505,90 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(this.coupons));
     this.logAction("Beka Papiashvili", "SAVE_COUPON", `Coupon #${coupon.code}`, `შენახულია კუპონი: ${coupon.code}`);
     this.notify();
+  }
+
+  public deleteCoupon(id: string): void {
+    this.coupons = this.coupons.filter((c) => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(this.coupons));
+    this.notify();
+  }
+
+  // --- BANNERS ---
+  public getBanners(): Banner[] {
+    return this.banners;
+  }
+
+  public saveBanner(banner: Banner): void {
+    const idx = this.banners.findIndex((b) => b.id === banner.id);
+    if (idx >= 0) {
+      this.banners[idx] = banner;
+    } else {
+      this.banners.push(banner);
+    }
+    localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(this.banners));
+    this.notify();
+  }
+
+  public deleteBanner(id: string): void {
+    this.banners = this.banners.filter((b) => b.id !== id);
+    localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(this.banners));
+    this.notify();
+  }
+
+  // --- CMS PAGES ---
+  public getCMSPages(): CMSPage[] {
+    return this.cmsPages;
+  }
+
+  public saveCMSPage(page: CMSPage): void {
+    const idx = this.cmsPages.findIndex((p) => p.id === page.id);
+    if (idx >= 0) {
+      this.cmsPages[idx] = page;
+    } else {
+      this.cmsPages.push(page);
+    }
+    localStorage.setItem(STORAGE_KEYS.CMS_PAGES, JSON.stringify(this.cmsPages));
+    this.notify();
+  }
+
+  // --- NAVIGATION ---
+  public getNavigationItems(): NavigationItem[] {
+    return this.navItems;
+  }
+
+  public saveNavigationItem(item: NavigationItem): void {
+    const idx = this.navItems.findIndex((n) => n.id === item.id);
+    if (idx >= 0) {
+      this.navItems[idx] = item;
+    } else {
+      this.navItems.push(item);
+    }
+    localStorage.setItem(STORAGE_KEYS.NAVIGATION, JSON.stringify(this.navItems));
+    this.notify();
+  }
+
+  public deleteNavigationItem(id: string): void {
+    this.navItems = this.navItems.filter((n) => n.id !== id);
+    localStorage.setItem(STORAGE_KEYS.NAVIGATION, JSON.stringify(this.navItems));
+    this.notify();
+  }
+
+  // --- SUPPORT TICKETS ---
+  public getSupportTickets(): SupportTicket[] {
+    return this.supportTickets;
+  }
+
+  public addSupportReply(ticketId: string, replyText: string): void {
+    const ticket = this.supportTickets.find((t) => t.id === ticketId);
+    if (ticket) {
+      ticket.messages.push({
+        sender: "admin",
+        text: replyText,
+        time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+      });
+      localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+      this.notify();
+    }
   }
 
   // --- AUDIT LOGS ---
@@ -476,6 +615,17 @@ class DataService {
   // --- ROLES & ADMIN USERS ---
   public getAdminUsers(): AdminUser[] {
     return this.adminUsers;
+  }
+
+  public saveAdminUser(user: AdminUser): void {
+    const idx = this.adminUsers.findIndex((u) => u.id === user.id);
+    if (idx >= 0) {
+      this.adminUsers[idx] = user;
+    } else {
+      this.adminUsers.push(user);
+    }
+    localStorage.setItem(STORAGE_KEYS.ADMIN_USERS, JSON.stringify(this.adminUsers));
+    this.notify();
   }
 
   public getRoles(): Role[] {

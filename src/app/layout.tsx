@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Georgian } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import CartDrawer from "@/components/CartDrawer";
-import AuthModal from "@/components/AuthModal";
-import SupportChatWidget from "@/components/SupportChatWidget";
-import MobileBottomNav from "@/components/MobileBottomNav";
-import Footer from "@/components/Footer";
-import { ToastContainer } from "@/components/ui/ToastContainer";
+import { StorefrontLayoutWrapper } from "@/components/StorefrontLayoutWrapper";
 
 const notoGeorgian = Noto_Sans_Georgian({
   variable: "--font-noto-georgian",
@@ -27,18 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${notoGeorgian.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground pb-16 md:pb-0">
-        <Header />
-        <CartDrawer />
-        <AuthModal />
-        <SupportChatWidget />
-        <ToastContainer />
-        <main className="flex-1">
+        <StorefrontLayoutWrapper>
           {children}
-        </main>
-        <MobileBottomNav />
-        <Footer />
+        </StorefrontLayoutWrapper>
       </body>
     </html>
   );
 }
-
