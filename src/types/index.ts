@@ -74,11 +74,20 @@ export interface Product {
   noiseCancellation?: boolean;
 }
 
+export interface DeepCategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  productCount?: number;
+  brandQuery?: string;
+}
+
 export interface SubCategory {
   id: string;
   name: string;
   slug: string;
   productCount?: number;
+  items?: DeepCategoryItem[];
 }
 
 export interface Category {
@@ -87,6 +96,7 @@ export interface Category {
   slug: string;
   icon?: string;
   image?: string;
+  productCount?: number;
   children?: SubCategory[];
   featuredBrands?: string[];
   promoBanner?: {

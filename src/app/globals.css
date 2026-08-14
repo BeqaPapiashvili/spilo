@@ -48,3 +48,26 @@ body {
   margin-left: auto;
   margin-right: auto;
 }
+
+/* Custom sleek micro-scrollbar for sidebar & mega menu */
+.custom-sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #D4D4D4 transparent;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #D4D4D4;
+  border-radius: 9999px;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #A3A3A3;
+}

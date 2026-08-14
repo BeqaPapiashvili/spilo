@@ -49,8 +49,8 @@ export default function Header() {
       </div>
 
       {/* Main Header (Solid Light Off-White Background matching Screenshot) */}
-      <header className="sticky top-0 z-40 w-full bg-[#F4F4F6] border-b border-gray-200/60 py-2.5 shadow-xs">
-        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-3 md:gap-4">
+      <header className="sticky top-0 z-50 w-full bg-[#F4F4F6] border-b border-gray-200/60 py-2.5 shadow-xs">
+        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-3 md:gap-4 relative z-50">
           
           {/* Logo */}
           <Link href="/" className="text-2xl md:text-3xl text-gray-900 tracking-tighter shrink-0 flex items-center gap-0.5">
@@ -74,7 +74,7 @@ export default function Header() {
           <div className="flex-1 max-w-xl relative">
             <button
               onClick={() => setIsSearchModalOpen(true)}
-              className="w-full h-11 pl-11 pr-4 rounded-2xl border border-gray-200/80 bg-white text-gray-400 text-xs md:text-sm flex items-center justify-start text-left shadow-2xs hover:border-blue-500 transition-all cursor-pointer"
+              className="w-full h-11 pl-11 pr-4 rounded-2xl border border-gray-200/80 bg-white text-gray-400 text-xs md:text-sm flex items-center justify-start text-left shadow-2xs cursor-pointer"
             >
               <Search className="w-4.5 h-4.5 text-blue-600 absolute left-3.5" />
               <span>ძიება: DJI, iPhone 16 Pro, MacBook...</span>
