@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { MessageSquare, X, Send, Bot, GitCompare, Minus } from "lucide-react";
+import { MessageSquare, X, Send, Bot, GitCompare, Minus, ThumbsUp, ThumbsDown, Plus, ChevronDown, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { dataService } from "@/services/dataService";
@@ -12,22 +12,48 @@ interface Message {
   sender: "bot" | "user" | "admin";
   text: string;
   time: string;
+  liked?: boolean;
 }
 
 export default function SupportChatWidget() {
-  const { compareList } = useStore();
+  const { compareList, user } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [inputMsg, setInputMsg] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Chat Flow Steps: "auth" -> "consent" -> "chat"
+  const [chatStep, setChatStep] = useState<"auth" | "consent" | "chat">("auth");
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       sender: "bot",
-      text: "გამარჯობა! 👋 მე ვარ spilo-ს ასისტენტი. რით შემიძლია დაგეხმაროთ?",
+      text: "ზუმერული სალამი! მე მერი ვარ, Spilo-ს AI ექსპერტი, მუდმივად ვვითარდები და ვუმჯობესდები. თქვენი გამოცდილების გასამარტივებლად, მზად ვარ ვუპასუხო პროდუქტთან თუ შეკვეთის სტატუსთან დაკავშირებულ ნებისმიერ კითხვას 🪄",
       time: "ახლახანს",
     },
   ]);
+
+  // Check if user is already authorized or in localStorage
+  useEffect(() => {
+    if (user?.name) {
+      setGuestName(user.name);
+      if (user.phone) setGuestPhone(user.phone);
+      setChatStep("chat");
+    } else {
+      const savedChatUser = localStorage.getItem("spilo_chat_guest");
+      if (savedChatUser) {
+        try {
+          const parsed = JSON.parse(savedChatUser);
+          setGuestName(parsed.name || "");
+          setGuestPhone(parsed.phone || "");
+          setChatStep("chat");
+        } catch (e) {}
+      }
+    }
+  }, [user]);
 
   // Close on Escape key
   useEffect(() => {
@@ -42,10 +68,10 @@ export default function SupportChatWidget() {
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && chatStep === "chat") {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, chatStep]);
 
   // Load messages immediately on mount and sync on real-time updates
   useEffect(() => {
@@ -66,7 +92,7 @@ export default function SupportChatWidget() {
           {
             id: "1",
             sender: "bot",
-            text: "გამარჯობა! 👋 მე ვარ spilo-ს ასისტენტი. რით შემიძლია დაგეხმაროთ?",
+            text: "ზუმერული სალამი! მე მერი ვარ, Spilo-ს AI ექსპერტი, მუდმივად ვვითარდები და ვუმჯობესდები. თქვენი გამოცდილების გასამარტივებლად, მზად ვარ ვუპასუხო პროდუქტთან თუ შეკვეთის სტატუსთან დაკავშირებულ ნებისმიერ კითხვას 🪄",
             time: "ახლახანს",
           },
           ...syncedMessages,
@@ -80,6 +106,21 @@ export default function SupportChatWidget() {
     });
     return () => unsub();
   }, [ticketId]);
+
+  const handleStartAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guestName.trim()) return;
+    setChatStep("consent");
+  };
+
+  const handleAcceptConsent = () => {
+    localStorage.setItem("spilo_chat_guest", JSON.stringify({ name: guestName, phone: guestPhone }));
+    setChatStep("chat");
+  };
+
+  const handleRejectConsent = () => {
+    setIsOpen(false);
+  };
 
   const handleSend = (textToSend?: string) => {
     const text = textToSend || inputMsg;
@@ -96,25 +137,28 @@ export default function SupportChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg("");
 
-    // Send to dataService so admin receives it immediately
+    // Send to dataService for Live Admin sync
     const id = dataService.addUserSupportMessage(
-      "სტუმარი მომხმარებელი",
-      "guest@spilo.ge",
-      text
+      guestName || "სტუმარი მომხმარებელი",
+      guestPhone ? `${guestPhone}@spilo.ge` : "guest@spilo.ge",
+      text,
+      "ონლაინ კონსულტაცია"
     );
     setTicketId(id);
 
-    // Bot automated instant fallback response
+    // AI automated instant response
     setTimeout(() => {
-      let replyText = "გმადლობთ შეტყობინებისთვის! ჩვენი ოპერატორი ჩათში მალე გიპასუხებთ.";
+      let replyText = "გმადლობთ შეტყობინებისთვის! ჩვენი კონსულტანტი მალე გიპასუხებთ.";
       
       const lower = text.toLowerCase();
       if (lower.includes("განვადება") || lower.includes("0%")) {
-        replyText = "spilo-ში მოქმედებს 0%-იანი ონლაინ განვადება საქართველოს ბანკში, TBC-სა და კრედოში. განვადებას ირჩევთ შეკვეთის გაფორმებისას!";
-      } else if (lower.includes("მიწოდება") || lower.includes("მიტანა") || lower.includes("ფასი")) {
+        replyText = "Spilo-ში მოქმედებს 0%-იანი ონლაინ განვადება საქართველოს ბანკში, TBC-სა და კრედოში. განვადებას ირჩევთ შეკვეთის გაფორმებისას!";
+      } else if (lower.includes("მიწოდება") || lower.includes("მიტანა") || lower.includes("სად")) {
         replyText = "მიწოდება უფასოა მთელ საქართველოში! თბილისში მიწოდება ხდება იმავე დღეს, ხოლო რეგიონებში 1-2 სამუშაო დღეში.";
       } else if (lower.includes("გარანტია") || lower.includes("ორიგინალი")) {
         replyText = "ყველა პროდუქტი 100% ორიგინალია და მოჰყვება ოფიციალური მწარმოებლის გარანტია!";
+      } else if (lower.includes("შეკვეთა") || lower.includes("სტატუს")) {
+        replyText = "შეკვეთის სტატუსის შესამოწმებლად შეგიძლიათ მიუთითოთ შეკვეთის ID ან მობილურის ნომერი.";
       }
 
       const botReply: Message = {
@@ -125,6 +169,10 @@ export default function SupportChatWidget() {
       };
       setMessages((prev) => [...prev, botReply]);
     }, 600);
+  };
+
+  const handleFeedback = (msgId: string, liked: boolean) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, liked } : m));
   };
 
   return (
@@ -147,7 +195,7 @@ export default function SupportChatWidget() {
         >
           <GitCompare className="w-5 h-5 text-blue-400" />
           {compareList.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-[#111111]">
+            <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#111111]">
               {compareList.length}
             </span>
           )}
@@ -157,131 +205,286 @@ export default function SupportChatWidget() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 24, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="bg-white rounded-[28px] shadow-2xl border border-gray-100 w-[340px] sm:w-[380px] h-[480px] flex flex-col overflow-hidden mb-1"
+              exit={{ opacity: 0, y: 24, scale: 0.94 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="w-[340px] sm:w-[380px] h-[520px] rounded-[36px] p-2.5 sm:p-3 flex flex-col justify-between relative shadow-[0_25px_70px_-15px_rgba(0,0,0,0.2)] border border-white/80 overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(245,247,250,0.95) 100%)",
+                backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
+              }}
             >
-              {/* Header with clear Close buttons */}
-              <div className="bg-[#111111] text-white p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                    <Bot className="w-5 h-5" />
+              {/* Top Glass Bar */}
+              <div className="flex items-center justify-between px-2 pt-1 pb-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/60 shadow-xs">
+                  <div className="w-4 h-4 rounded-full bg-[#111111] text-white flex items-center justify-center text-[9px]">
+                    N
                   </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm">spilo მხარდაჭერა</h4>
-                    <div className="flex items-center gap-1 text-[10px] text-emerald-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>ონლაინშია</span>
-                    </div>
-                  </div>
+                  <span className="text-[11px] text-slate-700">
+                    Powered by <span className="text-slate-900">Spilo</span>
+                  </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="w-7 h-7 rounded-full bg-white/80 hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200/60 shadow-xs flex items-center justify-center cursor-pointer transition-all"
+                  title="ჩათის ჩაკეცვა"
+                >
+                  <Minus size={14} />
+                </button>
+              </div>
+
+              {/* Inner Main Card Container */}
+              <div className="flex-1 bg-white rounded-[28px] border border-slate-100/90 shadow-sm relative overflow-hidden flex flex-col">
                 
-                {/* Close & Minimize buttons */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="p-1.5 hover:bg-white/15 rounded-full transition-colors cursor-pointer text-gray-300 hover:text-white"
-                    title="ჩათის ჩაკეცვა"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="p-1.5 hover:bg-red-600/80 rounded-full transition-colors cursor-pointer text-gray-300 hover:text-white"
-                    title="ჩათის დახურვა (Esc)"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+                {/* STEP 1: AUTHORIZATION (ავტორიზაცია) */}
+                {chatStep === "auth" && (
+                  <div className="p-6 flex-1 flex flex-col justify-between relative">
+                    {/* Decorative Concentric Rings Top Right */}
+                    <div className="absolute -top-10 -right-10 w-40 h-40 pointer-events-none opacity-40">
+                      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="70" cy="30" r="30" stroke="#FDBA74" strokeWidth="2.5" />
+                        <circle cx="70" cy="30" r="42" stroke="#FDBA74" strokeWidth="2.5" />
+                        <circle cx="70" cy="30" r="54" stroke="#FDBA74" strokeWidth="2.5" />
+                      </svg>
+                    </div>
 
-              {/* Quick Question Chips */}
-              <div className="bg-[#F8FAFC] px-3 py-2 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto text-[11px] text-gray-700">
-                <button
-                  onClick={() => handleSend("როგორ მოქმედებს 0% განვადება?")}
-                  className="bg-white px-2.5 py-1 rounded-full border border-gray-200 hover:border-blue-500 whitespace-nowrap cursor-pointer transition-colors"
-                >
-                  💳 0% განვადება
-                </button>
-                <button
-                  onClick={() => handleSend("რამდენ ხანში მოვა მიწოდება?")}
-                  className="bg-white px-2.5 py-1 rounded-full border border-gray-200 hover:border-blue-500 whitespace-nowrap cursor-pointer transition-colors"
-                >
-                  🚚 მიწოდება
-                </button>
-                <button
-                  onClick={() => handleSend("ორიგინალია პროდუქცია?")}
-                  className="bg-white px-2.5 py-1 rounded-full border border-gray-200 hover:border-blue-500 whitespace-nowrap cursor-pointer transition-colors"
-                >
-                  🛡️ გარანტია
-                </button>
-              </div>
+                    <div>
+                      <div className="mt-8 mb-6">
+                        <h3 className="text-xl text-slate-900 tracking-tight">ავტორიზაცია</h3>
+                        <p className="text-xs text-slate-500 mt-1">გთხოვთ, შეიყვანოთ თქვენი მონაცემები</p>
+                      </div>
 
-              {/* Messages Body */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                        msg.sender === "user"
-                          ? "bg-blue-600 text-white rounded-br-none"
-                          : "bg-white text-gray-900 shadow-xs border border-gray-100 rounded-bl-none"
-                      }`}
-                    >
-                      <p>{msg.text}</p>
-                      <span
-                        className={`text-[9px] block text-right mt-1 ${
-                          msg.sender === "user" ? "text-blue-200" : "text-gray-400"
-                        }`}
-                      >
-                        {msg.time}
-                      </span>
+                      <form onSubmit={handleStartAuth} className="space-y-4">
+                        <div>
+                          <label className="block text-xs text-slate-700 mb-1.5">სახელი</label>
+                          <input
+                            type="text"
+                            value={guestName}
+                            onChange={(e) => setGuestName(e.target.value)}
+                            placeholder="შეიყვანე შენი სახელი"
+                            required
+                            className="w-full h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/40 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-slate-700 mb-1.5">მობილური ნომერი</label>
+                          <div className="flex gap-2">
+                            <div className="h-11 px-3 rounded-2xl border border-slate-200 bg-slate-50/40 flex items-center gap-1.5 text-xs text-slate-700">
+                              <span>GE +995</span>
+                              <ChevronDown size={12} className="text-slate-400" />
+                            </div>
+                            <input
+                              type="tel"
+                              value={guestPhone}
+                              onChange={(e) => setGuestPhone(e.target.value)}
+                              placeholder="5XX XX XX XX"
+                              className="flex-1 h-11 px-4 rounded-2xl border border-slate-200 bg-slate-50/40 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full h-12 bg-[#E8592A] hover:bg-[#D94C1D] text-white rounded-2xl text-xs sm:text-sm cursor-pointer transition-all shadow-md shadow-[#E8592A]/20 mt-4 active:scale-[0.98]"
+                        >
+                          დაწყება
+                        </button>
+                      </form>
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-[10px] text-slate-400">Spilo Online Customer Support</p>
                     </div>
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
+                )}
 
-              {/* Input Form */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSend();
-                }}
-                className="p-3 bg-white border-t border-gray-100 flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={inputMsg}
-                  onChange={(e) => setInputMsg(e.target.value)}
-                  placeholder="ჩაწერეთ შეკითხვა..."
-                  className="flex-1 h-10 px-3.5 bg-[#F1F3F6] rounded-xl text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
-                />
-                <button
-                  type="submit"
-                  className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
+                {/* STEP 2: CONSENT (თანხმობის მოთხოვნა) */}
+                {chatStep === "consent" && (
+                  <div className="p-6 flex-1 flex flex-col justify-center text-left">
+                    <h3 className="text-xl text-slate-900 tracking-tight mb-4">თანხმობის მოთხოვნა</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed mb-8">
+                      მოგესალმებით, გაცნობებთ, რომ ჩატში თქვენს მიერ მითითებული/მოწერილი ინფორმაცია მომართვის დამუშავების მიზნით ინახება. თანხმობის შემთხვევაში შეგიძლიათ კომუნიკაცია განაგრძოთ ოპერატორთან.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={handleRejectConsent}
+                        className="h-11 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs cursor-pointer transition-all"
+                      >
+                        უარყოფა
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAcceptConsent}
+                        className="h-11 rounded-2xl bg-[#E8592A] hover:bg-[#D94C1D] text-white text-xs cursor-pointer transition-all shadow-md shadow-[#E8592A]/20"
+                      >
+                        თანხმობა
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: ACTIVE CONVERSATION (მერი / Spilo AI & Support) */}
+                {chatStep === "chat" && (
+                  <div className="flex-1 flex flex-col h-full overflow-hidden">
+                    
+                    {/* Agent Header Card inside */}
+                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 p-0.5 overflow-hidden flex items-center justify-center">
+                            <img
+                              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop&crop=face"
+                              alt="მერი"
+                              className="w-full h-full object-cover rounded-full"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face";
+                              }}
+                            />
+                          </div>
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs text-slate-900">მერი</h4>
+                          <p className="text-[10px] text-slate-500">AI ექსპერტი</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
+                      {messages.map((msg) => {
+                        const isUser = msg.sender === "user";
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex items-start gap-2 ${isUser ? "justify-end" : "justify-start"}`}
+                          >
+                            {!isUser && (
+                              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 mt-1 border border-slate-200">
+                                <img
+                                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=face"
+                                  alt="მერი"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+
+                            <div className={`max-w-[82%] flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+                              <div
+                                className={`rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                                  isUser
+                                    ? "bg-[#E8592A] text-white rounded-tr-none shadow-xs"
+                                    : "bg-[#F2F4F8] text-slate-800 rounded-tl-none border border-slate-100"
+                                }`}
+                              >
+                                <p>{msg.text}</p>
+                              </div>
+
+                              {/* Feedback actions under bot messages */}
+                              {!isUser && (
+                                <div className="flex items-center gap-1 mt-1.5 pl-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFeedback(msg.id, true)}
+                                    className={`p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
+                                      msg.liked === true ? "text-emerald-600 bg-emerald-50" : ""
+                                    }`}
+                                  >
+                                    <ThumbsUp size={11} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFeedback(msg.id, false)}
+                                    className={`p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
+                                      msg.liked === false ? "text-red-500 bg-red-50" : ""
+                                    }`}
+                                  >
+                                    <ThumbsDown size={11} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Quick Action Chips */}
+                      <div className="flex items-center gap-2 pt-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSend("კონსულტაცია")}
+                          className="px-3.5 py-1.5 rounded-full border border-[#E8592A] text-[#E8592A] hover:bg-[#E8592A]/5 text-xs cursor-pointer transition-colors"
+                        >
+                          კონსულტაცია
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSend("შეკვეთის გადამოწმება")}
+                          className="px-3.5 py-1.5 rounded-full border border-[#E8592A] text-[#E8592A] hover:bg-[#E8592A]/5 text-xs cursor-pointer transition-colors"
+                        >
+                          შეკვეთის გადამოწმება
+                        </button>
+                      </div>
+
+                      <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Bottom Rounded Input Bar */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSend();
+                      }}
+                      className="p-3 bg-white border-t border-slate-100 flex items-center gap-2"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSend("0% განვადების პირობები")}
+                        className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                        title="დამატებითი მოქმედებები"
+                      >
+                        <Plus size={16} />
+                      </button>
+
+                      <input
+                        type="text"
+                        value={inputMsg}
+                        onChange={(e) => setInputMsg(e.target.value)}
+                        placeholder="Ask me anything..."
+                        className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E8592A]/30 focus:border-[#E8592A] transition-all placeholder:text-slate-400"
+                      />
+
+                      <button
+                        type="submit"
+                        className="w-10 h-10 bg-[#E8592A] hover:bg-[#D94C1D] text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-[#E8592A]/20"
+                      >
+                        <Send size={14} />
+                      </button>
+                    </form>
+
+                  </div>
+                )}
+
+              </div>
 
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Floating Toggle Button (Always visible: shows Message icon when closed, X icon when open) */}
+        {/* Floating Trigger Button */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border ${
             isOpen
-              ? "bg-red-600 hover:bg-red-700 text-white border-red-400/30"
+              ? "bg-[#E8592A] hover:bg-[#D94C1D] text-white border-orange-400/30"
               : "bg-[#111111] hover:bg-black text-white border-white/20"
           }`}
           title={isOpen ? "ჩათის დახურვა" : "დახმარება & ჩატი"}
