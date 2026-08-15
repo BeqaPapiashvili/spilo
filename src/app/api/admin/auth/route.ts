@@ -15,10 +15,21 @@ export async function POST(request: Request) {
 
     const cleanInput = email.trim().toLowerCase();
     const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@spilo.ge`;
+    const submittedPassword = password.trim();
 
     console.log(`🔑 Admin login attempt for input: "${cleanInput}" (targetEmail: "${targetEmail}")`);
 
-    // Query MySQL AdminUser table
+    // 1. Check User table first
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanInput },
+          { email: targetEmail },
+        ],
+      },
+    });
+
+    // 2. Check AdminUser table
     let admin = await prisma.adminUser.findFirst({
       where: {
         OR: [
@@ -28,68 +39,86 @@ export async function POST(request: Request) {
       },
     });
 
-    // If no admin user found in DB, fallback create for admin@spilo.ge / beka@spilo.ge
-    if (!admin) {
+    // Dynamic auto-creation fallback for admin/beka
+    if (!user && !admin) {
       if (cleanInput === "admin" || cleanInput === "admin@spilo.ge" || cleanInput === "beka" || cleanInput === "beka@spilo.ge") {
         try {
-          admin = await prisma.adminUser.create({
+          user = await prisma.user.create({
             data: {
               name: cleanInput.includes("beka") ? "Beka Papiashvili" : "Admin User",
               email: targetEmail,
-              password: password.trim() || "admin123",
+              password: submittedPassword || "admin123",
               role: "SUPER_ADMIN",
-              status: "ACTIVE",
             },
           });
-          console.log(`✅ Dynamically created missing admin user in MySQL: ${targetEmail}`);
         } catch (e) {
-          console.error("Error auto-creating admin user:", e);
+          console.error("Error auto-creating user:", e);
         }
       }
     }
 
-    if (!admin || admin.status !== "ACTIVE") {
-      console.warn(`❌ Admin user not found in MySQL for: ${cleanInput}`);
+    // If found in User table, ensure AdminUser sync
+    if (user && !admin) {
+      try {
+        admin = await prisma.adminUser.create({
+          data: {
+            name: user.name || "Admin User",
+            email: user.email || targetEmail,
+            password: user.password || submittedPassword,
+            role: user.role,
+            status: "ACTIVE",
+          },
+        });
+      } catch (e) {
+        // Ignore duplicate error
+      }
+    }
+
+    // If found in AdminUser table, ensure User sync
+    if (admin && !user) {
+      try {
+        user = await prisma.user.create({
+          data: {
+            name: admin.name,
+            email: admin.email,
+            password: admin.password || submittedPassword,
+            role: admin.role,
+          },
+        });
+      } catch (e) {
+        // Ignore duplicate error
+      }
+    }
+
+    const activeRole = user?.role || admin?.role || "CUSTOMER";
+    const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"].includes(activeRole);
+
+    if (!isAdminRole) {
       return NextResponse.json(
-        { success: false, error: "ადმინისტრატორი არ მოიძებნა ან დაბლოკილია" },
-        { status: 401 }
+        { success: false, error: "თქვენ არ გაქვთ ადმინ პანელში შესვლის უფლება" },
+        { status: 403 }
       );
     }
 
-    const submittedPassword = password.trim();
-    const storedPassword = admin.password || "admin123";
-
-    // Resilient Password check: matches stored password, or fallback admin123 / admin
+    const storedPassword = user?.password || admin?.password || "admin123";
     const isPasswordValid =
       storedPassword === submittedPassword ||
       submittedPassword === "admin123" ||
       submittedPassword === "admin";
 
     if (!isPasswordValid) {
-      console.warn(`❌ Password mismatch for ${admin.email}. Stored: "${storedPassword}", Submitted: "${submittedPassword}"`);
       return NextResponse.json(
         { success: false, error: "არასწორი პაროლი" },
         { status: 401 }
       );
     }
 
-    // Auto-update DB if password was missing or changed
-    if (admin.password !== submittedPassword) {
-      try {
-        await prisma.adminUser.update({
-          where: { id: admin.id },
-          data: { password: submittedPassword },
-        });
-      } catch (e) {
-        // Ignore update error
-      }
-    }
-
     // Record audit log
+    const userEmail = user?.email || admin?.email || targetEmail;
     try {
       await prisma.auditLog.create({
         data: {
-          adminEmail: admin.email,
+          adminEmail: userEmail,
           action: "ADMIN_LOGIN",
           target: "Admin Panel Dashboard",
         },
@@ -98,17 +127,26 @@ export async function POST(request: Request) {
       // Ignore audit log error
     }
 
-    console.log(`🎉 Admin login SUCCESS for ${admin.email}`);
+    console.log(`Admin login SUCCESS for ${userEmail}`);
+
+    const adminPayload = {
+      id: user?.id || admin?.id || "admin-id",
+      name: user?.name || admin?.name || "Admin User",
+      email: userEmail,
+      role: activeRole,
+      status: "ACTIVE",
+    };
 
     return NextResponse.json({
       success: true,
-      token: `admin_token_${admin.id}_${Date.now()}`,
-      admin: {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        status: admin.status,
+      token: `admin_token_${adminPayload.id}_${Date.now()}`,
+      admin: adminPayload,
+      user: {
+        id: adminPayload.id,
+        name: adminPayload.name,
+        email: adminPayload.email,
+        phone: user?.phone || "",
+        role: adminPayload.role,
       },
       message: "ავტორიზაცია წარმატებით დასრულდა",
     });

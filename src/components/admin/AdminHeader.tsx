@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -8,23 +8,37 @@ import {
   Search, 
   Bell, 
   Plus, 
-  ExternalLink, 
-  ShieldCheck, 
   Settings, 
   ChevronDown,
-  LogOut
+  LogOut,
+  Sparkles,
+  ExternalLink,
+  ShieldCheck
 } from "lucide-react";
 import { dataService } from "@/services/dataService";
 import { useStore } from "@/store/useStore";
+import { AdminSearchModal } from "./AdminSearchModal";
 
 export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSidebar }) => {
   const router = useRouter();
   const { adminUser, logoutAdmin, addToast } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const auditLogs = dataService.getAuditLogs().slice(0, 5);
+
+  useEffect(() => {
+    const handleGlobalShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsSearchModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleGlobalShortcut);
+    return () => window.removeEventListener("keydown", handleGlobalShortcut);
+  }, []);
 
   const handleAdminLogout = () => {
     logoutAdmin();
@@ -37,166 +51,155 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
     router.push("/admin/login");
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/admin/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+  const userName = adminUser?.name || "Admin User";
+  const userRole = adminUser?.role || "SUPER_ADMIN";
+  const userInitials = userName.slice(0, 2).toUpperCase();
 
   return (
-    <header
-      style={{
-        height: "3.75rem",
-        background: "rgba(255,255,255,0.85)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(226, 232, 240, 0.7)",
-        position: "sticky",
-        top: 0,
-        zIndex: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 1.5rem",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
-      }}
-    >
-      
-      {/* Left: Mobile Toggle & Global Search */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, maxWidth: "32rem" }}>
-        <button
-          onClick={onOpenSidebar}
-          className="adm-icon-btn lg:hidden"
-          style={{ color: "#475569" }}
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
-        <form onSubmit={handleSearchSubmit} style={{ position: "relative", flex: 1 }}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ძიება: პროდუქტი, SKU, შეკვეთა, კლიენტი..."
-            className="adm-search-input"
-          />
-          <Search className="w-4 h-4" style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} />
-        </form>
-      </div>
-
-      {/* Right: Quick actions + Notifications + Profile */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <>
+      <header className="sticky top-4 z-30 mx-4 md:mx-8 h-16 bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-3xl px-4 md:px-6 flex items-center justify-between shadow-xs transition-all">
         
-        <Link
-          href="/admin/products/new"
-          className="adm-btn-primary hidden sm:inline-flex"
-        >
-          <Plus className="w-4 h-4" />
-          <span>პროდუქტი</span>
-        </Link>
-
-        {/* Notifications */}
-        <div style={{ position: "relative" }}>
+        {/* Left: Mobile Toggle & Search Trigger */}
+        <div className="flex items-center gap-3 flex-1 max-w-xl">
           <button
-            onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); }}
-            className="adm-icon-btn"
-            style={{ position: "relative" }}
+            type="button"
+            onClick={onOpenSidebar}
+            className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center lg:hidden transition-colors cursor-pointer"
           >
-            <Bell className="w-5 h-5" />
-            <span style={{
-              position: "absolute", top: "4px", right: "4px",
-              width: "7px", height: "7px", background: "#ef4444", borderRadius: "50%",
-              border: "2px solid #fff"
-            }} />
+            <Menu className="w-5 h-5" />
           </button>
 
-          {isNotificationsOpen && (
-            <div
-              className="adm-modal"
-              style={{
-                position: "absolute", right: 0, top: "calc(100% + 8px)",
-                width: "22rem", maxHeight: "26rem", zIndex: 200,
-                borderRadius: "1.25rem",
-              }}
-            >
-              <div style={{ padding: "1rem 1.25rem 0.75rem", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.8rem", color: "#0f172a" }}>შეტყობინებები</span>
-                <span className="adm-badge adm-badge-purple">{auditLogs.length} ახალი</span>
-              </div>
-              <div style={{ maxHeight: "18rem", overflowY: "auto" }}>
-                {auditLogs.map((log, idx) => (
-                  <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} style={{ padding: "0.875rem 1.25rem", borderBottom: "1px solid #f8fafc" }}>
-                    <p style={{ fontSize: "0.75rem", color: "#0f172a" }}>{log.action}</p>
-                    <p style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "2px" }}>{log.details}</p>
-                    <span style={{ fontSize: "0.65rem", color: "#94a3b8", display: "block", marginTop: "4px" }}>{log.timestamp} · {log.userName}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ padding: "0.75rem 1.25rem", borderTop: "1px solid #f1f5f9", textAlign: "center" }}>
-                <Link href="/admin/audit-logs" onClick={() => setIsNotificationsOpen(false)} style={{ fontSize: "0.75rem", color: "#6366f1" }}>
-                  სრული ისტორიის ნახვა →
-                </Link>
-              </div>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsSearchModalOpen(true)}
+            className="relative flex-1 h-10 px-4 pl-11 pr-12 bg-slate-50 hover:bg-white border border-slate-200/90 hover:border-blue-600 rounded-2xl text-xs text-slate-400 flex items-center justify-between transition-all cursor-pointer text-left shadow-2xs"
+          >
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <span className="truncate">ძიება: პროდუქტი, SKU, შეკვეთა, კლიენტი...</span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 bg-white border border-slate-200 rounded-lg text-[10px] font-mono text-slate-400 shadow-2xs shrink-0">
+              ⌘K
+            </kbd>
+          </button>
         </div>
 
-        {/* Profile */}
-        <div style={{ position: "relative", borderLeft: "1px solid #e2e8f0", paddingLeft: "0.75rem", marginLeft: "0.25rem" }}>
-          <button
-            onClick={() => { setIsProfileOpen(!isProfileOpen); setIsNotificationsOpen(false); }}
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.25rem 0.5rem 0.25rem 0.25rem", borderRadius: "0.875rem", cursor: "pointer", transition: "background 0.15s", background: "transparent", border: "none" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-          >
-            <div style={{
-              width: "2rem", height: "2rem", borderRadius: "0.625rem",
-              background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
-              color: "#fff", fontSize: "0.65rem", display: "flex",
-              alignItems: "center", justifyContent: "center"
-            }} className="font-semibold">{adminUser?.name ? adminUser.name.slice(0, 2).toUpperCase() : "AD"}</div>
-            <div style={{ textAlign: "left" }} className="hidden md:block">
-              <p style={{ fontSize: "0.75rem", color: "#0f172a", lineHeight: 1.2 }}>{adminUser?.name || "Admin User"}</p>
-              <p style={{ fontSize: "0.65rem", color: "#94a3b8", lineHeight: 1.2 }}>{adminUser?.role || "SUPER_ADMIN"}</p>
-            </div>
-            <ChevronDown className="w-3 h-3" style={{ color: "#94a3b8" }} />
-          </button>
+        {/* Right: Status Sync Badge + Quick Actions + Notifications + Profile */}
+        <div className="flex items-center gap-3">
+          
+          {/* Live Storefront Sync Badge */}
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Live Sync</span>
+          </div>
 
-          {isProfileOpen && (
-            <div
-              className="adm-modal"
-              style={{
-                position: "absolute", right: 0, top: "calc(100% + 8px)",
-                width: "14rem", zIndex: 200, borderRadius: "1.25rem",
-              }}
+          {/* Quick Add Product Button */}
+          <Link
+            href="/admin/products/new"
+            className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs hidden sm:flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>ახალი პროდუქტი</span>
+          </Link>
+
+          {/* Notifications Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); }}
+              className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center relative transition-colors cursor-pointer"
             >
-              <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9" }}>
-                <p style={{ fontSize: "0.8rem", color: "#0f172a" }}>{adminUser?.name || "Admin User"}</p>
-                <p style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{adminUser?.email || "admin@spilo.ge"}</p>
+              <Bell className="w-4 h-4" />
+              <span className="w-2 h-2 rounded-full bg-blue-600 absolute top-2.5 right-2.5 ring-2 ring-white" />
+            </button>
+
+            {isNotificationsOpen && (
+              <div className="absolute right-0 top-full mt-3 w-80 bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-200/90 shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-150 p-2">
+                <div className="p-3 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-xs text-slate-900">შეტყობინებები & ლოგები</span>
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full font-mono">
+                    {auditLogs.length} ახალი
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
+                  {auditLogs.map((log, idx) => (
+                    <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} className="p-3 space-y-0.5 hover:bg-slate-50 rounded-2xl transition-colors">
+                      <p className="text-xs text-slate-900">{log.action}</p>
+                      <p className="text-[11px] text-slate-500">{log.details}</p>
+                      <span className="text-[10px] text-slate-400 font-mono block pt-1">{log.timestamp} · {log.userName}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-2 border-t border-slate-100 text-center">
+                  <Link
+                    href="/admin/audit-logs"
+                    onClick={() => setIsNotificationsOpen(false)}
+                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>სრული ისტორიის ნახვა</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
               </div>
-              <div style={{ padding: "0.375rem" }}>
-                <Link href="/admin/settings" onClick={() => setIsProfileOpen(false)}
-                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#475569", transition: "background 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            )}
+          </div>
+
+          {/* User Profile Dropdown */}
+          <div className="relative pl-2 border-l border-slate-200">
+            <button
+              type="button"
+              onClick={() => { setIsProfileOpen(!isProfileOpen); setIsNotificationsOpen(false); }}
+              className="flex items-center gap-2.5 p-1 rounded-2xl hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-2xl bg-[#111111] text-white text-xs font-mono flex items-center justify-center shadow-2xs">
+                {userInitials}
+              </div>
+              <div className="text-left hidden md:block">
+                <p className="text-xs text-slate-900 leading-tight">{userName}</p>
+                <p className="text-[10px] text-blue-600 leading-tight flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-blue-600" />
+                  {userRole}
+                </p>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {isProfileOpen && (
+              <div className="absolute right-0 top-full mt-3 w-56 bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-200/90 shadow-2xl p-2 z-50 space-y-1 animate-in zoom-in-95 duration-150">
+                <div className="p-3 border-b border-slate-100">
+                  <p className="text-xs text-slate-900">{userName}</p>
+                  <p className="text-[10px] text-slate-400 font-mono truncate">{adminUser?.email || "admin@spilo.ge"}</p>
+                </div>
+                
+                <Link
+                  href="/admin/settings"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-full h-10 px-3 rounded-2xl text-xs flex items-center gap-2 text-slate-700 hover:bg-slate-100 transition-colors"
                 >
-                  <Settings className="w-4 h-4" style={{ color: "#94a3b8" }} />
+                  <Settings className="w-4 h-4 text-slate-400" />
                   <span>პარამეტრები</span>
                 </Link>
+
                 <button
+                  type="button"
                   onClick={handleAdminLogout}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#ef4444", marginTop: "0.25rem", borderTop: "1px solid #f1f5f9", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#fef2f2")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  className="w-full h-10 px-3 rounded-2xl text-xs flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 text-red-500" />
                   <span>ადმინპანელიდან გამოსვლა</span>
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
         </div>
-      </div>
-    </header>
+
+      </header>
+
+      {/* Global Spotlight Search Modal */}
+      <AdminSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        initialQuery={searchQuery}
+      />
+    </>
   );
 };

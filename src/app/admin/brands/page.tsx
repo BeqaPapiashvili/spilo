@@ -39,97 +39,177 @@ export default function AdminBrandsPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div className="space-y-6">
 
-      {/* Header */}
-      <div className="adm-card" style={{ padding: "1.5rem 1.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}><Award size={13} /> კატალოგის მართვა</div>
-          <h1 className="adm-page-title">ბრენდები ({filtered.length})</h1>
-          <p className="adm-page-desc">პარტნიორი ბრენდების მართვა, ლოგოები და Storefront-ის ბრენდ ფილტრი.</p>
+      {/* Header Card */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+            <Award className="w-3.5 h-3.5" />
+            <span>კატალოგის მართვა</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl text-slate-900 tracking-tight">
+            ბრენდები ({filtered.length})
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500">
+            პარტნიორი ბრენდების მართვა, ლოგოები და Storefront-ის ბრენდ ფილტრი.
+          </p>
         </div>
-        <button onClick={handleOpenAdd} className="adm-btn-primary"><Plus size={15} /> ახალი ბრენდი</button>
+
+        <button
+          type="button"
+          onClick={handleOpenAdd}
+          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>ახალი ბრენდი</span>
+        </button>
       </div>
 
-      {/* Search */}
-      <div className="adm-card" style={{ padding: "1.25rem 1.5rem" }}>
-        <div style={{ position: "relative", maxWidth: "24rem" }}>
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ბრენდის ძიება..." className="adm-search-input" />
-          <Search size={14} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} />
+      {/* Search Bar */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs">
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ბრენდის ძიება..."
+            className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
+          />
         </div>
       </div>
 
       {/* Brand Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "0.875rem" }}>
-        {filtered.map(brand => (
-          <div key={brand.id} className="adm-card" style={{ padding: "1.5rem 1.25rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.875rem", textAlign: "center" }}>
-            <div style={{ width: "4rem", height: "4rem", borderRadius: "1rem", background: "#f8fafc", border: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", padding: "0.75rem" }}>
-              <img src={brand.logo} alt={brand.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => (e.currentTarget.style.display = "none")} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {filtered.map((brand) => (
+          <div
+            key={brand.id}
+            className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 flex flex-col items-center gap-3 text-center transition-all hover:border-blue-200"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-3">
+              <img
+                src={brand.logo}
+                alt={brand.name}
+                className="w-full h-full object-contain"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
             </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: "0.85rem", color: "#0f172a" }}>{brand.name}</p>
-              <p style={{ fontSize: "0.68rem", color: "#94a3b8", fontFamily: "monospace", marginTop: "2px" }}>{brand.slug}</p>
-              {brand.featured && <span className="adm-badge adm-badge-purple" style={{ marginTop: "0.5rem" }}>Featured</span>}
+            
+            <div className="flex-1 space-y-0.5">
+              <p className="text-xs text-slate-900">{brand.name}</p>
+              <p className="text-[10px] text-slate-400 font-mono">/{brand.slug}</p>
+              {brand.featured && (
+                <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[9px]">
+                  Featured
+                </span>
+              )}
             </div>
-            <div style={{ display: "flex", gap: "0.375rem" }}>
-              <button onClick={() => handleOpenEdit(brand)} className="adm-icon-btn adm-icon-btn-blue"><Edit3 size={14} /></button>
-              <button onClick={() => handleDelete(brand.id, brand.name)} className="adm-icon-btn adm-icon-btn-red"><Trash2 size={14} /></button>
+
+            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 w-full justify-center">
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(brand)}
+                className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(brand.id, brand.name)}
+                className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         ))}
 
-        {/* Add new card */}
-        <button onClick={handleOpenAdd} className="adm-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.5rem", cursor: "pointer", border: "1.5px dashed #e2e8f0", background: "#f8fafc", minHeight: "160px", transition: "border-color 0.15s, background 0.15s" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#a5b4fc"; e.currentTarget.style.background = "#f5f3ff"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
+        {/* Add New Card */}
+        <button
+          type="button"
+          onClick={handleOpenAdd}
+          className="bg-slate-50 hover:bg-blue-50/50 rounded-3xl border-2 border-dashed border-slate-200 hover:border-blue-300 p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all min-h-[180px]"
         >
-          <div style={{ width: "2.5rem", height: "2.5rem", borderRadius: "0.75rem", background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Plus size={18} style={{ color: "#6366f1" }} />
+          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <Plus className="w-5 h-5" />
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#6366f1" }}>ახალი ბრენდი</span>
+          <span className="text-xs text-blue-600">ახალი ბრენდი</span>
         </button>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="adm-modal-overlay">
-          <div className="adm-modal">
-            <div className="adm-modal-header">
-              <h3 style={{ fontSize: "1rem", color: "#0f172a" }}>{editingBrand ? "ბრენდის რედაქტირება" : "ახალი ბრენდი"}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="adm-icon-btn"><X size={16} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setIsModalOpen(false)} />
+          <div className="relative bg-white rounded-3xl max-w-md w-full p-6 border border-slate-100 shadow-2xl z-10 space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base text-slate-900">
+                {editingBrand ? "ბრენდის რედაქტირება" : "ახალი ბრენდი"}
+              </h3>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-900">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <form onSubmit={handleSave}>
-              <div className="adm-modal-body" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div>
-                  <label className="adm-label">ბრენდის სახელი *</label>
-                  <input value={brandName} onChange={e => setBrandName(e.target.value)} className="adm-input" placeholder="მაგ. Apple" required />
-                </div>
-                <div>
-                  <label className="adm-label">Slug (URL)</label>
-                  <input value={brandSlug} onChange={e => setBrandSlug(e.target.value)} className="adm-input" placeholder="apple" />
-                </div>
-                <div>
-                  <ImageUploader
-                    images={brandLogo ? [brandLogo] : []}
-                    onChange={(imgs) => setBrandLogo(imgs[0] || "")}
-                    multiple={false}
-                    label="ბრენდის ლოგო"
-                    helperText="რეკომენდებულია გამჭვირვალე SVG ან PNG"
-                  />
-                </div>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.625rem", cursor: "pointer" }}>
-                  <input type="checkbox" checked={isFeatured} onChange={e => setIsFeatured(e.target.checked)} style={{ width: "1rem", height: "1rem", accentColor: "#6366f1" }} />
-                  <span style={{ fontSize: "0.8rem", color: "#475569" }}>Featured ბრენდი (Storefront-ზე ჩვენება)</span>
-                </label>
+
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-700 mb-1">ბრენდის სახელი</label>
+                <input
+                  type="text"
+                  value={brandName}
+                  onChange={(e) => {
+                    setBrandName(e.target.value);
+                    if (!editingBrand) setBrandSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+                  }}
+                  placeholder="მაგ: Apple, Samsung..."
+                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                  required
+                />
               </div>
-              <div className="adm-modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="adm-btn-secondary">გაუქმება</button>
-                <button type="submit" className="adm-btn-primary"><Check size={14} /> შენახვა</button>
+
+              <div>
+                <label className="block text-slate-700 mb-1">URL Slug</label>
+                <input
+                  type="text"
+                  value={brandSlug}
+                  onChange={(e) => setBrandSlug(e.target.value)}
+                  placeholder="apple"
+                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs font-mono text-slate-900 focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 mb-1">ლოგო (URL)</label>
+                <input
+                  type="text"
+                  value={brandLogo}
+                  onChange={(e) => setBrandLogo(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="h-10 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs transition-colors cursor-pointer"
+                >
+                  გაუქმება
+                </button>
+                <button
+                  type="submit"
+                  className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs transition-colors cursor-pointer shadow-xs"
+                >
+                  შენახვა
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 }

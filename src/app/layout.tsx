@@ -19,8 +19,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="ka-GE"
       className={`${notoGeorgian.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground pb-16 md:pb-0">
+      <body 
+        className="min-h-full flex flex-col font-sans bg-background text-foreground pb-16 md:pb-0"
+        suppressHydrationWarning
+      >
         <StorefrontLayoutWrapper>
           {children}
         </StorefrontLayoutWrapper>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ToastMessage, ToastType } from '@/types';
+import { ToastMessage, ToastType, OrderStatus } from '@/types';
 
 export interface CartItem {
   id: string; // product id
@@ -24,7 +24,7 @@ export interface WishlistItem {
 export interface OrderRecord {
   id: string;
   date: string;
-  status: "მუშავდება" | "გზაშია" | "ჩაბარებულია";
+  status: OrderStatus;
   items: CartItem[];
   totalAmount: number;
   paymentMethod: string;
@@ -32,9 +32,18 @@ export interface OrderRecord {
 }
 
 export interface UserProfile {
+  id?: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
+  idNumber?: string;
+  isGeorgianCitizen?: boolean;
+  address?: string;
+  smsNotify?: boolean;
+  emailNotify?: boolean;
+  role?: string;
 }
 
 interface StoreState {
@@ -57,6 +66,7 @@ interface StoreState {
 
   // Admin Auth Actions
   setAdminSession: (admin: { id: string; name: string; email: string; role: string } | null, token: string | null) => void;
+  updateUserRole: (email: string, role: string) => void;
   logoutAdmin: () => void;
 
   // Cart Actions
@@ -73,6 +83,8 @@ interface StoreState {
 
   // Order Actions
   addOrder: (order: Omit<OrderRecord, 'id' | 'date' | 'status'>) => string;
+  setOrders: (orders: OrderRecord[]) => void;
+  updateOrderStatus: (id: string, status: OrderStatus) => void;
 
   // Compare & Auth Actions
   addToCompare: (id: string) => void;
@@ -98,26 +110,7 @@ export const useStore = create<StoreState>()(
     (set, get) => ({
       cart: [],
       wishlist: [],
-      orders: [
-        {
-          id: "SPL-92841",
-          date: "12 აგვისტო, 2026",
-          status: "ჩაბარებულია",
-          items: [
-            {
-              id: "dji-neo",
-              title: "დრონი DJI Neo Drone Gray",
-              price: 799,
-              discountPrice: 699,
-              image: "https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg",
-              quantity: 1,
-            }
-          ],
-          totalAmount: 699,
-          paymentMethod: "0% ონლაინ განვადება (TBC)",
-          address: "თბილისი, ჭავჭავაძის გამზ. 34, ბინა 12",
-        }
-      ],
+      orders: [],
       isCartOpen: false,
       compareList: [],
       highlightDifferencesOnly: false,
@@ -133,6 +126,24 @@ export const useStore = create<StoreState>()(
       setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       setAdminSession: (adminUser, adminToken) => set({ adminUser, adminToken }),
+      updateUserRole: (email, role) =>
+        set((state) => {
+          const targetEmail = email.trim().toLowerCase();
+          const updatedAdmin =
+            state.adminUser && state.adminUser.email.trim().toLowerCase() === targetEmail
+              ? { ...state.adminUser, role }
+              : state.adminUser;
+
+          const updatedUser =
+            state.user && state.user.email.trim().toLowerCase() === targetEmail
+              ? { ...state.user, role }
+              : state.user;
+
+          return {
+            adminUser: updatedAdmin,
+            user: updatedUser,
+          };
+        }),
       logoutAdmin: () => set({ adminUser: null, adminToken: null }),
 
       // Cart
@@ -202,6 +213,11 @@ export const useStore = create<StoreState>()(
         });
         return newId;
       },
+      setOrders: (orders) => set({ orders }),
+      updateOrderStatus: (id, status) =>
+        set((state) => ({
+          orders: state.orders.map((o) => (o.id === id ? { ...o, status } : o)),
+        })),
 
       // Compare & Auth
       addToCompare: (id) =>
@@ -254,7 +270,7 @@ export const useStore = create<StoreState>()(
         set((state) => ({ highlightDifferencesOnly: !state.highlightDifferencesOnly })),
       toggleAuthModal: (open) => 
         set((state) => ({ isAuthModalOpen: open !== undefined ? open : !state.isAuthModalOpen })),
-      setUser: (user) => set({ user }),
+      setUser: (user) => set({ user, isAuthModalOpen: false, ...(user === null ? { adminUser: null, adminToken: null } : {}) }),
 
       // Toasts
       addToast: ({ title, message, type = "success", duration = 4000 }) => {

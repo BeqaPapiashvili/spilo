@@ -1,22 +1,94 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/store/useStore";
 import { 
-  Truck, 
-  CreditCard, 
-  Building2, 
-  Banknote, 
-  Check, 
-  MapPin, 
-  Phone, 
-  User, 
   ArrowLeft,
-  ShieldCheck
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Plus,
+  Check,
+  Loader2,
+  Search
 } from "lucide-react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AddAddressModal from "@/components/AddAddressModal";
+
+// Complete List of All Cities and Municipalities in Georgia
+const GEORGIAN_CITIES = [
+  "თბილისი",
+  "ბათუმი",
+  "ქუთაისი",
+  "რუსთავი",
+  "ფოთი",
+  "ზუგდიდი",
+  "გორი",
+  "თელავი",
+  "ხაშური",
+  "სამტრედია",
+  "სენაკი",
+  "ზესტაფონი",
+  "ახალციხე",
+  "ქობულეთი",
+  "ოზურგეთი",
+  "კასპი",
+  "ჭიათურა",
+  "წყალტუბო",
+  "საგარეჯო",
+  "გარდაბანი",
+  "ბორჯომი",
+  "ტყიბული",
+  "ხონი",
+  "ბოლნისი",
+  "ახალქალაქი",
+  "გურჯაანი",
+  "ყვარელი",
+  "ახმეტა",
+  "საჩხერე",
+  "ლაგოდეხი",
+  "ნინოწმინდა",
+  "მცხეთა",
+  "მარნეული",
+  "ხობი",
+  "თეთრიწყარო",
+  "ვალე",
+  "წნორი",
+  "ჯვარი",
+  "მარტვილი",
+  "დმანისი",
+  "ონი",
+  "აბაშა",
+  "ამბროლაური",
+  "წალკა",
+  "სიღნაღი",
+  "ცაგერი",
+  "სტეფანწმინდა",
+  "მესტია",
+  "ბაკურიანი",
+  "გუდაური",
+  "შუახევი",
+  "ხულო",
+  "ქედა",
+  "ჩოხატაური",
+  "ლენტეხი",
+  "ყაზბეგი",
+  "დედოფლისწყარო",
+  "თიანეთი",
+  "ქარელი",
+  "ასპინძა",
+  "ადიგენი",
+  "ხარაგაული",
+  "თერჯოლა",
+  "ვანი",
+  "ბაღდათი",
+  "დუშეთი",
+  "ურეკი",
+  "ანაკლია",
+  "ჩაქვი"
+];
 
 export default function CheckoutPage() {
   return (
@@ -28,31 +100,102 @@ export default function CheckoutPage() {
 
 function CheckoutContent() {
   const router = useRouter();
-  const { cart, clearCart, addOrder, user } = useStore();
+  const { cart, clearCart, addOrder, user, addToast } = useStore();
 
-  // Delivery info state
+  // Step 1 or Step 2
+  const [step, setStep] = useState<1 | 2>(1);
+
+  // Step 1: Order Details state
+  const [personType, setPersonType] = useState<"physical" | "legal">("physical");
+  const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">("delivery");
+  
+  // Custom City Dropdown & Search state
   const [city, setCity] = useState("თბილისი");
-  const [address, setAddress] = useState("");
-  const [apt, setApt] = useState("");
-  const [fullName, setFullName] = useState(user?.name || "");
-  const [contactPhone, setContactPhone] = useState(user?.phone || "");
+  const [isCityOpen, setIsCityOpen] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState("");
 
-  // Payment method: "card" | "installment" | "cash"
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "installment" | "cash">("card");
-  const [selectedBank, setSelectedBank] = useState<"bog" | "tbc" | "credo">("tbc");
-  const [installmentMonths, setInstallmentMonths] = useState(12);
+  const [address, setAddress] = useState(user?.address || "23 Ilori St, T'bilisi 0153, Georgia");
+  const [comment, setComment] = useState("");
+  const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
 
-  // Errors state
+  // Recipient info states pre-filled from user profile
+  const [recipientFirstName, setRecipientFirstName] = useState(
+    user?.firstName || (user?.name ? user.name.split(" ")[0] : "")
+  );
+  const [recipientLastName, setRecipientLastName] = useState(
+    user?.lastName || (user?.name ? user.name.split(" ").slice(1).join(" ") : "")
+  );
+  const [recipientIdNumber, setRecipientIdNumber] = useState(user?.idNumber || "");
+  const [recipientPhone, setRecipientPhone] = useState(user?.phone || "");
+
+  // Step 2: Payment Details state
+  const [paymentCategory, setPaymentCategory] = useState<
+    "installment" | "card" | "points" | "transfer" | "keepz" | "crypto"
+  >("installment");
+  const [selectedInstallmentBank, setSelectedInstallmentBank] = useState<
+    "bog" | "tbc" | "tbc_ganatsileba" | "credo"
+  >("bog");
+  const [expandedCardGateway, setExpandedCardGateway] = useState<"tbc" | "bog">("bog");
+  const [selectedCardOption, setSelectedCardOption] = useState<"card" | "applepay">("card");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Promo Code State
+  const [promoCode, setPromoCode] = useState("");
+  const [promoApplied, setPromoApplied] = useState(false);
+
+  // Loading & Errors
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Fetch real profile data from DB on mount
+  useEffect(() => {
+    if (!user) return;
+
+    if (user.address && !address) setAddress(user.address);
+    if (user.phone && !recipientPhone) setRecipientPhone(user.phone);
+    if (user.firstName && !recipientFirstName) setRecipientFirstName(user.firstName);
+    if (user.lastName && !recipientLastName) setRecipientLastName(user.lastName);
+    if (user.idNumber && !recipientIdNumber) setRecipientIdNumber(user.idNumber);
+
+    const fetchRealProfile = async () => {
+      try {
+        const query = user.email
+          ? `email=${encodeURIComponent(user.email)}`
+          : `phone=${encodeURIComponent(user.phone)}`;
+        const res = await fetch(`/api/user/profile?${query}`);
+        const data = await res.json();
+
+        if (data.success && data.user) {
+          const u = data.user;
+          if (u.address) setAddress(u.address);
+          if (u.phone) setRecipientPhone(u.phone);
+          if (u.firstName) setRecipientFirstName(u.firstName);
+          if (u.lastName) setRecipientLastName(u.lastName);
+          if (u.idNumber) setRecipientIdNumber(u.idNumber);
+        }
+      } catch (err) {
+        console.warn("Checkout fetch profile error:", err);
+      }
+    };
+
+    fetchRealProfile();
+  }, [user?.email, user?.phone]);
+
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0);
+  const shippingCost = deliveryMethod === "pickup" ? 0 : 0; // Free delivery
+  const totalAmount = cartSubtotal + shippingCost;
+
+  // Filter cities by search term
+  const filteredCities = GEORGIAN_CITIES.filter((c) =>
+    c.toLowerCase().includes(citySearchQuery.trim().toLowerCase())
+  );
 
   if (cart.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20 text-center space-y-4">
         <h1 className="text-2xl text-gray-900">თქვენი კალათა ცარიელია</h1>
         <p className="text-xs sm:text-sm text-gray-500">შეკვეთის გასაფორმებლად გთხოვთ ჯერ დაამატოთ ნივთები კალათაში</p>
-        <Link href="/" className="inline-flex items-center gap-2 bg-[#111111] text-white px-6 py-3 rounded-2xl text-xs sm:text-sm">
+        <Link href="/" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-xs sm:text-sm shadow-xs transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span>მთავარ გვერდზე დაბრუნება</span>
         </Link>
@@ -60,13 +203,13 @@ function CheckoutContent() {
     );
   }
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle Step 1 Next button
+  const handleProceedToStep2 = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!fullName.trim()) newErrors.fullName = "გთხოვთ მიუთითოთ სახელი და გვარი";
-    if (!contactPhone.trim()) newErrors.contactPhone = "გთხოვთ მიუთითოთ ტელეფონის ნომერი";
-    if (!address.trim()) newErrors.address = "გთხოვთ მიუთითოთ მისამართი";
+    if (!recipientFirstName.trim()) newErrors.recipientFirstName = "მიუთითეთ მიმღების სახელი";
+    if (!recipientLastName.trim()) newErrors.recipientLastName = "მიუთითეთ მიმღების გვარი";
+    if (!recipientPhone.trim()) newErrors.recipientPhone = "მიუთითეთ მიმღების ტელეფონის ნომერი";
+    if (!address.trim()) newErrors.address = "მიუთითეთ მისამართი";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -74,32 +217,66 @@ function CheckoutContent() {
     }
 
     setErrors({});
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-    let paymentMethodText = "საბანკო ბარათი (Visa/Mastercard)";
-    if (paymentMethod === "installment") {
-      const bankName = selectedBank === "bog" ? "საქართველოს ბანკი" : selectedBank === "tbc" ? "TBC ბანკი" : "კრედო ბანკი";
-      paymentMethodText = `0% ონლაინ განვადება (${bankName} - ${installmentMonths} თვე)`;
-    } else if (paymentMethod === "cash") {
-      paymentMethodText = "ნაღდი ანგარიშსწორება მიწოდებისას";
+  // Handle Step 2 Final Submit button
+  const handleFinalOrderSubmit = async () => {
+    if (!agreedToTerms) {
+      addToast({
+        title: "შეცდომა",
+        message: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
+        type: "error",
+      });
+      return;
     }
+
+    setIsSubmitting(true);
+
+    let paymentMethodLabel = "ონლაინ განვადება";
+    if (paymentCategory === "installment") {
+      const bankNames: Record<string, string> = {
+        bog: "საქართველოს ბანკი (0% განვადება)",
+        tbc: "TBC ბანკი (0% განვადება)",
+        tbc_ganatsileba: "TBC განაწილება",
+        credo: "კრედო ბანკი",
+      };
+      paymentMethodLabel = `განვადება: ${bankNames[selectedInstallmentBank] || "საქართველოს ბანკი"}`;
+    } else if (paymentCategory === "card") {
+      paymentMethodLabel = `ბარათით გადახდა (${expandedCardGateway.toUpperCase()} - ${selectedCardOption === "applepay" ? "Apple Pay" : "Visa/Mastercard"})`;
+    } else if (paymentCategory === "points") {
+      paymentMethodLabel = "ქულებით შეძენა";
+    } else if (paymentCategory === "transfer") {
+      paymentMethodLabel = "საბანკო გადარიცხვა";
+    } else if (paymentCategory === "keepz") {
+      paymentMethodLabel = "Keepz - ონლაინ ბანკით შეძენა";
+    } else if (paymentCategory === "crypto") {
+      paymentMethodLabel = "კრიპტოთი შეძენა";
+    }
+
+    const fullRecipientName = `${recipientFirstName} ${recipientLastName}`.trim();
+    const fullShippingAddress = `${city}, ${address}${comment ? ` (${comment})` : ""}`;
 
     const orderPayload = {
       items: [...cart],
       customer: {
-        name: fullName,
-        phone: contactPhone,
+        name: fullRecipientName,
+        phone: recipientPhone,
+        idNumber: recipientIdNumber,
+        personType,
       },
-      totalAmount: cartSubtotal,
-      paymentMethod: paymentMethodText,
-      address: `${city}, ${address}${apt ? `, ბინა/სართული ${apt}` : ""}`,
+      totalAmount,
+      paymentMethod: paymentMethodLabel,
+      address: fullShippingAddress,
     };
 
     // Save order in local Zustand store
     const orderId = addOrder({
       items: [...cart],
-      totalAmount: cartSubtotal,
-      paymentMethod: paymentMethodText,
-      address: `${city}, ${address}${apt ? `, ბინა/სართული ${apt}` : ""}`,
+      totalAmount,
+      paymentMethod: paymentMethodLabel,
+      address: fullShippingAddress,
     });
 
     // Post to MySQL API Endpoint asynchronously
@@ -114,317 +291,586 @@ function CheckoutContent() {
     }
 
     clearCart();
+    setIsSubmitting(false);
     router.push(`/checkout/success?orderId=${orderId}`);
   };
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen py-10">
-      <div className="container mx-auto px-4 lg:px-8 max-w-6xl">
+    <div className="bg-white min-h-screen py-8">
+      <div className="container mx-auto px-4 lg:px-8 max-w-6xl space-y-8">
         
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
-              შეკვეთის გაფორმება
-            </h1>
-            <p className="text-xs text-gray-500 mt-1">
-              შეავსეთ მიწოდების მისამართი და აირჩიეთ გადახდის მეთოდი
-            </p>
-          </div>
-          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-blue-600">
-            <ArrowLeft className="w-4 h-4" />
-            <span>უკან დაბრუნება</span>
-          </Link>
+        {/* Main Title Heading */}
+        <div className="border-b border-gray-100 pb-4">
+          <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
+            {step === 1 ? "შეკვეთის დეტალები" : "გადახდის დეტალები"}
+          </h1>
         </div>
 
-        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 2-Column Checkout Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Form Controls (8 cols) */}
+          {/* Left Controls Area (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* 1. Delivery Address Card */}
-            <div className="bg-white rounded-[28px] p-6 md:p-8 shadow-xs border border-gray-100 space-y-5">
-              <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base text-gray-900">1. მიწოდების მისამართი</h3>
-                  <p className="text-xs text-gray-500">უფასო მიწოდება მთელ საქართველოში</p>
-                </div>
-              </div>
+            {/* Top Back Nav & Person Type Row */}
+            <div className="flex items-center justify-between text-xs md:text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  if (step === 2) setStep(1);
+                  else router.push("/cart");
+                }}
+                className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 cursor-pointer transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 text-gray-500" />
+                <span>უკან დაბრუნება</span>
+              </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Full Name */}
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 block">სახელი და გვარი *</label>
-                  <div className="relative flex items-center">
-                    <User className="w-4 h-4 absolute left-3.5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => {
-                        setFullName(e.target.value);
-                        if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: "" }));
-                      }}
-                      placeholder="გიორგი ბერიძე"
-                      className="w-full h-12 pl-10 pr-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                  </div>
-                  {errors.fullName && <p className="text-xs text-red-500 pt-0.5">{errors.fullName}</p>}
-                </div>
-
-                {/* Contact Phone */}
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 block">ტელეფონის ნომერი *</label>
-                  <div className="relative flex items-center">
-                    <Phone className="w-4 h-4 absolute left-3.5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={contactPhone}
-                      onChange={(e) => {
-                        setContactPhone(e.target.value);
-                        if (errors.contactPhone) setErrors((prev) => ({ ...prev, contactPhone: "" }));
-                      }}
-                      placeholder="+995 599 00 00 00"
-                      className="w-full h-12 pl-10 pr-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                  </div>
-                  {errors.contactPhone && <p className="text-xs text-red-500 pt-0.5">{errors.contactPhone}</p>}
-                </div>
-
-                {/* City Selection */}
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 block">ქალაქი / რეგიონი</label>
+              {step === 1 && (
+                <div className="relative">
                   <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                    value={personType}
+                    onChange={(e) => setPersonType(e.target.value as any)}
+                    className="appearance-none bg-transparent pr-6 text-blue-600 font-sans text-xs md:text-sm focus:outline-none cursor-pointer"
                   >
-                    <option value="თბილისი">თბილისი</option>
-                    <option value="ბათუმი">ბათუმი</option>
-                    <option value="ქუთაისი">ქუთაისი</option>
-                    <option value="რუსთავი">რუსთავი</option>
-                    <option value="ფოთი">ფოთი</option>
-                    <option value="სხვა რეგიონი">სხვა რეგიონი</option>
+                    <option value="physical">ფიზიკური პირი</option>
+                    <option value="legal">იურიდიული პირი</option>
                   </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-blue-600 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-
-                {/* Street Address */}
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 block">ქუჩა და N *</label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => {
-                      setAddress(e.target.value);
-                      if (errors.address) setErrors((prev) => ({ ...prev, address: "" }));
-                    }}
-                    placeholder="მაგ: ჭავჭავაძის გამზირი N34"
-                    className="w-full h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  {errors.address && <p className="text-xs text-red-500 pt-0.5">{errors.address}</p>}
-                </div>
-              </div>
-
-              {/* Apartment / Floor optional */}
-              <div className="space-y-1">
-                <label className="text-xs text-gray-600 block">სართული / ბინა (არასავალდებულო)</label>
-                <input
-                  type="text"
-                  value={apt}
-                  onChange={(e) => setApt(e.target.value)}
-                  placeholder="მაგ: სართული 4, ბინა 12"
-                  className="w-full h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
+              )}
             </div>
 
-            {/* 2. Payment Method Card */}
-            <div className="bg-white rounded-[28px] p-6 md:p-8 shadow-xs border border-gray-100 space-y-5">
-              <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <CreditCard className="w-5 h-5" />
+            {/* STEP 1 CONTENT: Order Details */}
+            {step === 1 && (
+              <div className="space-y-6">
+                
+                {/* Delivery Method Selector */}
+                <div className="space-y-3">
+                  <h3 className="text-sm text-gray-900">მიწოდების მეთოდი</h3>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod("delivery")}
+                      className={`px-5 py-3 rounded-full text-xs md:text-sm transition-all cursor-pointer border ${
+                        deliveryMethod === "delivery"
+                          ? "border-blue-600 bg-blue-50/50 text-blue-600 ring-1 ring-blue-600"
+                          : "border-transparent bg-[#F1F3F6] text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      ადგილზე მომიტანეთ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod("pickup")}
+                      className={`px-5 py-3 rounded-full text-xs md:text-sm transition-all cursor-pointer border ${
+                        deliveryMethod === "pickup"
+                          ? "border-blue-600 bg-blue-50/50 text-blue-600 ring-1 ring-blue-600"
+                          : "border-transparent bg-[#F1F3F6] text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      ჩემით წავიღებ
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base text-gray-900">2. გადახდის მეთოდი</h3>
-                  <p className="text-xs text-gray-500">აირჩიეთ თქვენთვის მოსახერხებელი გადახდა</p>
+
+                {/* Custom City Accordion & Floating Dropdown */}
+                <div className="relative z-30 space-y-2">
+                  {/* Closed / Opened Header Card */}
+                  <div
+                    onClick={() => setIsCityOpen(!isCityOpen)}
+                    className="w-full h-14 px-5 bg-[#F1F3F6] hover:bg-gray-200/60 rounded-2xl flex items-center justify-between cursor-pointer text-xs md:text-sm text-gray-900 transition-colors"
+                  >
+                    <span>{city ? city : "აირჩიეთ ქალაქი"}</span>
+                    {isCityOpen ? (
+                      <ChevronUp className="w-4 h-4 text-gray-700" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-700" />
+                    )}
+                  </div>
+
+                  {/* Expanded Floating City Panel */}
+                  {isCityOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setIsCityOpen(false)} />
+                      <div className="absolute top-full left-0 right-0 z-40 bg-white p-3 rounded-2xl shadow-xl border border-gray-100 space-y-2 mt-1.5 animate-in fade-in duration-150">
+                        {/* Search Input Box */}
+                        <div className="border border-blue-600 bg-white rounded-2xl h-12 px-4 flex items-center gap-2 shadow-2xs">
+                          <Search className="w-4 h-4 text-blue-600 shrink-0" />
+                          <input
+                            type="text"
+                            value={citySearchQuery}
+                            onChange={(e) => setCitySearchQuery(e.target.value)}
+                            placeholder="ძიება"
+                            className="w-full h-full text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent"
+                            autoFocus
+                          />
+                        </div>
+
+                        {/* Scrollable City Items List */}
+                        <div className="bg-[#F1F3F6] rounded-2xl max-h-60 overflow-y-auto divide-y divide-gray-200/60 shadow-xs">
+                          {filteredCities.length === 0 ? (
+                            <div className="p-4 text-xs text-gray-500 text-center">
+                              ქალაქი არ მოიძებნა
+                            </div>
+                          ) : (
+                            filteredCities.map((cityName) => (
+                              <button
+                                key={cityName}
+                                type="button"
+                                onClick={() => {
+                                  setCity(cityName);
+                                  setIsCityOpen(false);
+                                  setCitySearchQuery("");
+                                }}
+                                className={`w-full h-13 px-5 flex items-center text-left text-xs md:text-sm transition-colors cursor-pointer ${
+                                  city === cityName
+                                    ? "bg-blue-50 text-blue-600"
+                                    : "text-gray-900 hover:bg-gray-200/60"
+                                }`}
+                              >
+                                <span>{cityName}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
+
+                {/* Saved Address Radio Selection Box */}
+                <div className="space-y-2">
+                  <div
+                    onClick={() => {}}
+                    className="border-2 border-blue-600 bg-blue-50/20 rounded-2xl p-5 flex items-center justify-between cursor-pointer shadow-2xs"
+                  >
+                    <div className="space-y-1 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs md:text-sm text-gray-900">{address}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsAddAddressOpen(true);
+                          }}
+                          className="text-gray-400 hover:text-blue-600 p-0.5 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <span className="text-xs text-gray-500 block">
+                        {comment ? comment : "კომენტარი"}
+                      </span>
+                    </div>
+
+                    {/* Radio Selected Blue Circle */}
+                    <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center shrink-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    </div>
+                  </div>
+
+                  {/* Add New Address Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsAddAddressOpen(true)}
+                    className="flex items-center gap-2 text-xs md:text-sm text-gray-900 pt-2 cursor-pointer hover:text-blue-600 transition-colors"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
+                      <Plus className="w-4 h-4" />
+                    </div>
+                    <span>ახალი მისამართის დამატება</span>
+                  </button>
+                </div>
+
+                {/* Recipient Information Form */}
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm text-gray-900">მიმღების ინფორმაცია</h3>
+
+                  <div className="space-y-3">
+                    {/* Recipient First Name */}
+                    <div>
+                      <input
+                        type="text"
+                        value={recipientFirstName}
+                        onChange={(e) => {
+                          setRecipientFirstName(e.target.value);
+                          if (errors.recipientFirstName) setErrors((prev) => ({ ...prev, recipientFirstName: "" }));
+                        }}
+                        placeholder="მიმღების სახელი"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                      {errors.recipientFirstName && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientFirstName}</p>}
+                    </div>
+
+                    {/* Recipient Last Name */}
+                    <div>
+                      <input
+                        type="text"
+                        value={recipientLastName}
+                        onChange={(e) => {
+                          setRecipientLastName(e.target.value);
+                          if (errors.recipientLastName) setErrors((prev) => ({ ...prev, recipientLastName: "" }));
+                        }}
+                        placeholder="მიმღების გვარი"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                      {errors.recipientLastName && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientLastName}</p>}
+                    </div>
+
+                    {/* Recipient ID Number */}
+                    <div>
+                      <input
+                        type="text"
+                        value={recipientIdNumber}
+                        onChange={(e) => setRecipientIdNumber(e.target.value)}
+                        placeholder="მიმღების პირადი ნომერი"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+
+                    {/* Recipient Phone Number */}
+                    <div>
+                      <input
+                        type="tel"
+                        value={recipientPhone}
+                        onChange={(e) => {
+                          setRecipientPhone(e.target.value);
+                          if (errors.recipientPhone) setErrors((prev) => ({ ...prev, recipientPhone: "" }));
+                        }}
+                        placeholder="მიმღების ტელეფონის ნომერი"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                      {errors.recipientPhone && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientPhone}</p>}
+                    </div>
+                  </div>
+                </div>
+
               </div>
+            )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Method 1: Card */}
-                <div
-                  onClick={() => setPaymentMethod("card")}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${
-                    paymentMethod === "card"
-                      ? "border-blue-600 bg-blue-50/40"
-                      : "border-gray-100 bg-[#F8FAFC] hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <CreditCard className={`w-5 h-5 ${paymentMethod === "card" ? "text-blue-600" : "text-gray-500"}`} />
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      paymentMethod === "card" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "card" && <Check className="w-3 h-3" />}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-xs md:text-sm text-gray-900">საბანკო ბარათი</h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Visa / Mastercard</p>
-                  </div>
-                </div>
+            {/* STEP 2 CONTENT: Payment Details */}
+            {step === 2 && (
+              <div className="space-y-6">
+                
+                {/* Payment Methods Top Pills */}
+                <div className="space-y-3">
+                  <h3 className="text-sm text-gray-900">გადახდის მეთოდები</h3>
 
-                {/* Method 2: 0% Installment */}
-                <div
-                  onClick={() => setPaymentMethod("installment")}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${
-                    paymentMethod === "installment"
-                      ? "border-blue-600 bg-blue-50/40"
-                      : "border-gray-100 bg-[#F8FAFC] hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <Building2 className={`w-5 h-5 ${paymentMethod === "installment" ? "text-blue-600" : "text-gray-500"}`} />
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      paymentMethod === "installment" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "installment" && <Check className="w-3 h-3" />}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-xs md:text-sm text-gray-900">0% ონლაინ განვადება</h4>
-                    <p className="text-[11px] text-blue-600 mt-0.5">TBC, BOG, Credo</p>
-                  </div>
-                </div>
-
-                {/* Method 3: Cash */}
-                <div
-                  onClick={() => setPaymentMethod("cash")}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${
-                    paymentMethod === "cash"
-                      ? "border-blue-600 bg-blue-50/40"
-                      : "border-gray-100 bg-[#F8FAFC] hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <Banknote className={`w-5 h-5 ${paymentMethod === "cash" ? "text-blue-600" : "text-gray-500"}`} />
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      paymentMethod === "cash" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "cash" && <Check className="w-3 h-3" />}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-xs md:text-sm text-gray-900">ნაღდი ანგარიშსწორება</h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5">კურიერთან ჩაბარებისას</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Installment Bank Options (when Installment selected) */}
-              {paymentMethod === "installment" && (
-                <div className="pt-4 border-t border-gray-100 space-y-4 animate-in fade-in">
-                  <span className="text-xs text-gray-600 block">აირჩიეთ ბანკი 0%-იანი განვადებისთვის:</span>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                     {[
-                      { id: "tbc", name: "TBC ბანკი", color: "text-sky-600 bg-sky-50" },
-                      { id: "bog", name: "საქართველოს ბანკი", color: "text-amber-600 bg-amber-50" },
-                      { id: "credo", name: "კრედო ბანკი", color: "text-emerald-600 bg-emerald-50" },
-                    ].map((bank) => (
+                      { id: "installment", label: "განვადებით შეძენა" },
+                      { id: "card", label: "ბარათით გადახდა" },
+                      { id: "points", label: "ქულებით შეძენა" },
+                      { id: "transfer", label: "გადარიცხვა" },
+                      { id: "keepz", label: "Keepz - ონლაინ ბანკით შეძენა" },
+                      { id: "crypto", label: "კრიპტოთი შეძენა" },
+                    ].map((item) => (
                       <button
-                        key={bank.id}
+                        key={item.id}
                         type="button"
-                        onClick={() => setSelectedBank(bank.id as any)}
-                        className={`p-3 rounded-xl border text-xs text-center cursor-pointer transition-all ${
-                          selectedBank === bank.id
-                            ? "border-blue-600 bg-blue-50 text-gray-900"
-                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        onClick={() => setPaymentCategory(item.id as any)}
+                        className={`h-12 px-3 rounded-2xl text-xs transition-all cursor-pointer border text-center flex items-center justify-center ${
+                          paymentCategory === item.id
+                            ? "border-blue-600 bg-blue-50/60 text-blue-600 ring-1 ring-blue-600"
+                            : "border-transparent bg-[#F1F3F6] text-gray-600 hover:bg-gray-200"
                         }`}
                       >
-                        <span className={bank.color}>{bank.name}</span>
+                        <span>{item.label}</span>
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  <div className="space-y-2 bg-[#F8FAFC] p-4 rounded-2xl border border-gray-100">
-                    <div className="flex justify-between text-xs text-gray-600">
-                      <span>განვადების ვადა:</span>
-                      <span className="text-gray-900 font-mono">{installmentMonths} თვე</span>
+                {/* Sub-Panel: Installment Banks */}
+                {paymentCategory === "installment" && (
+                  <div className="space-y-3 pt-2">
+                    {/* BOG Installment */}
+                    <div
+                      onClick={() => setSelectedInstallmentBank("bog")}
+                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
+                        selectedInstallmentBank === "bog" ? "border-blue-600 bg-white" : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-xs flex items-center justify-center">
+                          🦁
+                        </div>
+                        <span className="text-xs md:text-sm text-gray-900">საქართველოს ბანკი</span>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedInstallmentBank === "bog" ? "border-blue-600" : "border-gray-300"
+                      }`}>
+                        {selectedInstallmentBank === "bog" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="3"
-                      max="24"
-                      step="3"
-                      value={installmentMonths}
-                      onChange={(e) => setInstallmentMonths(Number(e.target.value))}
-                      className="w-full accent-blue-600 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[11px] text-gray-500 pt-1">
-                      <span>ყოველთვიური გადასახადი:</span>
-                      <span className="text-blue-600 font-mono">{(cartSubtotal / installmentMonths).toFixed(2)} ₾ / თვეში</span>
+
+                    {/* TBC Installment */}
+                    <div
+                      onClick={() => setSelectedInstallmentBank("tbc")}
+                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
+                        selectedInstallmentBank === "tbc" ? "border-blue-600 bg-white" : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold text-xs flex items-center justify-center">
+                          ▲
+                        </div>
+                        <span className="text-xs md:text-sm text-gray-900">თიბისი ბანკი</span>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedInstallmentBank === "tbc" ? "border-blue-600" : "border-gray-300"
+                      }`}>
+                        {selectedInstallmentBank === "tbc" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                      </div>
+                    </div>
+
+                    {/* TBC Ganatsileba */}
+                    <div
+                      onClick={() => setSelectedInstallmentBank("tbc_ganatsileba")}
+                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
+                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-blue-600 bg-white" : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold text-xs flex items-center justify-center">
+                          ▲
+                        </div>
+                        <span className="text-xs md:text-sm text-gray-900">თიბისი <span className="text-gray-500 pl-1">განაწილება</span></span>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-blue-600" : "border-gray-300"
+                      }`}>
+                        {selectedInstallmentBank === "tbc_ganatsileba" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                      </div>
+                    </div>
+
+                    {/* Credo Bank */}
+                    <div
+                      onClick={() => setSelectedInstallmentBank("credo")}
+                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
+                        selectedInstallmentBank === "credo" ? "border-blue-600 bg-white" : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-red-500 text-white font-bold text-xs flex items-center justify-center">
+                          🔄
+                        </div>
+                        <span className="text-xs md:text-sm text-gray-900">კრედო ბანკი</span>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedInstallmentBank === "credo" ? "border-blue-600" : "border-gray-300"
+                      }`}>
+                        {selectedInstallmentBank === "credo" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-            </div>
+                {/* Sub-Panel: Card Gateways */}
+                {paymentCategory === "card" && (
+                  <div className="space-y-3 pt-2">
+                    {/* TBC Gateway Accordion */}
+                    <div className="bg-[#F1F3F6] rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedCardGateway(expandedCardGateway === "tbc" ? "bog" : "tbc")}
+                        className="w-full h-16 px-5 flex items-center justify-between cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold text-xs flex items-center justify-center">
+                            ▲
+                          </div>
+                          <span className="text-xs md:text-sm text-gray-900">TBC</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${
+                          expandedCardGateway === "tbc" ? "rotate-180" : ""
+                        }`} />
+                      </button>
+
+                      {expandedCardGateway === "tbc" && (
+                        <div className="p-4 pt-0 space-y-3 bg-[#F1F3F6] border-t border-gray-200/60">
+                          <div
+                            onClick={() => setSelectedCardOption("card")}
+                            className="flex items-center justify-between p-3 bg-white rounded-xl cursor-pointer"
+                          >
+                            <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა (Visa / Mastercard)</span>
+                            <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center">
+                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bank of Georgia Gateway Accordion */}
+                    <div className={`rounded-2xl overflow-hidden border-2 transition-colors ${
+                      expandedCardGateway === "bog" ? "border-blue-600 bg-[#F1F3F6]" : "border-transparent bg-[#F1F3F6]"
+                    }`}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedCardGateway(expandedCardGateway === "bog" ? "tbc" : "bog")}
+                        className="w-full h-16 px-5 flex items-center justify-between cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-xs flex items-center justify-center">
+                            🦁
+                          </div>
+                          <span className="text-xs md:text-sm text-gray-900">Bank of Georgia</span>
+                        </div>
+                        {expandedCardGateway === "bog" ? (
+                          <ChevronUp className="w-4 h-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-gray-500" />
+                        )}
+                      </button>
+
+                      {expandedCardGateway === "bog" && (
+                        <div className="p-4 pt-2 space-y-3 border-t border-gray-200/40">
+                          {/* Option 1: Card Pay */}
+                          <div
+                            onClick={() => setSelectedCardOption("card")}
+                            className="flex items-center justify-between p-3 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-bold tracking-widest text-blue-900">VISA</span>
+                              <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა</span>
+                            </div>
+                            <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center">
+                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                            </div>
+                          </div>
+
+                          {/* Option 2: Apple Pay */}
+                          <div
+                            onClick={() => setSelectedCardOption("applepay")}
+                            className="flex items-center justify-between p-3 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm"></span>
+                              <span className="text-xs md:text-sm text-gray-900">Apple Pay</span>
+                            </div>
+                            <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                              {selectedCardOption === "applepay" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-Panel: Other payment methods */}
+                {["points", "transfer", "keepz", "crypto"].includes(paymentCategory) && (
+                  <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-600 space-y-2">
+                    <p className="text-gray-900 text-sm">გადახდის ინსტრუქცია</p>
+                    <p>შეკვეთის დადასტურების შემდეგ მიიღებთ შესაბამის რეკვიზიტებს და გადახდის ინსტრუქციას.</p>
+                  </div>
+                )}
+
+              </div>
+            )}
 
           </div>
 
-          {/* Right Column: Order Summary Card (4 cols) */}
-          <div className="lg:col-span-4 bg-white rounded-[28px] p-6 shadow-xs border border-gray-100 space-y-6 sticky top-20">
-            <h3 className="text-lg text-gray-900 border-b border-gray-100 pb-3">
-              შეკვეთის რეზიუმე
-            </h3>
-
-            {/* Cart Product List */}
-            <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-              {cart.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 text-xs">
-                  <img src={item.image} alt={item.title} className="w-12 h-12 object-contain bg-[#F1F3F6] p-1 rounded-xl shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-gray-900 truncate">{item.title}</p>
-                    <p className="text-gray-400 text-[11px]">{item.quantity}x • {((item.discountPrice || item.price) * item.quantity).toFixed(2)} ₾</p>
-                  </div>
+          {/* Right Summary Sidebar Area (4 cols) */}
+          <div className="lg:col-span-4 space-y-4">
+            
+            {/* Gray Summary Card */}
+            <div className="bg-[#F8FAFC] rounded-2xl p-6 border border-gray-100 space-y-4">
+              <div className="space-y-3 text-xs md:text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>ღირებულება</span>
+                  <span className="text-gray-900 font-mono">{cartSubtotal} ₾</span>
                 </div>
-              ))}
-            </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>მიწოდების ღირებულება</span>
+                  <span className="text-[#10B981] font-mono">უფასო (0 ₾)</span>
+                </div>
+              </div>
 
-            {/* Price Calculations */}
-            <div className="space-y-2 border-t border-gray-100 pt-4 text-xs">
-              <div className="flex justify-between text-gray-600">
-                <span>პროდუქტების ღირებულება:</span>
-                <span className="text-gray-900">{cartSubtotal.toFixed(2)} ₾</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>მიწოდების სერვისი:</span>
-                <span className="text-emerald-600">უფასო</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-900 pt-2 border-t border-gray-100">
-                <span>სულ გადასახდელი:</span>
-                <span className="text-xl text-blue-600">{cartSubtotal.toFixed(2)} ₾</span>
+              <div className="pt-3 border-t border-gray-200/60 flex justify-between items-center">
+                <span className="text-xs md:text-sm text-gray-600">გადასახდელი თანხა</span>
+                <span className="text-lg md:text-xl text-blue-600 font-mono">{totalAmount} ₾</span>
               </div>
             </div>
 
+            {/* Terms Agreement Checkbox (Required on Step 2) */}
+            {step === 2 && (
+              <div className="flex items-start gap-2.5 pt-2 px-1">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-blue-600 cursor-pointer"
+                />
+                <label htmlFor="terms" className="text-[11px] text-gray-600 hover:text-gray-900 leading-tight cursor-pointer">
+                  წავიკითხე და ვეთანხმები წესებს, პირობებს და პერსონალურ მონაცემთა დაცვის პოლიტიკას
+                </label>
+              </div>
+            )}
+
+            {/* Primary Blue Action Button "შემდეგი" */}
             <button
-              type="submit"
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs"
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (step === 1) handleProceedToStep2();
+                else handleFinalOrderSubmit();
+              }}
+              className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white rounded-2xl text-xs md:text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
             >
-              შეკვეთის გაფორმება
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>მუშავდება...</span>
+                </>
+              ) : (
+                <span>შემდეგი</span>
+              )}
             </button>
 
-            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 pt-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>დაცული და უსაფრთხო გადახდა</span>
+            {/* Promo Code Card */}
+            <div className="flex gap-2 pt-2">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                placeholder="შეიყვანე პრომო კოდი ან ვაუჩერი"
+                className="flex-1 h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (promoCode.trim()) {
+                    setPromoApplied(true);
+                    addToast({
+                      title: "პრომო კოდი",
+                      message: "პრომო კოდი მიღებულია",
+                      type: "success",
+                    });
+                  }
+                }}
+                className="px-5 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs cursor-pointer transition-colors shrink-0 shadow-xs"
+              >
+                გააქტიურება
+              </button>
             </div>
+
           </div>
 
-        </form>
+        </div>
 
       </div>
+
+      {/* Add Address Modal with Google Map Autocomplete */}
+      <AddAddressModal
+        isOpen={isAddAddressOpen}
+        onClose={() => setIsAddAddressOpen(false)}
+        initialAddress={address}
+        onSaveAddress={(newAddr) => setAddress(newAddr)}
+      />
     </div>
   );
 }

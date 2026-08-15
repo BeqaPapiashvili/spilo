@@ -11,7 +11,8 @@ import {
   Minus,
   LayoutGrid,
   Percent,
-  ChevronDown
+  ChevronDown,
+  ShieldCheck
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
@@ -21,11 +22,13 @@ import { MegaMenu } from "./MegaMenu";
 
 export default function Header() {
   const router = useRouter();
-  const { toggleCart, cart, updateQuantity, removeFromCart, user, toggleAuthModal } = useStore();
+  const { toggleCart, cart, updateQuantity, removeFromCart, user, adminUser, toggleAuthModal } = useStore();
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [lang, setLang] = useState<"GE" | "EN">("GE");
+
+  const isAdmin = !!user && (!!adminUser || ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN", "MODERATOR", "MANAGER"].includes(user.role || ""));
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0);
@@ -235,6 +238,18 @@ export default function Header() {
                 <User className="w-4.5 h-4.5 text-gray-900" />
                 <span className="hidden sm:inline">შესვლა</span>
               </button>
+            )}
+
+            {/* Admin Panel Direct Shortcut Button */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 bg-[#0F172A] hover:bg-slate-800 text-white px-3.5 sm:px-4 h-11 rounded-2xl border border-slate-700/60 shadow-2xs transition-colors cursor-pointer text-xs shrink-0"
+                title="ადმინპანელში გადასვლა"
+              >
+                <ShieldCheck className="w-4.5 h-4.5 text-blue-400" />
+                <span className="hidden sm:inline">ადმინპანელი</span>
+              </Link>
             )}
 
             {/* Special Offers % Pill Button */}

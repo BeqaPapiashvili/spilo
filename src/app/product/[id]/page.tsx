@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Sparkles,
   MessageSquare,
+  Package,
   X
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -501,9 +502,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             {activeTab === "delivery" && (
               <div className="space-y-4 text-xs text-gray-700">
-                <p>🚚 <b>თბილისში მიწოდება:</b> იმავე დღეს ან მეორე დღეს (უფასო).</p>
-                <p>📦 <b>რეგიონებში მიწოდება:</b> 1-3 სამუშაო დღეში საქართველოს მასშტაბით.</p>
-                <p>🛡️ <b>ოფიციალური გარანტია:</b> {product.warrantyMonths || 12} თვიანი სერვის-ცენტრის გარანტია.</p>
+                <p className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span><b>თბილისში მიწოდება:</b> იმავე დღეს ან მეორე დღეს (უფასო).</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span><b>რეგიონებში მიწოდება:</b> 1-3 სამუშაო დღეში საქართველოს მასშტაბით.</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span><b>ოფიციალური გარანტია:</b> {product.warrantyMonths || 12} თვიანი სერვის-ცენტრის გარანტია.</span>
+                </p>
               </div>
             )}
 

@@ -3,8 +3,34 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
-  TrendingUp, ShoppingBag, DollarSign, Package, AlertTriangle, 
-  ArrowUpRight, Eye, ChevronRight, Plus, Users, Zap
+  TrendingUp, 
+  ShoppingBag, 
+  DollarSign, 
+  Package, 
+  AlertTriangle, 
+  ArrowUpRight, 
+  Eye, 
+  ChevronRight, 
+  Plus, 
+  Users, 
+  Zap,
+  Activity,
+  Clock,
+  CheckCircle2,
+  Truck,
+  XCircle,
+  FileText,
+  Search,
+  Sparkles,
+  BarChart2,
+  Filter,
+  RefreshCw,
+  Sliders,
+  PieChart,
+  Layers,
+  Check,
+  MessageSquare,
+  Lock
 } from "lucide-react";
 import { dataService, AuditLog } from "@/services/dataService";
 import { useStore } from "@/store/useStore";
@@ -15,13 +41,40 @@ export default function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const storeOrders = useStore((state) => state.orders);
+  const [stats, setStats] = useState<{
+    totalRevenue: number;
+    totalOrders: number;
+    totalCustomers: number;
+    totalProducts: number;
+    lowStockCount: number;
+  }>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    totalProducts: 0,
+    lowStockCount: 0,
+  });
+
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const { adminUser, orders: storeOrders } = useStore();
+  const isSupportAgent = adminUser?.role === "SUPPORT_AGENT";
 
   useEffect(() => {
     setIsMounted(true);
     setProducts(dataService.getProducts());
     setAuditLogs(dataService.getAuditLogs());
 
+    // Fetch real MySQL aggregated stats
+    fetch("/api/admin/stats")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && resData.success && resData.data) {
+          setStats(resData.data);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch real MySQL orders
     fetch("/api/orders")
       .then((res) => res.json())
       .then((resData) => {
@@ -42,200 +95,289 @@ export default function AdminDashboardPage() {
 
   const activeOrders = orders.length > 0 ? orders : storeOrders;
   const outOfStockCount = products.filter((p) => p.stock === 0).length;
-  const lowStockCount = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
-  const totalRevenue = activeOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
+  const lowStockCount = stats.lowStockCount || products.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const totalRevenue = stats.totalRevenue || activeOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
   const avgOrderValue = activeOrders.length > 0 
     ? Math.round(totalRevenue / activeOrders.length) 
     : 0;
 
   const fmtNum = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
-  const metrics = [
-    {
-      label: "სულ შემოსავალი",
-      value: isMounted ? `${fmtNum(totalRevenue)} ₾` : "148 920 ₾",
-      change: "+18.4%",
-      sub: "გასულ თვესთან შედარებით",
-      iconBg: "#eef2ff",
-      iconColor: "#6366f1",
-      icon: <DollarSign size={18} />,
-      up: true,
-    },
-    {
-      label: "სულ შეკვეთები",
-      value: storeOrders.length + 428,
-      change: "+12.2%",
-      sub: "ახალი შეკვეთები",
-      iconBg: "#f0fdf4",
-      iconColor: "#16a34a",
-      icon: <ShoppingBag size={18} />,
-      up: true,
-    },
-    {
-      label: "საშუალო შეკვეთა (AOV)",
-      value: `${avgOrderValue} ₾`,
-      change: "+5.1%",
-      sub: "საშუალო კალათა",
-      iconBg: "#fffbeb",
-      iconColor: "#d97706",
-      icon: <TrendingUp size={18} />,
-      up: true,
-    },
-    {
-      label: "პროდუქტები",
-      value: products.length,
-      change: `${lowStockCount + outOfStockCount}`,
-      sub: "საჭიროებს ყურადღებას",
-      iconBg: "#fef2f2",
-      iconColor: "#dc2626",
-      icon: <Package size={18} />,
-      up: false,
-    },
-  ];
-
-  const statusStyle = (status: string) => {
-    if (status === "ჩაბარებულია") return "adm-badge adm-badge-green";
-    if (status === "გზაშია") return "adm-badge adm-badge-blue";
-    return "adm-badge adm-badge-amber";
-  };
+  const filteredOrders = activeOrders.filter((o) => {
+    if (statusFilter === "ALL") return true;
+    return o.status === statusFilter;
+  });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div className="space-y-6">
 
-      {/* Page header */}
-      <div className="adm-card" style={{ padding: "1.5rem 1.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}>
-            <Zap size={13} />
-            <span>Spilo Admin Panel · Dashboard</span>
+      {/* Hero Welcome & Quick Command Bar */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-xs space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>Spilo E-Commerce Control Center</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl text-slate-900 tracking-tight">
+              ადმინისტრაციული მართვის პანელი
+            </h1>
+            <p className="text-xs md:text-sm text-slate-500">
+              რეალურ დროში გაყიდვების, შეკვეთების, მარაგებისა და მომხმარებლების ანალიტიკა.
+            </p>
           </div>
-          <h1 className="adm-page-title">მმართველობის დეშბორდი</h1>
-          <p className="adm-page-desc">გაყიდვები, შეკვეთები, მარაგები და სისტემური სტატისტიკა</p>
-        </div>
-        <Link href="/admin/products/new" className="adm-btn-primary">
-          <Plus size={15} />
-          <span>ახალი პროდუქტი</span>
-        </Link>
-      </div>
 
-      {/* Metrics */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-        {metrics.map((m, i) => (
-          <div key={i} className="adm-card" style={{ padding: "1.25rem 1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.875rem" }}>
-              <span style={{ fontSize: "0.72rem", color: "#94a3b8", letterSpacing: "0.01em" }}>{m.label}</span>
-              <div className="adm-icon-box" style={{ background: m.iconBg, color: m.iconColor }}>
-                {m.icon}
-              </div>
-            </div>
-            <div className="adm-metric-num" style={{ marginBottom: "0.375rem" }}>{m.value}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.72rem", color: m.up ? "#16a34a" : "#dc2626" }}>
-              {m.up ? <ArrowUpRight size={13} /> : <AlertTriangle size={12} />}
-              <span style={{ color: m.up ? "#16a34a" : "#dc2626" }}>{m.change}</span>
-              <span style={{ color: "#94a3b8" }}>{m.sub}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {!isSupportAgent && (
+              <Link
+                href="/admin/products/new"
+                className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>ახალი პროდუქტი</span>
+              </Link>
+            )}
 
-      {/* Stock Alert */}
-      {(outOfStockCount > 0 || lowStockCount > 0) && (
-        <div className="adm-alert adm-alert-amber" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-            <div className="adm-icon-box" style={{ background: "#fef3c7", color: "#d97706" }}>
-              <AlertTriangle size={18} />
-            </div>
-            <div>
-              <p style={{ fontSize: "0.75rem", color: "#92400e", marginBottom: "2px" }}>მარაგების გაფრთხილება</p>
-              <p style={{ fontSize: "0.7rem", color: "#a16207" }}>
-                {outOfStockCount} პროდუქტი ამოწურულია · {lowStockCount} პროდუქტი ≤5 ერთეული
-              </p>
-            </div>
-          </div>
-          <Link href="/admin/inventory" style={{ fontSize: "0.72rem", color: "#92400e", display: "flex", alignItems: "center", gap: "4px" }}>
-            მარაგების მართვა <ChevronRight size={14} />
-          </Link>
-        </div>
-      )}
+            <Link
+              href="/admin/support"
+              className="h-11 px-5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>ცოცხალი ჩატი & მხარდაჭერა</span>
+            </Link>
 
-      {/* Orders + Audit log */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.25rem" }} className="flex-col lg:grid">
-
-        {/* Orders table */}
-        <div className="adm-card" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <h3 style={{ fontSize: "0.875rem", color: "#0f172a" }}>ბოლო შეკვეთები</h3>
-              <p style={{ fontSize: "0.7rem", color: "#94a3b8", marginTop: "2px" }}>უახლესი შეკვეთები მაღაზიაში</p>
-            </div>
-            <Link href="/admin/orders" style={{ fontSize: "0.72rem", color: "#6366f1", display: "flex", alignItems: "center", gap: "4px" }}>
-              ყველა <ChevronRight size={13} />
+            <Link
+              href="/admin/orders"
+              className="h-11 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <ShoppingBag className="w-4 h-4 text-slate-600" />
+              <span>შეკვეთები ({activeOrders.length})</span>
             </Link>
           </div>
-          <div style={{ overflowX: "auto", flex: 1 }}>
-            <table className="adm-table">
+
+        </div>
+      </div>
+
+      {/* Bento Grid System Layout (12-Col Grid) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+        {/* Bento Tile 1: Main Revenue or Support Card (Col 1-8) */}
+        <div className="md:col-span-8 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-6">
+          {isSupportAgent ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Support Agent Workspace</span>
+                  </div>
+                  <h2 className="text-xl text-slate-900">მომხმარებელთა მხარდაჭერა & ჩატი</h2>
+                  <p className="text-xs text-slate-500">
+                    მზადყოფნაშია მომხმარებელთა შეკითხვებზე საპასუხოდ და შეკვეთების მოსაძიებლად.
+                  </p>
+                </div>
+
+                <Link
+                  href="/admin/support"
+                  className="h-10 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs flex items-center gap-2 transition-colors shrink-0 shadow-xs"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>ჩატში გადასვლა</span>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-1">
+                  <span className="text-xs text-slate-400 block">აქტიური შეკვეთები (ბაზაში)</span>
+                  <p className="text-2xl text-slate-900 font-mono">{activeOrders.length}</p>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-1">
+                  <span className="text-xs text-slate-400 block">სისტემის რეჟიმი</span>
+                  <p className="text-xs text-emerald-600 font-mono font-medium inline-flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-emerald-600" />
+                    <span>Support Read-Only Mode</span>
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-xs text-slate-400">ჯამური შემოსავალი</span>
+                  <p className="text-3xl text-slate-900 font-mono">
+                    {isMounted ? `${fmtNum(totalRevenue)} ₾` : "0 ₾"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                    +18.4% ზრდა
+                  </span>
+                </div>
+              </div>
+
+              {/* Visual Sales Growth Target Bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>თვიური მიზანი (200 000 ₾)</span>
+                  <span className="font-mono">{Math.min(100, Math.round((totalRevenue / 200000) * 100))}% შესრულებულია</span>
+                </div>
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.round((totalRevenue / 200000) * 100))}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 3 Metric Pills */}
+              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] text-slate-400">საშუალო კალათა (AOV)</span>
+                  <p className="text-base text-slate-900 font-mono">{avgOrderValue} ₾</p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-[11px] text-slate-400">შეკვეთები სულ</span>
+                  <p className="text-base text-slate-900 font-mono">{activeOrders.length}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-[11px] text-slate-400">მომხმარებლები</span>
+                  <p className="text-base text-emerald-600 font-mono">{stats.totalCustomers || 12}</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Bento Tile 2: Store Status & Health Radar (Col 9-12) */}
+        <div className="md:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <span className="text-xs text-slate-500">სისტემის სტატუსი</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              ონლაინშია
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-blue-600" />
+                <span className="text-slate-700">პროდუქტები კატალოგში</span>
+              </div>
+              <span className="font-mono text-slate-900">{stats.totalProducts || products.length}</span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <span className="text-slate-700">მარაგების გაფრთხილება</span>
+              </div>
+              <span className="font-mono text-amber-600">{lowStockCount}</span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-600" />
+                <span className="text-slate-700">რეგისტრირებული კლიენტები</span>
+              </div>
+              <span className="font-mono text-purple-600">{stats.totalCustomers || 12}</span>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+            <span>ბოლო სინქრონიზაცია</span>
+            <span className="font-mono text-slate-600">ახლახანს</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Orders Table Workspace */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 md:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg text-slate-900">ბოლო შეკვეთები ({filteredOrders.length})</h2>
+            <p className="text-xs text-slate-400">რეალური შეკვეთები MySQL მონაცემთა ბაზიდან</p>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {["ALL", "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"].map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setStatusFilter(st)}
+                className={`h-8 px-3 rounded-xl text-xs transition-colors cursor-pointer whitespace-nowrap ${
+                  statusFilter === st
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-600"
+                }`}
+              >
+                {st === "ALL" ? "ყველა" : st}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Table */}
+        {filteredOrders.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr>
-                  <th>შეკვეთა ID</th>
-                  <th>თარიღი</th>
-                  <th>თანხა</th>
-                  <th>გადახდა</th>
-                  <th>სტატუსი</th>
-                  <th style={{ textAlign: "right" }}>მოქმედება</th>
+                <tr className="border-b border-slate-100 text-[11px] text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 px-4 font-normal">შეკვეთის #</th>
+                  <th className="py-3 px-4 font-normal">მომხმარებელი</th>
+                  <th className="py-3 px-4 font-normal">თარიღი</th>
+                  <th className="py-3 px-4 font-normal">თანხა</th>
+                  <th className="py-3 px-4 font-normal">სტატუსი</th>
+                  <th className="py-3 px-4 font-normal text-right">მოქმედება</th>
                 </tr>
               </thead>
-              <tbody>
-                {activeOrders.length > 0 ? (
-                  activeOrders.slice(0, 10).map((ord) => (
-                    <tr key={ord.id || ord.orderNumber}>
-                      <td style={{ fontFamily: "monospace", color: "#0f172a" }}>#{ord.orderNumber || ord.id}</td>
-                      <td style={{ color: "#64748b" }}>
-                        {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("ka-GE") : ord.date || "ახალი"}
-                      </td>
-                      <td style={{ color: "#0f172a" }}>{ord.totalAmount} ₾</td>
-                      <td style={{ color: "#64748b" }}>{ord.paymentMethod}</td>
-                      <td><span className={statusStyle(ord.status)}>{ord.status === "PENDING" ? "მუშავდება" : ord.status}</span></td>
-                      <td style={{ textAlign: "right" }}>
-                        <Link href={`/admin/orders/${ord.id}`} className="adm-icon-btn adm-icon-btn-blue">
-                          <Eye size={15} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "3rem", color: "#94a3b8", fontSize: "0.75rem" }}>
-                      შეკვეთები ჯერ არ არის
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                {filteredOrders.slice(0, 8).map((ord) => (
+                  <tr key={ord.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3.5 px-4 font-mono text-slate-900">{ord.orderNumber || `#${ord.id}`}</td>
+                    <td className="py-3.5 px-4">{ord.customerName || ord.name || "მომხმარებელი"}</td>
+                    <td className="py-3.5 px-4 text-slate-400 font-mono">
+                      {ord.createdAt ? ord.createdAt.toString().slice(0, 10) : ord.date || "დღეს"}
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-slate-900">{Number(ord.totalAmount).toLocaleString()} ₾</td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono ${
+                        ord.status === "DELIVERED"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : ord.status === "SHIPPED"
+                          ? "bg-blue-50 text-blue-700"
+                          : ord.status === "CANCELLED"
+                          ? "bg-red-50 text-red-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}>
+                        {ord.status || "PENDING"}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Link
+                        href={`/admin/orders/${ord.id}`}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl inline-flex items-center gap-1 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>ნახვა</span>
+                      </Link>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* Audit Log */}
-        <div className="adm-card" style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h3 style={{ fontSize: "0.875rem", color: "#0f172a" }}>Audit Activity</h3>
-            <Link href="/admin/audit-logs" style={{ fontSize: "0.72rem", color: "#6366f1" }}>სრული →</Link>
+        ) : (
+          <div className="py-12 text-center text-slate-400 text-xs">
+            შეკვეთები ვერ მოიძებნა
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {auditLogs.map((log, idx) => (
-              <div key={log.id ? `${log.id}-${idx}` : `log-${idx}`} style={{ paddingBottom: "0.875rem", borderBottom: "1px solid #f8fafc" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
-                  <p style={{ fontSize: "0.75rem", color: "#0f172a", lineHeight: 1.3 }}>{log.action}</p>
-                  <span style={{ fontSize: "0.6rem", color: "#94a3b8", flexShrink: 0 }}>{log.timestamp}</span>
-                </div>
-                <p style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "3px" }}>{log.details}</p>
-                <span style={{ fontSize: "0.65rem", color: "#6366f1", display: "block", marginTop: "4px" }}>{log.userName}</span>
-              </div>
-            ))}
-          </div>
-          <Link href="/admin/users" className="adm-btn-secondary" style={{ width: "100%", justifyContent: "center", marginTop: "auto" }}>
-            ადმინები & როლები
-          </Link>
-        </div>
+        )}
       </div>
 
     </div>

@@ -7,7 +7,7 @@ import { useStore } from "@/store/useStore";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { setAdminSession, addToast } = useStore();
+  const { setAdminSession, setUser, addToast } = useStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,6 +46,9 @@ export default function AdminLoginPage() {
       }
 
       setAdminSession(data.admin, data.token);
+      if (data.user) {
+        setUser(data.user);
+      }
 
       addToast({
         title: "ავტორიზაცია წარმატებულია",

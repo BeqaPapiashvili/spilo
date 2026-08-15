@@ -1,10 +1,31 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import CategoryCarousel from "@/components/CategoryCarousel";
 import { Sparkles, Gift } from "lucide-react";
 import Link from "next/link";
 
+interface BannerItem {
+  id: string;
+  title: string;
+  image: string;
+  link?: string;
+}
+
 export default function HeroBannerSection() {
+  const [banner, setBanner] = useState<BannerItem | null>(null);
+
+  useEffect(() => {
+    fetch("/api/banners")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
+          setBanner(resData.data[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-14">
       {/* 1. Top Category Carousel */}
@@ -15,8 +36,8 @@ export default function HeroBannerSection() {
         <div className="container mx-auto px-4 lg:px-8">
           <div className="rounded-[32px] relative overflow-hidden min-h-[360px] md:min-h-[420px] flex items-center p-6 md:p-12 shadow-xs border border-gray-100">
             <img
-              src="https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"
-              alt="spilo Hero Gift"
+              src={banner?.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
+              alt={banner?.title || "spilo Hero Gift"}
               className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/20" />
@@ -28,14 +49,14 @@ export default function HeroBannerSection() {
                 <span>სპეციალური შეთავაზება</span>
               </div>
               <h2 className="text-2xl md:text-3xl text-gray-900 leading-tight">
-                იპოვე იდეალური საჩუქარი ყველასთვის
+                {banner?.title || "იპოვე იდეალური საჩუქარი ყველასთვის"}
               </h2>
               <p className="text-gray-600 text-xs md:text-sm leading-relaxed">
                 შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად spilo-თი
               </p>
               <div className="pt-2 flex items-center justify-between">
                 <Link 
-                  href="/catalog"
+                  href={banner?.link || "/catalog"}
                   className="bg-[#111111] text-white px-6 py-3 rounded-2xl text-xs sm:text-sm hover:bg-black transition-colors cursor-pointer"
                 >
                   შეარჩიე საჩუქარი

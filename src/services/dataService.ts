@@ -857,7 +857,7 @@ class DataService {
         if (status === "RESOLVED" || status === "CLOSED") {
           updatedMessages.push({
             sender: "admin" as const,
-            text: "🔒 საუბარი დასრულდა ოპერატორის მიერ. მადლობა რომ იყენებთ spilo-ს!",
+            text: "საუბარი დასრულდა ოპერატორის მიერ. მადლობა რომ იყენებთ spilo-ს!",
             time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
           });
         }

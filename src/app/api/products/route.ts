@@ -87,7 +87,7 @@ export async function GET(request: Request) {
     });
 
     // Format products for frontend consumption
-    const formattedProducts = products.map((p) => {
+    const formattedProducts = products.map((p: any) => {
       let imageList: string[] = [];
       try {
         imageList = typeof p.images === "string" ? JSON.parse(p.images) : (p.images as string[]);

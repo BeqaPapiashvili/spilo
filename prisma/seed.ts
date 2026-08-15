@@ -188,18 +188,25 @@ async function main() {
   });
   console.log("✅ Seeded Admin Users");
 
-  // 5. Seed Sample Customer User
-  await prisma.user.upsert({
-    where: { phone: "995551008897" },
-    update: {},
-    create: {
-      phone: "995551008897",
-      email: "papicha@gmail.com",
-      name: "ბექა პაპიაშვილი",
-      role: "CUSTOMER",
-    },
-  });
-  console.log("✅ Seeded Sample Customer User");
+  // 5. Seed Users (Unified User System)
+  const usersToSeed = [
+    { name: "Admin User", email: "admin@spilo.ge", password: "admin123", role: "SUPER_ADMIN", phone: "995599000001" },
+    { name: "Beka Papiashvili", email: "beka@spilo.ge", password: "admin123", role: "SUPER_ADMIN", phone: "995599000002" },
+    { name: "ბექა პაპიაშვილი", email: "papicha@gmail.com", password: "admin123", role: "SUPER_ADMIN", phone: "995551008897" },
+  ];
+
+  for (const u of usersToSeed) {
+    const existing = await prisma.user.findFirst({ where: { email: u.email } });
+    if (existing) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { password: u.password, role: u.role, name: u.name },
+      });
+    } else {
+      await prisma.user.create({ data: u });
+    }
+  }
+  console.log("✅ Seeded Unified Users");
 
   console.log("🎉 MySQL Seed Completed Successfully!");
 }

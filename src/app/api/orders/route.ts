@@ -146,9 +146,33 @@ export async function PUT(request: Request) {
       );
     }
 
+    const dbStatus =
+      status === "ჩაბარებულია" || status === "DELIVERED"
+        ? "DELIVERED"
+        : status === "გზაშია" || status === "SHIPPED"
+        ? "SHIPPED"
+        : status === "გაუქმებულია" || status === "CANCELLED"
+        ? "CANCELLED"
+        : "PROCESSING";
+
+    let existingOrder = await prisma.order.findUnique({ where: { id } }).catch(() => null);
+
+    if (!existingOrder) {
+      existingOrder = await prisma.order.findFirst({
+        where: { orderNumber: id },
+      });
+    }
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        { success: false, error: "შეკვეთა ვერ მოიძებნა ბაზაში" },
+        { status: 404 }
+      );
+    }
+
     const updatedOrder = await prisma.order.update({
-      where: { id },
-      data: { status },
+      where: { id: existingOrder.id },
+      data: { status: dbStatus },
       include: { items: true },
     });
 

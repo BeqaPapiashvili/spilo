@@ -19,15 +19,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     if (!isMounted || !isStoreHydrated) return;
 
     if (!user) {
-      addToast({
-        title: "ავტორიზაცია აუცილებელია",
-        message: "გთხოვთ გაიაროთ ავტორიზაცია",
-        type: "warning",
-      });
-      toggleAuthModal(true);
       router.push("/");
     }
-  }, [user, _hasHydrated, isMounted, router, toggleAuthModal, addToast]);
+  }, [user, _hasHydrated, isMounted, router]);
 
   // Loading Skeleton before hydration & check completes
   if (!isMounted || !_hasHydrated || !user) {

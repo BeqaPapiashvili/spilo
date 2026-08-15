@@ -10,7 +10,8 @@ import {
   ArrowLeft, 
   ShieldCheck, 
   Tag,
-  Truck
+  Truck,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -105,7 +106,10 @@ export default function CartPage() {
                   <span className="flex items-center gap-1.5">
                     <Truck className="w-4 h-4 text-blue-600" />
                     {remainingForFreeShipping === 0 ? (
-                      <span className="text-emerald-600">თქვენ მიიღებთ უფასო მიწოდებას! 🎉</span>
+                      <span className="text-emerald-600 inline-flex items-center gap-1">
+                        <span>თქვენ მიიღებთ უფასო მიწოდებას!</span>
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      </span>
                     ) : (
                       <span>
                         დაგრჩათ <b>{remainingForFreeShipping.toFixed(2)} ₾</b> უფასო მიწოდებამდე

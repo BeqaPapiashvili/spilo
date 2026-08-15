@@ -1,103 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Check, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { X, Check, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 
 export default function AuthModal() {
-  const { isAuthModalOpen, toggleAuthModal, setUser } = useStore();
+  const { isAuthModalOpen, toggleAuthModal, setUser, addToast } = useStore();
 
   // Mode: "login" | "register"
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Login Method: "phone" | "email"
-  const [loginMethod, setLoginMethod] = useState<"phone" | "email">("phone");
-
-  // Phone Verification Steps: 1 = Enter Phone, 2 = Enter SMS Code
-  const [phoneStep, setPhoneStep] = useState<1 | 2>(1);
-  const [phone, setPhone] = useState("");
-  const [otpCode, setOtpCode] = useState(["", "", "", ""]);
-  const [timer, setTimer] = useState(60);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-
-  // Email Login Form
+  // Login State
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
-  // Register Form
-  const [regPhone, setRegPhone] = useState("");
+  // Register State
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
 
-  // Inline Custom Errors State
+  // Custom Inline Validation & API Errors State
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    let interval: any = null;
-    if (isTimerActive && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (timer === 0) {
-      setIsTimerActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerActive, timer]);
-
-  // Clear errors when switching modes or methods
   const switchMode = (newMode: "login" | "register") => {
     setMode(newMode);
     setErrors({});
-  };
-
-  const switchLoginMethod = (newMethod: "phone" | "email") => {
-    setLoginMethod(newMethod);
-    setPhoneStep(1);
-    setErrors({});
+    setIsLoading(false);
   };
 
   if (!isAuthModalOpen) return null;
 
-  const handleSendSms = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    if (!phone.trim()) {
-      newErrors.phone = "გთხოვთ მიუთითოთ ტელეფონის ნომერი";
-    } else if (phone.trim().length < 8) {
-      newErrors.phone = "ნომერი უნდა შეიცავდეს მინიმუმ 9 ციფრს";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
-    setPhoneStep(2);
-    setTimer(60);
-    setIsTimerActive(true);
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = otpCode.join("");
-    if (code.length < 4) {
-      setErrors({ otp: "გთხოვთ შეიყვანოთ სრული 4-ნიშნა SMS კოდი" });
-      return;
-    }
-
-    setErrors({});
-    setUser({
-      name: "მომხმარებელი",
-      phone: phone,
-      email: `${phone}@spilo.ge`,
-    });
-    toggleAuthModal(false);
-  };
-
-  const handleEmailLogin = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -117,20 +58,67 @@ export default function AuthModal() {
     }
 
     setErrors({});
-    setUser({
-      name: loginEmail.split("@")[0],
-      email: loginEmail,
-      phone: "+995 599 00 00 00",
-    });
-    toggleAuthModal(false);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrors({ general: data.error || "ავტორიზაციის შეცდომა" });
+        setIsLoading(false);
+        return;
+      }
+
+      setUser(data.user);
+      if (data.adminSession && data.adminToken) {
+        useStore.getState().setAdminSession(data.adminSession, data.adminToken);
+      }
+      addToast({
+        title: "მოგესალმებით!",
+        message: `გამარჯობა, ${data.user.name}`,
+        type: "success",
+      });
+      toggleAuthModal(false);
+    } catch (err: any) {
+      setErrors({ general: "სერვერთან დაკავშირების შეცდომა" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    if (!regPhone.trim()) {
-      newErrors.regPhone = "გთხოვთ მიუთითოთ ტელეფონის ნომერი ან ელფოსტა";
+    if (!regName.trim()) {
+      newErrors.regName = "გთხოვთ მიუთითოთ სახელი და გვარი";
+    }
+
+    if (!regEmail.trim()) {
+      newErrors.regEmail = "გთხოვთ მიუთითოთ ელფოსტა";
+    } else if (!regEmail.includes("@")) {
+      newErrors.regEmail = "გთხოვთ მიუთითოთ სწორი ელფოსტის ფორმატი";
+    }
+
+    if (!regPassword) {
+      newErrors.regPassword = "გთხოვთ მიუთითოთ პაროლი";
+    } else if (regPassword.length < 6) {
+      newErrors.regPassword = "პაროლი უნდა შეიცავდეს მინიმუმ 6 სიმბოლოს";
+    }
+
+    if (!regConfirmPassword) {
+      newErrors.regConfirmPassword = "გთხოვთ დაადასტუროთ პაროლი";
+    } else if (regPassword !== regConfirmPassword) {
+      newErrors.regConfirmPassword = "პაროლები ერთმანეთს არ ემთხვევა";
     }
 
     if (!agreeTerms) {
@@ -143,24 +131,38 @@ export default function AuthModal() {
     }
 
     setErrors({});
-    setUser({
-      name: "ახალი მომხმარებელი",
-      email: regPhone.includes("@") ? regPhone : `${regPhone}@spilo.ge`,
-      phone: regPhone,
-    });
-    toggleAuthModal(false);
-  };
+    setIsLoading(true);
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
-    const newOtp = [...otpCode];
-    newOtp[index] = value;
-    setOtpCode(newOtp);
-    if (errors.otp) setErrors({});
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName,
+          email: regEmail,
+          password: regPassword,
+        }),
+      });
 
-    if (value && index < 3) {
-      const nextInput = document.getElementById(`otp-zoommer-${index + 1}`);
-      nextInput?.focus();
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrors({ general: data.error || "რეგისტრაციის შეცდომა" });
+        setIsLoading(false);
+        return;
+      }
+
+      setUser(data.user);
+      addToast({
+        title: "რეგისტრაცია წარმატებით დასრულდა!",
+        message: `მოგესალმებით Spilo.ge-ზე, ${data.user.name}`,
+        type: "success",
+      });
+      toggleAuthModal(false);
+    } catch (err: any) {
+      setErrors({ general: "სერვერთან დაკავშირების შეცდომა" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -168,7 +170,6 @@ export default function AuthModal() {
     <AnimatePresence>
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          
           {/* Backdrop Fade */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -179,7 +180,7 @@ export default function AuthModal() {
             className="absolute inset-0 bg-black/50 backdrop-blur-xs"
           />
 
-          {/* Zoommer / Spilo Auth Card */}
+          {/* Auth Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -188,16 +189,16 @@ export default function AuthModal() {
             className="bg-white rounded-[28px] max-w-[440px] w-full p-7 md:p-8 shadow-2xl relative z-10 space-y-6 overflow-hidden flex flex-col justify-between"
           >
             <div>
-              {/* Top-Right Circle Close Button */}
+              {/* Close Button */}
               <button
                 onClick={() => toggleAuthModal(false)}
-                className="absolute -top-3 -right-3 sm:top-4 sm:right-4 w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 cursor-pointer z-20"
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 cursor-pointer z-20"
                 title="დახურვა"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Top Mode Header Tabs ("ავტორიზაცია" / "რეგისტრაცია") with Sliding Underline */}
+              {/* Mode Header Tabs ("ავტორიზაცია" / "რეგისტრაცია") */}
               <div className="border-b border-gray-200/80 relative flex items-center justify-between">
                 <button
                   onClick={() => switchMode("login")}
@@ -232,327 +233,306 @@ export default function AuthModal() {
                 </button>
               </div>
 
-              {/* Smooth Animated Form Body */}
+              {/* Form Content */}
               <div className="pt-4">
+                {errors.general && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2 text-xs text-red-600">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errors.general}</span>
+                  </div>
+                )}
+
                 <AnimatePresence mode="wait">
                   {mode === "login" ? (
-                    <motion.div
-                      key="login-animated-view"
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 6 }}
-                      transition={{ duration: 0.15, ease: "easeInOut" }}
-                      className="space-y-5"
-                    >
-                      {/* Sub-Method Animated Pills ("ნომრით ავტორიზაცია" / "მეილით ავტორიზაცია") */}
-                      <div className="grid grid-cols-2 gap-2.5 relative">
-                        <button
-                          onClick={() => switchLoginMethod("phone")}
-                          className={`py-2.5 px-2.5 rounded-full text-xs sm:text-sm text-center whitespace-nowrap transition-colors relative z-10 cursor-pointer ${
-                            loginMethod === "phone" ? "text-gray-900" : "text-gray-500 hover:text-gray-800"
-                          }`}
-                        >
-                          <span>ნომრით ავტორიზაცია</span>
-                          {loginMethod === "phone" && (
-                            <motion.div
-                              layoutId="activeSubPill"
-                              className="absolute inset-0 bg-blue-50 border border-blue-600 rounded-full -z-10"
-                              transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
-                            />
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => switchLoginMethod("email")}
-                          className={`py-2.5 px-2.5 rounded-full text-xs sm:text-sm text-center whitespace-nowrap transition-colors relative z-10 cursor-pointer ${
-                            loginMethod === "email" ? "text-gray-900" : "text-gray-500 hover:text-gray-800"
-                          }`}
-                        >
-                          <span>მეილით ავტორიზაცია</span>
-                          {loginMethod === "email" && (
-                            <motion.div
-                              layoutId="activeSubPill"
-                              className="absolute inset-0 bg-blue-50 border border-blue-600 rounded-full -z-10"
-                              transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
-                            />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Smooth Crossfade for Sub-Methods (Phone vs Email) */}
-                      <div className="pt-2">
-                        <AnimatePresence mode="wait">
-                          {loginMethod === "phone" ? (
-                            <motion.div
-                              key="phone-method-view"
-                              initial={{ opacity: 0, x: -6 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 6 }}
-                              transition={{ duration: 0.15, ease: "easeInOut" }}
-                            >
-                              {phoneStep === 1 ? (
-                                <form onSubmit={handleSendSms} className="space-y-4">
-                                  <div className="space-y-1">
-                                    <div className="flex items-stretch gap-3 h-14">
-                                      <div className="bg-[#F1F3F6] rounded-2xl px-4 flex items-center justify-center gap-2 text-xs md:text-sm text-gray-800 shrink-0 h-full">
-                                        <span className="text-base">🇬🇪</span>
-                                        <span>+995</span>
-                                      </div>
-
-                                      <div className="flex-1 bg-[#F1F3F6] rounded-2xl px-4 flex flex-col justify-center h-full">
-                                        <input
-                                          type="tel"
-                                          value={phone}
-                                          onChange={(e) => {
-                                            setPhone(e.target.value);
-                                            if (errors.phone) setErrors({});
-                                          }}
-                                          placeholder="ტელეფონის ნომერი"
-                                          className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none w-full"
-                                          autoFocus
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Inline Custom Error Text */}
-                                    {errors.phone && (
-                                      <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5 animate-in fade-in">
-                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{errors.phone}</span>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <button
-                                    type="submit"
-                                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs"
-                                  >
-                                    კოდის გაგზავნა
-                                  </button>
-                                </form>
-                              ) : (
-                                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                                  <div className="text-center space-y-1">
-                                    <p className="text-xs md:text-sm text-gray-600">
-                                      შეიყვანეთ SMS კოდი ნომერზე: <span className="text-gray-900">+995 {phone}</span>
-                                    </p>
-                                  </div>
-
-                                  {/* 4 OTP Digit Boxes */}
-                                  <div className="space-y-1">
-                                    <div className="flex justify-center gap-3">
-                                      {otpCode.map((digit, idx) => (
-                                        <input
-                                          key={idx}
-                                          id={`otp-zoommer-${idx}`}
-                                          type="text"
-                                          maxLength={1}
-                                          value={digit}
-                                          onChange={(e) => handleOtpChange(idx, e.target.value)}
-                                          className="w-12 h-12 text-center text-lg bg-[#F1F3F6] rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                                        />
-                                      ))}
-                                    </div>
-
-                                    {errors.otp && (
-                                      <div className="flex items-center justify-center gap-1.5 text-xs text-red-500 pt-1">
-                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{errors.otp}</span>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center justify-between text-xs text-gray-500">
-                                    <span>
-                                      {isTimerActive ? `ხელახლა გაგზავნა: 00:${timer < 10 ? `0${timer}` : timer}` : "კოდი არ მოგივიდათ?"}
-                                    </span>
-                                    {!isTimerActive && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setTimer(60);
-                                          setIsTimerActive(true);
-                                        }}
-                                        className="text-blue-600 hover:underline cursor-pointer"
-                                      >
-                                        თავიდან გაგზავნა
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  <div className="flex gap-2.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => setPhoneStep(1)}
-                                      className="px-4 py-3.5 bg-[#F1F3F6] hover:bg-gray-200 text-gray-700 rounded-2xl text-xs cursor-pointer transition-colors"
-                                    >
-                                      უკან
-                                    </button>
-                                    <button
-                                      type="submit"
-                                      className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs"
-                                    >
-                                      ავტორიზაცია
-                                    </button>
-                                  </div>
-                                </form>
-                              )}
-                            </motion.div>
-                          ) : (
-                            <motion.form
-                              key="email-method-view"
-                              initial={{ opacity: 0, x: 6 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -6 }}
-                              transition={{ duration: 0.15, ease: "easeInOut" }}
-                              onSubmit={handleEmailLogin}
-                              className="space-y-3.5"
-                            >
-                              {/* Email Input */}
-                              <div className="space-y-1">
-                                <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex flex-col justify-center">
-                                  <label className="text-[11px] text-gray-500 block">
-                                    ელფოსტა
-                                  </label>
-                                  <input
-                                    type="email"
-                                    value={loginEmail}
-                                    onChange={(e) => {
-                                      setLoginEmail(e.target.value);
-                                      if (errors.loginEmail) setErrors((prev) => ({ ...prev, loginEmail: "" }));
-                                    }}
-                                    placeholder="example@gmail.com"
-                                    className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
-                                    autoFocus
-                                  />
-                                </div>
-                                {errors.loginEmail && (
-                                  <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
-                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                    <span>{errors.loginEmail}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Password Input */}
-                              <div className="space-y-1">
-                                <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <label className="text-[11px] text-gray-500 block">
-                                      პაროლი
-                                    </label>
-                                    <input
-                                      type={showLoginPassword ? "text" : "password"}
-                                      value={loginPassword}
-                                      onChange={(e) => {
-                                        setLoginPassword(e.target.value);
-                                        if (errors.loginPassword) setErrors((prev) => ({ ...prev, loginPassword: "" }));
-                                      }}
-                                      placeholder="••••••••••"
-                                      className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
-                                    />
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowLoginPassword(!showLoginPassword)}
-                                    className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                                  >
-                                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                  </button>
-                                </div>
-                                {errors.loginPassword && (
-                                  <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
-                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                    <span>{errors.loginPassword}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => alert("პაროლის აღდგენის ინსტრუქცია გაიგზავნება ელ-ფოსტაზე")}
-                                  className="text-xs text-gray-900 hover:underline cursor-pointer"
-                                >
-                                  დაგავიწყდა პაროლი?
-                                </button>
-                              </div>
-
-                              <button
-                                type="submit"
-                                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs"
-                              >
-                                შესვლა
-                              </button>
-                            </motion.form>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                    </motion.div>
-                  ) : (
                     <motion.form
-                      key="register-animated-view"
-                      initial={{ opacity: 0, x: 10 }}
+                      key="login-animated-form"
+                      initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.18, ease: "easeInOut" }}
-                      onSubmit={handleRegister}
-                      className="space-y-4 pt-1"
+                      exit={{ opacity: 0, x: 8 }}
+                      transition={{ duration: 0.15, ease: "easeInOut" }}
+                      onSubmit={handleLoginSubmit}
+                      className="space-y-4"
                     >
-                      {/* Register Phone/Email Input */}
+                      {/* Email Field */}
                       <div className="space-y-1">
-                        <div className="flex items-stretch gap-3 h-14">
-                          <div className="bg-[#F1F3F6] rounded-2xl px-4 flex items-center justify-center gap-2 text-xs md:text-sm text-gray-800 shrink-0 h-full">
-                            <span className="text-base">🇬🇪</span>
-                            <span>+995</span>
-                          </div>
-
-                          <div className="flex-1 bg-[#F1F3F6] rounded-2xl px-4 flex flex-col justify-center h-full">
-                            <label className="text-[11px] text-gray-500 block">
-                              ტელეფონის ნომერი
-                            </label>
-                            <input
-                              type="text"
-                              value={regPhone}
-                              onChange={(e) => {
-                                setRegPhone(e.target.value);
-                                if (errors.regPhone) setErrors((prev) => ({ ...prev, regPhone: "" }));
-                              }}
-                              placeholder="mail@gmail.com ან ნომერი"
-                              className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
-                              autoFocus
-                            />
-                          </div>
+                        <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex flex-col justify-center focus-within:ring-2 focus-within:ring-blue-600/30 transition-all">
+                          <label className="text-[11px] text-gray-500 block">
+                            ელფოსტა
+                          </label>
+                          <input
+                            type="email"
+                            value={loginEmail}
+                            onChange={(e) => {
+                              setLoginEmail(e.target.value);
+                              if (errors.loginEmail) setErrors((prev) => ({ ...prev, loginEmail: "" }));
+                            }}
+                            placeholder="example@gmail.com"
+                            className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
+                            autoFocus
+                          />
                         </div>
-                        {errors.regPhone && (
+                        {errors.loginEmail && (
                           <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
                             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            <span>{errors.regPhone}</span>
+                            <span>{errors.loginEmail}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Password Field */}
+                      <div className="space-y-1">
+                        <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex items-center justify-between focus-within:ring-2 focus-within:ring-blue-600/30 transition-all">
+                          <div className="flex-1">
+                            <label className="text-[11px] text-gray-500 block">
+                              პაროლი
+                            </label>
+                            <input
+                              type={showLoginPassword ? "text" : "password"}
+                              value={loginPassword}
+                              onChange={(e) => {
+                                setLoginPassword(e.target.value);
+                                if (errors.loginPassword) setErrors((prev) => ({ ...prev, loginPassword: "" }));
+                              }}
+                              placeholder="••••••••••"
+                              className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowLoginPassword(!showLoginPassword)}
+                            className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                          >
+                            {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {errors.loginPassword && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{errors.loginPassword}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Remember Me & Forgot Password Row */}
+                      <div className="flex items-center justify-between pt-0.5 text-xs">
+                        <div
+                          onClick={() => setRememberMe(!rememberMe)}
+                          className="flex items-center gap-2.5 cursor-pointer select-none group"
+                        >
+                          <motion.div
+                            whileHover={{ scale: 1.06 }}
+                            whileTap={{ scale: 0.94 }}
+                            className={`w-5 h-5 rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-200 shadow-2xs ${
+                              rememberMe
+                                ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border border-blue-600"
+                                : "bg-[#F1F3F6] border border-gray-300/80 group-hover:border-blue-400 group-hover:bg-blue-50/50"
+                            }`}
+                          >
+                            <AnimatePresence>
+                              {rememberMe && (
+                                <motion.div
+                                  initial={{ scale: 0, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0, opacity: 0 }}
+                                  transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                          <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                            დამახსოვრება
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => alert("პაროლის აღდგენის ინსტრუქცია გაიგზავნება ელფოსტაზე")}
+                          className="text-gray-900 hover:underline cursor-pointer"
+                        >
+                          დაგავიწყდა პაროლი?
+                        </button>
+                      </div>
+
+                      {/* Submit Button */}
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-2"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>მიმდინარეობს...</span>
+                          </>
+                        ) : (
+                          <span>შესვლა</span>
+                        )}
+                      </button>
+                    </motion.form>
+                  ) : (
+                    <motion.form
+                      key="register-animated-form"
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -8 }}
+                      transition={{ duration: 0.15, ease: "easeInOut" }}
+                      onSubmit={handleRegisterSubmit}
+                      className="space-y-3.5"
+                    >
+                      {/* Name Field */}
+                      <div className="space-y-1">
+                        <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex flex-col justify-center focus-within:ring-2 focus-within:ring-blue-600/30 transition-all">
+                          <label className="text-[11px] text-gray-500 block">
+                            სახელი და გვარი
+                          </label>
+                          <input
+                            type="text"
+                            value={regName}
+                            onChange={(e) => {
+                              setRegName(e.target.value);
+                              if (errors.regName) setErrors((prev) => ({ ...prev, regName: "" }));
+                            }}
+                            placeholder="გიორგი გიორგაძე"
+                            className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
+                            autoFocus
+                          />
+                        </div>
+                        {errors.regName && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{errors.regName}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Email Field */}
+                      <div className="space-y-1">
+                        <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex flex-col justify-center focus-within:ring-2 focus-within:ring-blue-600/30 transition-all">
+                          <label className="text-[11px] text-gray-500 block">
+                            ელფოსტა
+                          </label>
+                          <input
+                            type="email"
+                            value={regEmail}
+                            onChange={(e) => {
+                              setRegEmail(e.target.value);
+                              if (errors.regEmail) setErrors((prev) => ({ ...prev, regEmail: "" }));
+                            }}
+                            placeholder="example@gmail.com"
+                            className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
+                          />
+                        </div>
+                        {errors.regEmail && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{errors.regEmail}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Password Field */}
+                      <div className="space-y-1">
+                        <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex items-center justify-between focus-within:ring-2 focus-within:ring-blue-600/30 transition-all">
+                          <div className="flex-1">
+                            <label className="text-[11px] text-gray-500 block">
+                              პაროლი
+                            </label>
+                            <input
+                              type={showRegPassword ? "text" : "password"}
+                              value={regPassword}
+                              onChange={(e) => {
+                                setRegPassword(e.target.value);
+                                if (errors.regPassword) setErrors((prev) => ({ ...prev, regPassword: "" }));
+                              }}
+                              placeholder="მინიმუმ 6 სიმბოლო"
+                              className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowRegPassword(!showRegPassword)}
+                            className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                          >
+                            {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {errors.regPassword && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{errors.regPassword}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Confirm Password Field */}
+                      <div className="space-y-1">
+                        <div className="bg-[#F1F3F6] rounded-2xl px-4 py-2.5 flex items-center justify-between focus-within:ring-2 focus-within:ring-blue-600/30 transition-all">
+                          <div className="flex-1">
+                            <label className="text-[11px] text-gray-500 block">
+                              პაროლის განმეორება
+                            </label>
+                            <input
+                              type={showRegConfirmPassword ? "text" : "password"}
+                              value={regConfirmPassword}
+                              onChange={(e) => {
+                                setRegConfirmPassword(e.target.value);
+                                if (errors.regConfirmPassword) setErrors((prev) => ({ ...prev, regConfirmPassword: "" }));
+                              }}
+                              placeholder="განმეორებით შეიყვანეთ პაროლი"
+                              className="bg-transparent text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none w-full mt-0.5"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                            className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                          >
+                            {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {errors.regConfirmPassword && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{errors.regConfirmPassword}</span>
                           </div>
                         )}
                       </div>
 
                       {/* Terms Checkbox */}
-                      <div className="space-y-1">
+                      <div className="space-y-1 pt-1">
                         <div
                           onClick={() => {
                             setAgreeTerms(!agreeTerms);
                             if (errors.terms) setErrors((prev) => ({ ...prev, terms: "" }));
                           }}
-                          className="flex items-start gap-2.5 pt-1 cursor-pointer select-none"
+                          className="flex items-start gap-2.5 cursor-pointer select-none group"
                         >
-                          <div
-                            className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all mt-0.5 ${
+                          <motion.div
+                            whileHover={{ scale: 1.06 }}
+                            whileTap={{ scale: 0.94 }}
+                            className={`w-5 h-5 rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-200 mt-0.5 shadow-2xs ${
                               agreeTerms
-                                ? "bg-blue-600 text-white"
+                                ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border border-blue-600"
                                 : errors.terms
-                                ? "bg-white border-2 border-red-500"
-                                : "bg-white border-2 border-gray-300"
+                                ? "bg-red-50 border-2 border-red-500"
+                                : "bg-[#F1F3F6] border border-gray-300/80 group-hover:border-blue-400 group-hover:bg-blue-50/50"
                             }`}
                           >
-                            {agreeTerms && <Check className="w-3.5 h-3.5" />}
-                          </div>
+                            <AnimatePresence>
+                              {agreeTerms && (
+                                <motion.div
+                                  initial={{ scale: 0, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0, opacity: 0 }}
+                                  transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
                           <span className="text-xs text-blue-600 leading-snug">
                             წავიკითხე და ვეთანხმები <span className="underline">წესებს, პირობებს და პერსონალურ მონაცემთა დაცვის პოლიტიკას</span>
                           </span>
@@ -565,31 +545,45 @@ export default function AuthModal() {
                         )}
                       </div>
 
+                      {/* Submit Button */}
                       <button
                         type="submit"
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs mt-2"
+                        disabled={isLoading}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-2xl text-sm md:text-base cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-2 mt-2"
                       >
-                        რეგისტრაცია
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>მიმდინარეობს...</span>
+                          </>
+                        ) : (
+                          <span>რეგისტრაცია</span>
+                        )}
                       </button>
                     </motion.form>
                   )}
                 </AnimatePresence>
               </div>
-
             </div>
 
-            {/* Separator & Social Auth Section */}
-            <div className="space-y-3 pt-2 border-t border-gray-100">
+            {/* Social Auth Section */}
+            <div className="space-y-3 pt-4 border-t border-gray-100">
               <p className="text-center text-xs text-gray-900">
                 ან გაიარე ავტორიზაცია სხვა მეთოდით
               </p>
 
               <button
+                type="button"
                 onClick={() => {
                   setUser({
                     name: "Google მომხმარებელი",
                     email: "user@gmail.com",
-                    phone: "+995 599 00 00 00",
+                    phone: "",
+                  });
+                  addToast({
+                    title: "მოგესალმებით!",
+                    message: "ავტორიზაცია გაიარეთ Google-ით",
+                    type: "success",
                   });
                   toggleAuthModal(false);
                 }}
@@ -617,7 +611,6 @@ export default function AuthModal() {
                 </div>
               </button>
             </div>
-
           </motion.div>
         </div>
       )}

@@ -2,7 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search, Edit3, Copy, Eye, Trash2, CheckSquare, Square, Package, Download, UploadCloud } from "lucide-react";
+import { 
+  Plus, 
+  Search, 
+  Edit3, 
+  Copy, 
+  Eye, 
+  Trash2, 
+  CheckSquare, 
+  Square, 
+  Package, 
+  Download, 
+  UploadCloud 
+} from "lucide-react";
 import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
 import { exportProductsToCSV } from "@/utils/exportImport";
@@ -51,148 +63,255 @@ export default function AdminProductsPage() {
   };
 
   const stockBadge = (p: Product) => {
-    if (p.stock === 0) return <span className="adm-badge adm-badge-red">ამოწურულია</span>;
-    if (p.stock <= 5) return <span className="adm-badge adm-badge-amber">{p.stock} ცალი ⚠</span>;
-    return <span className="adm-badge adm-badge-green">{p.stock} ცალი</span>;
+    if (p.stock === 0) return <span className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs">ამოწურულია</span>;
+    if (p.stock <= 5) return <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs">{p.stock} ცალი ⚠</span>;
+    return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs">{p.stock} ცალი</span>;
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div className="space-y-6">
 
-      {/* Header */}
-      <div className="adm-card" style={{ padding: "1.5rem 1.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}>
-            <Package size={13} /> კატალოგის მართვა
+      {/* Header Card */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+            <Package className="w-3.5 h-3.5" />
+            <span>კატალოგის მართვა</span>
           </div>
-          <h1 className="adm-page-title">პროდუქტები ({filtered.length})</h1>
-          <p className="adm-page-desc">პროდუქტების სია, ფასები, მარაგები, SKU და სწრაფი მოქმედებები.</p>
+          <h1 className="text-2xl md:text-3xl text-slate-900 tracking-tight">
+            პროდუქტები ({filtered.length})
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500">
+            პროდუქტების სრული ისტორია, ფასები, მარაგები, SKU და სწრაფი მოქმედებები.
+          </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             type="button"
             onClick={() => exportProductsToCSV(products)}
-            className="adm-btn-secondary"
+            className="h-11 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
           >
-            <Download size={14} />
+            <Download className="w-4 h-4" />
             <span>ექსპორტი (CSV)</span>
           </button>
+
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}
-            className="adm-btn-secondary"
+            className="h-11 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
           >
-            <UploadCloud size={14} />
+            <UploadCloud className="w-4 h-4" />
             <span>იმპორტი (CSV)</span>
           </button>
-          <Link href="/admin/products/new" className="adm-btn-primary">
-            <Plus size={15} />
+
+          <Link
+            href="/admin/products/new"
+            className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
             <span>ახალი პროდუქტი</span>
           </Link>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="adm-card" style={{ padding: "1.25rem 1.5rem" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
-          {/* Search */}
-          <div style={{ position: "relative", flex: "1 1 220px", minWidth: "180px" }}>
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ძიება: სახელი, SKU, ბრენდი..." className="adm-search-input" />
-            <Search size={14} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} />
+      {/* Filter Bar */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ძიება: სახელი, SKU, ბრენდი..."
+              className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
+            />
           </div>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="adm-select">
-            <option value="ALL">ყველა კატეგორია</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select value={selectedBrand} onChange={e => setSelectedBrand(e.target.value)} className="adm-select">
-            <option value="ALL">ყველა ბრენდი</option>
-            {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <select value={stockFilter} onChange={e => setStockFilter(e.target.value)} className="adm-select">
-            <option value="ALL">მარაგი</option>
-            <option value="IN_STOCK">მარაგშია</option>
-            <option value="LOW_STOCK">მცირე (≤5)</option>
-            <option value="OUT_OF_STOCK">ამოწურული</option>
-          </select>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-11 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-blue-600"
+            >
+              <option value="ALL">ყველა კატეგორია</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="h-11 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-blue-600"
+            >
+              <option value="ALL">ყველა ბრენდი</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              className="h-11 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-blue-600"
+            >
+              <option value="ALL">ყველა მარაგი</option>
+              <option value="IN_STOCK">მარაგშია</option>
+              <option value="LOW_STOCK">მცირე (≤5)</option>
+              <option value="OUT_OF_STOCK">ამოწურული</option>
+            </select>
+          </div>
+
         </div>
 
         {selectedIds.length > 0 && (
-          <div style={{ marginTop: "0.875rem", padding: "0.75rem 1rem", background: "#eff6ff", borderRadius: "0.75rem", border: "1px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: "0.75rem", color: "#1e3a8a" }}>არჩეულია {selectedIds.length} პროდუქტი</span>
-            <button onClick={handleBulkDelete} className="adm-btn-danger" style={{ padding: "0.35rem 0.875rem" }}>
-              <Trash2 size={13} /> წაშლა
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between text-xs text-blue-900">
+            <span>არჩეულია {selectedIds.length} პროდუქტი</span>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>წაშლა</span>
             </button>
           </div>
         )}
       </div>
 
       {/* Table */}
-      <div className="adm-card" style={{ overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table className="adm-table">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs md:text-sm">
             <thead>
-              <tr>
-                <th style={{ width: "2.5rem" }}>
-                  <button onClick={toggleAll} className="adm-icon-btn">
-                    {selectedIds.length === filtered.length && filtered.length > 0
-                      ? <CheckSquare size={15} style={{ color: "#6366f1" }} />
-                      : <Square size={15} />}
+              <tr className="bg-slate-50 border-b border-slate-200/60 text-slate-500 uppercase tracking-wider text-[11px]">
+                <th className="py-4 px-4 w-10 text-center">
+                  <button type="button" onClick={toggleAll} className="p-1 text-slate-500 cursor-pointer">
+                    {selectedIds.length === filtered.length && filtered.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-400" />
+                    )}
                   </button>
                 </th>
-                <th>პროდუქტი</th>
-                <th>SKU</th>
-                <th>კატეგორია</th>
-                <th>ბრენდი</th>
-                <th>ფასი</th>
-                <th>მარაგი</th>
-                <th style={{ textAlign: "right" }}>მოქმედება</th>
+                <th className="py-4 px-6">პროდუქტი</th>
+                <th className="py-4 px-6">SKU</th>
+                <th className="py-4 px-6">კატეგორია</th>
+                <th className="py-4 px-6">ბრენდი</th>
+                <th className="py-4 px-6">ფასი</th>
+                <th className="py-4 px-6">მარაგი</th>
+                <th className="py-4 px-6 text-right">მოქმედება</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.length > 0 ? filtered.map((p) => {
-                const sel = selectedIds.includes(p.id);
-                return (
-                  <tr key={p.id} style={{ background: sel ? "#f5f3ff" : undefined }}>
-                    <td>
-                      <button onClick={() => toggleOne(p.id)} className="adm-icon-btn">
-                        {sel ? <CheckSquare size={15} style={{ color: "#6366f1" }} /> : <Square size={15} />}
-                      </button>
-                    </td>
-                    <td style={{ minWidth: "220px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <img
-                          src={p.images[0] || "https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg"}
-                          alt={p.title}
-                          style={{ width: "2.5rem", height: "2.5rem", borderRadius: "0.625rem", objectFit: "contain", background: "#f8fafc", border: "1px solid #f1f5f9", flexShrink: 0 }}
-                        />
-                        <div>
-                          <p style={{ fontSize: "0.78rem", color: "#0f172a", lineHeight: 1.3 }}>{p.title}</p>
-                          {p.isFeatured && <span style={{ fontSize: "0.65rem", color: "#6366f1" }}>★ Featured</span>}
+            <tbody className="divide-y divide-slate-100">
+              {filtered.length > 0 ? (
+                filtered.map((p) => {
+                  const isSelected = selectedIds.includes(p.id);
+
+                  return (
+                    <tr
+                      key={p.id}
+                      className={`transition-colors ${isSelected ? "bg-blue-50/50" : "hover:bg-slate-50/70"}`}
+                    >
+                      <td className="py-4 px-4 text-center">
+                        <button type="button" onClick={() => toggleOne(p.id)} className="p-1 cursor-pointer">
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-blue-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      </td>
+
+                      <td className="py-4 px-6 min-w-[220px]">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={p.images[0] || "https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg"}
+                            alt={p.title}
+                            className="w-10 h-10 object-contain rounded-2xl bg-white p-1 border border-slate-200 shrink-0"
+                          />
+                          <div>
+                            <p className="text-slate-900 text-xs">{p.title}</p>
+                            {p.isFeatured && (
+                              <span className="text-[10px] text-blue-600">★ Featured</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ fontFamily: "monospace", color: "#94a3b8", fontSize: "0.7rem" }}>{p.sku || p.code || "—"}</td>
-                    <td style={{ color: "#475569" }}>{p.categoryName || "ზოგადი"}</td>
-                    <td style={{ color: "#475569" }}>{p.brandName || "—"}</td>
-                    <td>
-                      <div>
-                        <span style={{ color: "#0f172a", fontSize: "0.8rem" }}>{p.discountPrice ?? p.price} ₾</span>
-                        {p.discountPrice && <span style={{ fontSize: "0.65rem", color: "#94a3b8", textDecoration: "line-through", display: "block" }}>{p.price} ₾</span>}
-                      </div>
-                    </td>
-                    <td>{stockBadge(p)}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "2px" }}>
-                        <Link href={`/product/${p.id}`} target="_blank" className="adm-icon-btn adm-icon-btn-blue" title="Storefront Preview"><Eye size={14} /></Link>
-                        <Link href={`/admin/products/${p.id}/edit`} className="adm-icon-btn adm-icon-btn-blue" title="რედაქტირება"><Edit3 size={14} /></Link>
-                        <button onClick={() => handleDuplicate(p)} className="adm-icon-btn adm-icon-btn-blue" title="დუბლირება"><Copy size={14} /></button>
-                        <button onClick={() => handleDelete(p.id)} className="adm-icon-btn adm-icon-btn-red" title="წაშლა"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }) : (
-                <tr><td colSpan={8} style={{ textAlign: "center", padding: "3rem", color: "#94a3b8", fontSize: "0.8rem" }}>პროდუქტები ვერ მოიძებნა</td></tr>
+                      </td>
+
+                      <td className="py-4 px-6 font-mono text-slate-400 text-xs">
+                        {p.sku || p.code || "—"}
+                      </td>
+
+                      <td className="py-4 px-6 text-slate-600">
+                        {p.categoryName || "ზოგადი"}
+                      </td>
+
+                      <td className="py-4 px-6 text-slate-600">
+                        {p.brandName || "—"}
+                      </td>
+
+                      <td className="py-4 px-6 font-mono">
+                        <span className="text-slate-900">{p.discountPrice ?? p.price} ₾</span>
+                        {p.discountPrice && (
+                          <span className="text-[10px] text-slate-400 line-through block">{p.price} ₾</span>
+                        )}
+                      </td>
+
+                      <td className="py-4 px-6">
+                        {stockBadge(p)}
+                      </td>
+
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/product/${p.id}`}
+                            target="_blank"
+                            className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                            title="Storefront Preview"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+
+                          <Link
+                            href={`/admin/products/${p.id}/edit`}
+                            className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                            title="რედაქტირება"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicate(p)}
+                            className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                            title="დუბლირება"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(p.id)}
+                            className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors cursor-pointer"
+                            title="წაშლა"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
+                    პროდუქტები ვერ მოიძებნა
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
