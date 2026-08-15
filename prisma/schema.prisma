@@ -179,12 +179,102 @@ model Banner {
 }
 
 model SupportTicket {
+  id              String   @id @default(cuid())
+  customerId      String?  @default("")
+  userName        String
+  userPhone       String
+  userEmail       String?
+  status          String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED
+  isUserTyping    Boolean  @default(false)
+  isAdminTyping   Boolean  @default(false)
+  typingAdminName String?  @default("")
+  assignedToName  String?  @default("")
+  messages        Json     // Array of message objects
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerId])
+}
+
+model WishlistItem {
   id        String   @id @default(cuid())
-  userName  String
-  userPhone String
-  userEmail String?
-  status    String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED
-  messages  Json     // Array of message objects
+  userId    String?
+  sessionId String?
+  productId String
+  createdAt DateTime @default(now())
+}
+
+model CompareItem {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String?
+  productId String
+  createdAt DateTime @default(now())
+}
+
+model RecentlyViewed {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String?
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CMSPage {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   @db.Text
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NavigationItem {
+  id        String   @id @default(cuid())
+  label     String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InstallmentOption {
+  id          String   @id @default(cuid())
+  bankName    String
+  bankCode    String   @unique
+  months      Int
+  ratePercent Float    @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DeliveryZone {
+  id            String   @id @default(cuid())
+  title         String
+  price         Float
+  estimatedDays String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SeoSetting {
+  id              String   @id @default(cuid())
+  pageSlug        String   @unique
+  metaTitle       String
+  metaDescription String?  @db.Text
+  metaKeywords    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

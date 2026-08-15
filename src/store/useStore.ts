@@ -147,13 +147,13 @@ export const useStore = create<StoreState>()(
       logoutAdmin: () => set({ adminUser: null, adminToken: null }),
 
       // Cart
-      addToCart: (item, openCart = false) =>
+      addToCart: (item, openCart = false) => {
         set((state) => {
           const existing = state.cart.find((i) => i.id === item.id);
           const newCart = existing
             ? state.cart.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
             : [...state.cart, { ...item, quantity: 1 }];
-          
+
           get().addToast({
             title: "დაემატა კალათაში",
             message: item.title,
@@ -164,9 +164,27 @@ export const useStore = create<StoreState>()(
             cart: newCart,
             isCartOpen: openCart ? true : state.isCartOpen,
           };
-        }),
-      removeFromCart: (id) =>
-        set((state) => ({ cart: state.cart.filter((i) => i.id !== id) })),
+        });
+
+        // Async sync with SQL backend API
+        fetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: get().user?.id,
+            productId: item.id,
+            quantity: 1,
+          }),
+        }).catch(() => {});
+      },
+
+      removeFromCart: (id) => {
+        set((state) => ({ cart: state.cart.filter((i) => i.id !== id) }));
+        fetch(`/api/cart?productId=${encodeURIComponent(id)}&userId=${encodeURIComponent(get().user?.id || "")}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      },
+
       updateQuantity: (id, quantity) =>
         set((state) => ({
           cart: state.cart.map((i) => (i.id === id ? { ...i, quantity } : i)),
@@ -175,7 +193,7 @@ export const useStore = create<StoreState>()(
       clearCart: () => set({ cart: [] }),
 
       // Wishlist
-      toggleWishlist: (item) =>
+      toggleWishlist: (item) => {
         set((state) => {
           const exists = state.wishlist.some((i) => i.id === item.id);
           if (exists) {
@@ -192,7 +210,19 @@ export const useStore = create<StoreState>()(
             type: "success",
           });
           return { wishlist: [...state.wishlist, item] };
-        }),
+        });
+
+        // Async sync with SQL backend API
+        fetch("/api/wishlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: get().user?.id,
+            productId: item.id,
+          }),
+        }).catch(() => {});
+      },
+
       isInWishlist: (id) => get().wishlist.some((i) => i.id === id),
       clearWishlist: () => set({ wishlist: [] }),
 
@@ -235,13 +265,26 @@ export const useStore = create<StoreState>()(
             title: "დაემატა შედარების სიაში",
             type: "success",
           });
+
+          // Async sync with SQL backend API
+          fetch("/api/compare", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: get().user?.id,
+              productId: id,
+            }),
+          }).catch(() => {});
+
           return { compareList: [...state.compareList, id] };
         }),
+
       removeFromCompare: (id) =>
         set((state) => ({
           compareList: state.compareList.filter((i) => i !== id),
         })),
-      toggleCompare: (id) =>
+
+      toggleCompare: (id) => {
         set((state) => {
           const exists = state.compareList.includes(id);
           if (exists) {
@@ -264,7 +307,19 @@ export const useStore = create<StoreState>()(
             type: "success",
           });
           return { compareList: [...state.compareList, id] };
-        }),
+        });
+
+        // Async sync with SQL backend API
+        fetch("/api/compare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: get().user?.id,
+            productId: id,
+          }),
+        }).catch(() => {});
+      },
+
       clearCompare: () => set({ compareList: [] }),
       toggleHighlightDifferences: () =>
         set((state) => ({ highlightDifferencesOnly: !state.highlightDifferencesOnly })),
@@ -282,11 +337,23 @@ export const useStore = create<StoreState>()(
       removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 
       // Recently Viewed & Search
-      addRecentlyViewed: (item) =>
+      addRecentlyViewed: (item) => {
         set((state) => {
           const filtered = state.recentlyViewed.filter((i) => i.id !== item.id);
           return { recentlyViewed: [item, ...filtered].slice(0, 10) };
-        }),
+        });
+
+        // Async sync with SQL backend API
+        fetch("/api/recently-viewed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: get().user?.id,
+            productId: item.id,
+          }),
+        }).catch(() => {});
+      },
+
       addRecentSearch: (query) =>
         set((state) => {
           const clean = query.trim();

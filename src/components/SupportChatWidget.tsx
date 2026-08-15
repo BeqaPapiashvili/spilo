@@ -24,7 +24,10 @@ interface Message {
   sender: "user" | "bot" | "admin";
   text: string;
   time: string;
+  adminName?: string;
+  adminAvatar?: string;
   liked?: boolean | null;
+  read?: boolean;
 }
 
 export default function SupportChatWidget() {
@@ -35,24 +38,50 @@ export default function SupportChatWidget() {
   const [guestPhone, setGuestPhone] = useState(user?.phone || "");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [inputMsg, setInputMsg] = useState("");
+  const [isAdminTyping, setIsAdminTyping] = useState(false);
+  const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [customerId, setCustomerId] = useState<string>("");
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       sender: "bot",
-      text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! მე მერი ვარ, Spilo-ს AI ექსპერტი. მზად ვარ დაგეხმაროთ პროდუქტის შერჩევაში, 0%-იან განვადებასა და შეკვეთის გადამოწმებაში 🪄",
+      text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
       time: "ახლახანს",
     },
   ]);
 
-  // Populate fields from user if logged in, but keep auth step active unless explicitly started
+  // Customer ID Initialization: Ensure every browser session has a unique private customerId
   useEffect(() => {
-    if (user?.name && !guestName) {
-      setGuestName(user.name);
-    }
-    if (user?.phone && !guestPhone) {
-      setGuestPhone(user.phone);
+    try {
+      let cid = localStorage.getItem("spilo_chat_customer_id");
+      if (!cid) {
+        cid = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `cust_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        localStorage.setItem("spilo_chat_customer_id", cid);
+      }
+      setCustomerId(cid);
+    } catch (e) {}
+  }, []);
+
+  // Session Persistence: Restore session from localStorage on F5 refresh
+  useEffect(() => {
+    try {
+      const savedSession = localStorage.getItem("spilo_chat_session");
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        if (parsed.name) setGuestName(parsed.name);
+        if (parsed.phone) setGuestPhone(parsed.phone);
+        if (parsed.ticketId) setTicketId(parsed.ticketId);
+        if (parsed.name && parsed.phone) {
+          setChatStep("chat");
+        }
+      } else if (user?.name || user?.phone) {
+        if (user.name) setGuestName(user.name);
+        if (user.phone) setGuestPhone(user.phone);
+      }
+    } catch (e) {
+      console.warn("Failed to load chat session", e);
     }
   }, [user]);
 
@@ -72,39 +101,107 @@ export default function SupportChatWidget() {
     if (isOpen && chatStep === "chat") {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen, chatStep]);
+  }, [messages, isOpen, chatStep, isAdminTyping]);
 
-  // Subscribe to real-time updates from dataService
+  // Real-time synchronization & short polling for support operator messages
   useEffect(() => {
-    if (!ticketId) return;
-
     const loadMessages = () => {
       const tickets = dataService.getSupportTickets();
-      const current = tickets.find((t) => t.id === ticketId);
-      if (current && current.messages.length > 0) {
-        setMessages([
-          {
-            id: "1",
-            sender: "bot",
-            text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! მე მერი ვარ, Spilo-ს AI ექსპერტი. მზად ვარ დაგეხმაროთ პროდუქტის შერჩევაში, 0%-იან განვადებასა და შეკვეთის გადამოწმებაში 🪄",
-            time: "ახლახანს",
-          },
-          ...current.messages.map((m, idx) => ({
-            id: `msg-${idx}-${Date.now()}`,
-            sender: m.sender,
-            text: m.text,
-            time: m.time,
-          })),
-        ]);
+      const formattedPhone = guestPhone ? (guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`) : "";
+
+      // 1. Strictly find active ticket matching customer ticketId or private customerId
+      const current = ticketId
+        ? tickets.find((t) => t.id === ticketId)
+        : customerId
+        ? tickets.find((t) => t.customerId === customerId && t.status === "OPEN")
+        : formattedPhone && formattedPhone !== "+995 " && formattedPhone !== "+995 5XX XX XX XX"
+        ? tickets.find((t) => t.customerPhone === formattedPhone && t.status === "OPEN")
+        : null;
+
+      if (current) {
+        setIsAdminTyping(Boolean(current.isAdminTyping));
+
+        if (isOpen && current.id) {
+          dataService.markMessagesAsRead(current.id, "user");
+        }
+
+        // If the ticket was CLOSED or RESOLVED by admin operator:
+        if (current.status === "CLOSED" || current.status === "RESOLVED") {
+          setTicketId(null);
+          try {
+            localStorage.removeItem("spilo_chat_session");
+          } catch (e) {}
+          setChatStep("auth");
+          setMessages([
+            {
+              id: "1",
+              sender: "bot",
+              text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
+              time: "ახლახანს",
+            },
+          ]);
+          return;
+        }
+
+        if (!ticketId) {
+          setTicketId(current.id);
+          saveSessionToStorage(guestName, guestPhone, current.id);
+        }
+        if (current.messages.length > 0) {
+          setMessages([
+            {
+              id: "1",
+              sender: "bot",
+              text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
+              time: "ახლახანს",
+            },
+            ...current.messages.map((m, idx) => ({
+              id: `msg-${idx}-${Date.now()}`,
+              sender: m.sender,
+              text: m.text,
+              time: m.time,
+              adminName: m.adminName,
+              adminAvatar: m.adminAvatar,
+              read: m.read,
+            })),
+          ]);
+        }
       }
     };
 
     loadMessages();
+
+    // Lightweight polling only when chat widget is open or active ticket exists
+    let pollInterval: NodeJS.Timeout | null = null;
+    if (isOpen || ticketId) {
+      pollInterval = setInterval(() => {
+        dataService.syncSupportOnly();
+      }, 3000);
+    }
+
     const unsub = dataService.subscribe(() => {
       loadMessages();
     });
-    return () => unsub();
-  }, [ticketId]);
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+      unsub();
+    };
+  }, [ticketId, guestPhone, guestName, customerId, isOpen]);
+
+  const saveSessionToStorage = (name: string, phone: string, activeId: string | null) => {
+    try {
+      localStorage.setItem(
+        "spilo_chat_session",
+        JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          ticketId: activeId,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (e) {}
+  };
 
   const handleStartAuth = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,15 +213,38 @@ export default function SupportChatWidget() {
       alert("გთხოვთ შეიყვანოთ თქვენი მობილურის ნომერი");
       return;
     }
+    saveSessionToStorage(guestName, guestPhone, ticketId);
     setChatStep("consent");
   };
 
   const handleAcceptConsent = () => {
+    const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
+    const id = dataService.addUserSupportMessage(
+      guestName.trim() || "მომხმარებელი",
+      formattedPhone,
+      "მოგესალმებით, მზად ვარ კონსულტაციისთვის",
+      "ონლაინ კონსულტაცია",
+      `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`,
+      customerId
+    );
+    setTicketId(id);
+    saveSessionToStorage(guestName, guestPhone, id);
     setChatStep("chat");
   };
 
   const handleRejectConsent = () => {
     setIsOpen(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMsg(e.target.value);
+    if (ticketId) {
+      dataService.setTypingStatus(ticketId, "user", true);
+      if (userTypingTimeoutRef.current) clearTimeout(userTypingTimeoutRef.current);
+      userTypingTimeoutRef.current = setTimeout(() => {
+        dataService.setTypingStatus(ticketId, "user", false);
+      }, 2500);
+    }
   };
 
   const handleSend = (textToSend?: string) => {
@@ -142,40 +262,19 @@ export default function SupportChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg("");
 
-    // Send to dataService for Live Admin sync with Customer Name and Customer Phone!
+    // Send to dataService for Live Admin sync with Customer Name, Customer Phone and private customerId!
     const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
     const id = dataService.addUserSupportMessage(
       guestName.trim() || "მომხმარებელი",
       formattedPhone,
       text,
       "ონლაინ კონსულტაცია",
-      `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`
+      `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`,
+      customerId
     );
+
     setTicketId(id);
-
-    // AI automated instant response
-    setTimeout(() => {
-      let replyText = "გმადლობთ შეტყობინებისთვის! ჩვენი ოპერატორი მალე გიპასუხებთ.";
-      
-      const lower = text.toLowerCase();
-      if (lower.includes("განვადება") || lower.includes("0%")) {
-        replyText = "Spilo-ში მოქმედებს 0%-იანი ონლაინ განვადება საქართველოს ბანკში, TBC-სა და კრედოში. განვადებას ირჩევთ შეკვეთის გაფორმებისას!";
-      } else if (lower.includes("მიწოდება") || lower.includes("მიტანა") || lower.includes("სად")) {
-        replyText = "მიწოდება უფასოა მთელ საქართველოში! თბილისში მიწოდება ხდება იმავე დღეს, ხოლო რეგიონებში 1-2 სამუშაო დღეში.";
-      } else if (lower.includes("გარანტია") || lower.includes("ორიგინალი")) {
-        replyText = "ყველა პროდუქტი 100% ორიგინალია და მოჰყვება ოფიციალური მწარმოებლის გარანტია!";
-      } else if (lower.includes("შეკვეთა") || lower.includes("სტატუს")) {
-        replyText = "შეკვეთის სტატუსის შესამოწმებლად შეგიძლიათ მიუთითოთ შეკვეთის ID ან მობილურის ნომერი.";
-      }
-
-      const botReply: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: "bot",
-        text: replyText,
-        time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, botReply]);
-    }, 600);
+    saveSessionToStorage(guestName, guestPhone, id);
   };
 
   const handleFeedback = (msgId: string, liked: boolean) => {
@@ -343,27 +442,35 @@ export default function SupportChatWidget() {
                   <div className="flex-1 flex flex-col h-full overflow-hidden">
                     
                     {/* Agent Header Card inside */}
-                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 overflow-hidden flex items-center justify-center">
-                            <img
-                              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop&crop=face"
-                              alt="მერი"
-                              className="w-full h-full object-cover rounded-full"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face";
-                              }}
-                            />
+                    {(() => {
+                      const lastAdminMsg = [...messages].reverse().find((m) => m.sender === "admin");
+                      const operatorName = lastAdminMsg?.adminName || "Spilo Support";
+                      const operatorAvatar = lastAdminMsg?.adminAvatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face";
+
+                      return (
+                        <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 overflow-hidden flex items-center justify-center">
+                                <img
+                                  src={operatorAvatar}
+                                  alt={operatorName}
+                                  className="w-full h-full object-cover rounded-full"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face";
+                                  }}
+                                />
+                              </div>
+                              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs text-slate-900">{operatorName}</h4>
+                              <p className="text-[10px] text-blue-600">ონლაინ კონსულტანტი</p>
+                            </div>
                           </div>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
                         </div>
-                        <div>
-                          <h4 className="text-xs text-slate-900">მერი</h4>
-                          <p className="text-[10px] text-blue-600">Spilo AI ექსპერტი</p>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Chat Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
@@ -375,10 +482,10 @@ export default function SupportChatWidget() {
                             className={`flex items-start gap-2 ${isUser ? "justify-end" : "justify-start"}`}
                           >
                             {!isUser && (
-                              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 mt-1 border border-slate-200">
+                              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 mt-1 border border-slate-200" title={msg.adminName || "ოპერატორი"}>
                                 <img
-                                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=face"
-                                  alt="მერი"
+                                  src={msg.adminAvatar || (msg.sender === "admin" ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=face" : "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=face")}
+                                  alt={msg.adminName || "ოპერატორი"}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
@@ -393,6 +500,18 @@ export default function SupportChatWidget() {
                                 }`}
                               >
                                 <p>{msg.text}</p>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 mt-1 px-1">
+                                {!isUser && msg.adminName && (
+                                  <span className="text-[10px] text-blue-600">{msg.adminName} •</span>
+                                )}
+                                <span className="text-[10px] text-slate-400">{msg.time}</span>
+                                {isUser && (
+                                  <span className={`text-[10px] ${msg.read ? "text-blue-600" : "text-slate-400"}`}>
+                                    {msg.read ? "✓✓ წაკითხულია" : "✓ გაგზავნილია"}
+                                  </span>
+                                )}
                               </div>
 
                               {/* Feedback actions under bot messages */}
@@ -423,23 +542,20 @@ export default function SupportChatWidget() {
                         );
                       })}
 
-                      {/* Quick Action Chips in Spilo Blue Theme */}
-                      <div className="flex items-center gap-2 pt-2 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => handleSend("კონსულტაცია")}
-                          className="px-3.5 py-1.5 rounded-full border border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100/60 text-xs cursor-pointer transition-colors"
-                        >
-                          კონსულტაცია
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSend("შეკვეთის გადამოწმება")}
-                          className="px-3.5 py-1.5 rounded-full border border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100/60 text-xs cursor-pointer transition-colors"
-                        >
-                          შეკვეთის გადამოწმება
-                        </button>
-                      </div>
+                      {isAdminTyping && (
+                        <div className="flex items-start gap-2 justify-start">
+                          <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 mt-1 border border-slate-200">
+                            <img
+                              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=face"
+                              alt="ოპერატორი"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="bg-[#F2F4F8] text-slate-600 rounded-2xl rounded-tl-none px-4 py-2.5 text-xs flex items-center gap-2 border border-slate-100 italic">
+                            <span>ოპერატორი ბეჭდავს...</span>
+                          </div>
+                        </div>
+                      )}
 
                       <div ref={messagesEndRef} />
                     </div>
@@ -464,7 +580,7 @@ export default function SupportChatWidget() {
                       <input
                         type="text"
                         value={inputMsg}
-                        onChange={(e) => setInputMsg(e.target.value)}
+                        onChange={handleInputChange}
                         placeholder="Ask me anything..."
                         className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all placeholder:text-slate-400"
                       />

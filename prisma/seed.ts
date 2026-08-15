@@ -78,67 +78,16 @@ async function main() {
       slug: "apple-iphone-16-pro-max-256gb-desert-titanium",
       sku: "APL-IP16PM-256",
       description: "ფლაგმანური iPhone 16 Pro Max ტიტანის კორპუსით, A18 Pro ჩიპით და კამერის მართვის ინოვაციური ღილაკით.",
-      price: 4899,
-      discountPrice: 4399,
-      discountPercentage: 10,
-      monthlyInstallment: 175,
+      price: 4599,
+      discountPrice: 4299,
+      discountPercentage: 6,
+      monthlyInstallment: 172,
       stock: 8,
-      categoryId: "mobiles",
+      categoryId: "phones",
       brandId: "apple",
-      images: ["https://veli.store/media-cdn/__sized__/product/Apple_iPhone_16_Pro_Desert_Titanium_1-thumbnail-200x200-95.png"],
+      images: ["https://veli.store/media-cdn/__sized__/product/iPhone_16_Pro_Max_Desert_Titanium_PDP_Image_Position_1__en-US_1-thumbnail-200x200-95.jpg"],
       isFeatured: true,
       isFlashDeal: true,
-    },
-    {
-      id: "macbook-pro-16",
-      title: 'ლეპტოპი Apple MacBook Pro 16" M3 Max / 36GB / 1TB Space Black',
-      slug: "apple-macbook-pro-16-m3-max-36gb-1tb-space-black",
-      sku: "APL-MBP16-M3MAX",
-      description: "პროფესიონალური MacBook Pro 16 M3 Max პროცესორით, Liquid Retina XDR ეკრანით და ულტრა-სწრაფი 1TB SSD-ით.",
-      price: 11499,
-      discountPrice: 9999,
-      discountPercentage: 13,
-      monthlyInstallment: 400,
-      stock: 5,
-      categoryId: "laptops",
-      brandId: "apple",
-      images: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80"],
-      isFeatured: true,
-      isFlashDeal: false,
-    },
-    {
-      id: "ps5-slim-digital",
-      title: "თამაშების კონსოლი Sony PlayStation 5 Slim Digital Edition White",
-      slug: "sony-playstation-5-slim-digital-edition-white",
-      sku: "SNY-PS5-SLIM-DIG",
-      description: "ახალი თაობის სათამაშო კონსოლი 4K 120Hz გრაფიკით, 1TB ultra-high speed SSD-ით და DualSense ტრიგერებით.",
-      price: 1799,
-      discountPrice: 1499,
-      discountPercentage: 17,
-      monthlyInstallment: 60,
-      stock: 12,
-      categoryId: "gaming",
-      brandId: "sony",
-      images: ["https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&q=80"],
-      isFeatured: true,
-      isFlashDeal: true,
-    },
-    {
-      id: "marshall-stanmore-3",
-      title: "აკუსტიკური სისტემა Marshall Stanmore III Bluetooth Speaker Black",
-      slug: "marshall-stanmore-iii-bluetooth-speaker-black",
-      sku: "MSH-STAN3-BLK",
-      description: "ლეგენდარული Marshall-ის აკუსტიკური დინამიკი სუფთა ბასებით და ვინტაჟური დიზაინით.",
-      price: 1499,
-      discountPrice: 1299,
-      discountPercentage: 13,
-      monthlyInstallment: 52,
-      stock: 10,
-      categoryId: "audio-systems",
-      brandId: "marshall",
-      images: ["https://images.unsplash.com/photo-1545454675-3531b543be5d?w=400&q=80"],
-      isFeatured: true,
-      isFlashDeal: false,
     },
   ];
 
@@ -175,38 +124,56 @@ async function main() {
       status: "ACTIVE",
     },
   });
-
-  await prisma.adminUser.upsert({
-    where: { email: "nino@spilo.ge" },
-    update: {},
-    create: {
-      name: "Nino Beridze",
-      email: "nino@spilo.ge",
-      role: "STORE_MANAGER",
-      status: "ACTIVE",
-    },
-  });
   console.log("✅ Seeded Admin Users");
 
-  // 5. Seed Users (Unified User System)
-  const usersToSeed = [
-    { name: "Admin User", email: "admin@spilo.ge", password: "admin123", role: "SUPER_ADMIN", phone: "995599000001" },
-    { name: "Beka Papiashvili", email: "beka@spilo.ge", password: "admin123", role: "SUPER_ADMIN", phone: "995599000002" },
-    { name: "ბექა პაპიაშვილი", email: "papicha@gmail.com", password: "admin123", role: "SUPER_ADMIN", phone: "995551008897" },
+  // 5. Seed Installment Options
+  const installmentOptions = [
+    { bankName: "თიბისი ბანკი", bankCode: "TBC_INST_9921", months: 12, ratePercent: 0, isActive: true },
+    { bankName: "საქართველოს ბანკი (BOG)", bankCode: "BOG_INST_4402", months: 12, ratePercent: 0, isActive: true },
+    { bankName: "კრედო ბანკი", bankCode: "CREDO_INST_1109", months: 12, ratePercent: 0, isActive: true },
+    { bankName: "Space Bank", bankCode: "SPACE_TOP_CARD_882", months: 12, ratePercent: 0, isActive: true },
   ];
 
-  for (const u of usersToSeed) {
-    const existing = await prisma.user.findFirst({ where: { email: u.email } });
-    if (existing) {
-      await prisma.user.update({
-        where: { id: existing.id },
-        data: { password: u.password, role: u.role, name: u.name },
-      });
-    } else {
-      await prisma.user.create({ data: u });
-    }
+  for (const inst of installmentOptions) {
+    await prisma.installmentOption.upsert({
+      where: { bankCode: inst.bankCode },
+      update: inst,
+      create: inst,
+    });
   }
-  console.log("✅ Seeded Unified Users");
+  console.log("✅ Seeded Installment Options");
+
+  // 6. Seed Delivery Zones
+  const deliveryZones = [
+    { id: "del-tb", title: "თბილისი - სტანდარტული მიწოდება", price: 5, estimatedDays: "1 სამუშაო დღე", isActive: true },
+    { id: "del-reg", title: "რეგიონები - საკურიერო მიწოდება", price: 10, estimatedDays: "2-3 სამუშაო დღე", isActive: true },
+  ];
+
+  for (const del of deliveryZones) {
+    await prisma.deliveryZone.upsert({
+      where: { id: del.id },
+      update: del,
+      create: del,
+    });
+  }
+  console.log("✅ Seeded Delivery Zones");
+
+  // 7. Seed System Settings
+  const defaultSettings = [
+    { key: "site_name", value: "Spilo.ge" },
+    { key: "support_phone", value: "+995 32 2 00 00 00" },
+    { key: "support_email", value: "info@spilo.ge" },
+    { key: "free_shipping_threshold", value: "100" },
+  ];
+
+  for (const s of defaultSettings) {
+    await prisma.systemSetting.upsert({
+      where: { key: s.key },
+      update: { value: s.value },
+      create: s,
+    });
+  }
+  console.log("✅ Seeded System Settings");
 
   console.log("🎉 MySQL Seed Completed Successfully!");
 }

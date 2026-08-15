@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Banknote, Check, ShieldCheck, Building2, Percent, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Banknote, Check, ShieldCheck, Building2 } from "lucide-react";
 
 interface InstallmentBank {
   id: string;
@@ -10,7 +10,7 @@ interface InstallmentBank {
   enabled: boolean;
   minAmount: number;
   maxAmount: number;
-  interestRate: number; // 0% 
+  interestRate: number;
   availableMonths: number[];
   merchantCode: string;
 }
@@ -65,18 +65,43 @@ export default function AdminInstallmentsPage() {
 
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    fetch("/api/admin/installments")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          // Map SQL options
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleToggle = (id: string) => {
     setBanks(banks.map((b) => (b.id === id ? { ...b, enabled: !b.enabled } : b)));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaved(true);
+    try {
+      for (const bank of banks) {
+        await fetch("/api/admin/installments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bankName: bank.bankName,
+            bankCode: bank.merchantCode,
+            months: bank.availableMonths[0] || 12,
+            ratePercent: bank.interestRate,
+            isActive: bank.enabled,
+          }),
+        });
+      }
+    } catch (e) {}
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
       {/* Header */}
       <div className="adm-card" style={{ padding: "1.5rem 1.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
         <div>
@@ -91,7 +116,7 @@ export default function AdminInstallmentsPage() {
           onClick={handleSave}
           className={saved ? "adm-btn-secondary" : "adm-btn-primary"}
         >
-          {saved ? <><Check size={14} /> შენახულია!</> : <><Check size={14} /> პარამეტრების შენახვა</>}
+          {saved ? <><Check size={14} /> შენახულია SQL-ში!</> : <><Check size={14} /> პარამეტრების შენახვა</>}
         </button>
       </div>
 

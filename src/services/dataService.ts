@@ -57,13 +57,18 @@ export interface NavigationItem {
 
 export interface SupportTicket {
   id: string;
+  customerId?: string; // Unique client session ID for private chat isolation
   customerName: string;
   customerPhone?: string;
   customerEmail: string;
   topic: string;
   status: "OPEN" | "CLOSED" | "RESOLVED";
+  isUserTyping?: boolean;
+  isAdminTyping?: boolean;
+  typingAdminName?: string; // Name of operator currently typing in admin
+  assignedToName?: string;  // Name of operator assigned/handling this chat
   time: string;
-  messages: { sender: "user" | "admin"; text: string; time: string }[];
+  messages: { sender: "user" | "bot" | "admin"; text: string; time: string; adminName?: string; adminAvatar?: string; read?: boolean }[];
 }
 
 export interface AuditLog {
@@ -100,13 +105,12 @@ const STORAGE_KEYS = {
   PROMOTIONS: "spilo_admin_promotions",
   COUPONS: "spilo_admin_coupons",
   BANNERS: "spilo_admin_banners",
-  CMS_PAGES: "spilo_admin_cms_pages",
+  CMS_PAGES: "spilo_admin_cms",
   NAVIGATION: "spilo_admin_navigation",
-  SUPPORT: "spilo_admin_support",
+  SUPPORT: "spilo_admin_support_tickets",
   AUDIT_LOGS: "spilo_admin_audit_logs",
-  ADMIN_USERS: "spilo_admin_users",
   ROLES: "spilo_admin_roles",
-  DELIVERY: "spilo_admin_delivery",
+  ADMIN_USERS: "spilo_admin_users",
 };
 
 class DataService {
@@ -120,284 +124,88 @@ class DataService {
   private navItems: NavigationItem[] = [];
   private supportTickets: SupportTicket[] = [];
   private auditLogs: AuditLog[] = [];
-  private adminUsers: AdminUser[] = [];
   private roles: Role[] = [];
-  private listeners: Set<() => void> = new Set();
-  private channel: BroadcastChannel | null = null;
+  private adminUsers: AdminUser[] = [];
+  private listeners: (() => void)[] = [];
   private isSyncing = false;
+
+  private static instance: DataService;
   private static hasSyncedInitial = false;
 
   constructor() {
-    if (typeof window !== "undefined") {
-      this.initData();
-      try {
-        this.channel = new BroadcastChannel("spilo_live_data_sync");
-        this.channel.onmessage = (event) => {
-          if (event.data?.type === "SYNC") {
-            this.readFromLocalStorage();
-            this.notify(false);
-          }
-        };
-      } catch (e) {
-        // BroadcastChannel fallback
-      }
-
-      window.addEventListener("storage", (e) => {
-        if (e.key && Object.values(STORAGE_KEYS).includes(e.key)) {
-          this.readFromLocalStorage();
-          this.notify(false);
-        }
-      });
-    } else {
-      this.products = [...PRODUCTS_DATA];
-      this.categories = [...CATEGORIES_DATA];
-      this.brands = [...BRANDS_DATA];
+    if (DataService.instance) {
+      return DataService.instance;
     }
-  }
-
-  private readFromLocalStorage() {
-    const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    if (savedProducts) this.products = JSON.parse(savedProducts);
-
-    const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    if (savedCategories) {
-      try {
-        const parsed = JSON.parse(savedCategories);
-        // Verify parsed categories have non-empty children for mobiles, otherwise refresh from CATEGORIES_DATA
-        const mob = parsed.find((c: any) => c.id === "mobiles");
-        if (mob && Array.isArray(mob.children) && mob.children.length >= 6) {
-          this.categories = parsed;
-        } else {
-          this.categories = [...CATEGORIES_DATA];
-          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
-        }
-      } catch {
-        this.categories = [...CATEGORIES_DATA];
-      }
-    } else {
-      this.categories = [...CATEGORIES_DATA];
-    }
-
-    const savedBrands = localStorage.getItem(STORAGE_KEYS.BRANDS);
-    if (savedBrands) this.brands = JSON.parse(savedBrands);
-  }
-
-  private initData() {
-    this.readFromLocalStorage();
-    if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) this.products = [...PRODUCTS_DATA];
-    if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
-      this.categories = [...CATEGORIES_DATA];
-      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.BRANDS)) this.brands = [...BRANDS_DATA];
+    DataService.instance = this;
 
     if (typeof window !== "undefined") {
-      this.syncFromBackend(true);
+      this.loadFromStorage();
+      this.syncFromBackend();
     }
-
-    const savedPromotions = localStorage.getItem(STORAGE_KEYS.PROMOTIONS);
-    this.promotions = savedPromotions
-      ? JSON.parse(savedPromotions)
-      : [
-          {
-            id: "promo-summer-2026",
-            name: "ზაფხულის სუპერ ფასდაკლებები",
-            slug: "summer-sale-2026",
-            description: "20%-მდე ფასდაკლება სმარტფონებსა და აუდიო ტექნიკაზე",
-            discountType: "percentage",
-            discountValue: 20,
-            startDate: "2026-06-01",
-            endDate: "2026-08-31",
-            status: "ACTIVE",
-            bannerImage: "https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg",
-          },
-        ];
-
-    const savedCoupons = localStorage.getItem(STORAGE_KEYS.COUPONS);
-    this.coupons = savedCoupons
-      ? JSON.parse(savedCoupons)
-      : [
-          {
-            id: "cpn-spilo10",
-            code: "SPILO10",
-            discountType: "percentage",
-            discountValue: 10,
-            minOrderAmount: 100,
-            startDate: "2026-01-01",
-            endDate: "2026-12-31",
-            usedCount: 42,
-            status: "ACTIVE",
-          },
-          {
-            id: "cpn-welcome50",
-            code: "WELCOME50",
-            discountType: "fixed",
-            discountValue: 50,
-            minOrderAmount: 500,
-            startDate: "2026-01-01",
-            endDate: "2026-12-31",
-            usedCount: 18,
-            status: "ACTIVE",
-          },
-        ];
-
-    const savedBanners = localStorage.getItem(STORAGE_KEYS.BANNERS);
-    this.banners = savedBanners
-      ? JSON.parse(savedBanners)
-      : [
-          {
-            id: "banner-1",
-            title: "iPhone 16 Pro — 0% განვადება",
-            subtitle: "შეიძინეთ უპროცენტო განვადებით Spilo-ზე",
-            ctaText: "ყიდვა",
-            ctaLink: "/catalog?category=mobiles",
-            imageDesktop: "https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg",
-            position: "HERO",
-            isActive: true,
-            priority: 1,
-          },
-          {
-            id: "banner-2",
-            title: "DJI Neo & Osmo 3",
-            subtitle: "სპეციალური ფასი დრონებსა და სტაბილიზატორებზე",
-            ctaText: "ნახვა",
-            ctaLink: "/catalog?category=photo-video",
-            imageDesktop: "https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg",
-            position: "HERO",
-            isActive: true,
-            priority: 2,
-          },
-        ];
-
-    const savedCMS = localStorage.getItem(STORAGE_KEYS.CMS_PAGES);
-    this.cmsPages = savedCMS
-      ? JSON.parse(savedCMS)
-      : [
-          { id: "about", title: "ჩვენ შესახებ (About Us)", slug: "about", content: "Spilo არის თანამედროვე ონლაინ მაღაზია საქართველოში...", lastUpdated: "2026-08-10" },
-          { id: "terms", title: "წესები და პირობები (Terms)", slug: "terms", content: "მაღაზიით სარგებლობის წესები და პირობები...", lastUpdated: "2026-08-01" },
-          { id: "privacy", title: "კონფიდენციალურობა (Privacy)", slug: "privacy", content: "პერსონალური მონაცემების დაცვის პოლიტიკა...", lastUpdated: "2026-08-01" },
-          { id: "faq", title: "ხშირად დასმული კითხვები (FAQ)", slug: "faq", content: "პასუხები ხშირად დასმულ კითხვებზე...", lastUpdated: "2026-08-12" },
-        ];
-
-    const savedNav = localStorage.getItem(STORAGE_KEYS.NAVIGATION);
-    this.navItems = savedNav
-      ? JSON.parse(savedNav)
-      : [
-          { id: "nav-1", label: "მობილურები", url: "/categories/mobiles", order: 1 },
-          { id: "nav-2", label: "ტაბები", url: "/categories/tablets", order: 2 },
-          { id: "nav-3", label: "სმარტ საათები", url: "/categories/smartwatches", order: 3 },
-          { id: "nav-4", label: "ლეპტოპები", url: "/categories/laptops", order: 4 },
-          { id: "nav-5", label: "აუდიო სისტემა", url: "/categories/audio-systems", order: 5 },
-          { id: "nav-6", label: "Gaming", url: "/categories/gaming", order: 6 },
-        ];
-
-    const savedSupport = localStorage.getItem(STORAGE_KEYS.SUPPORT);
-    this.supportTickets = savedSupport
-      ? JSON.parse(savedSupport)
-      : [
-          {
-            id: "conv-1",
-            customerName: "Beka Papiashvili",
-            customerEmail: "beka@spilo.ge",
-            topic: "iPhone 16 Pro-ს მიწოდების ვადა",
-            status: "OPEN",
-            time: "10:30",
-            messages: [
-              { sender: "user", text: "გამარჯობა, თბილისში რამდენ დღეში მოიტანთ?", time: "10:30" },
-            ],
-          },
-          {
-            id: "conv-2",
-            customerName: "Nino Beridze",
-            customerEmail: "nino@gmail.com",
-            topic: "განვადების დამტკიცების კითხვა",
-            status: "OPEN",
-            time: "09:45",
-            messages: [
-              { sender: "user", text: "TBC განვადებით შეძენას რამდენი წუთი სჭირდება?", time: "09:45" },
-            ],
-          },
-        ];
-
-    const savedAuditLogs = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
-    this.auditLogs = savedAuditLogs
-      ? JSON.parse(savedAuditLogs)
-      : [
-          {
-            id: "log-1",
-            timestamp: "2026-08-14 10:30",
-            userName: "Beka Papiashvili",
-            userEmail: "beka@spilo.ge",
-            action: "UPDATE_PRODUCT",
-            entity: "iPhone 16 Pro Max",
-            details: "ფასი შეიცვალა: 3899₾ -> 3699₾",
-          },
-        ];
-
-    this.roles = [
-      {
-        id: "super_admin",
-        name: "Super Admin",
-        description: "სრული წვდომა სისტემის ყველა მოდულზე",
-        permissions: ["*"],
-      },
-      {
-        id: "store_manager",
-        name: "Store Manager",
-        description: "პროდუქტების, შეკვეთების, აქციებისა და კლიენტების მართვა",
-        permissions: ["products.*", "categories.*", "brands.*", "orders.*"],
-      },
-    ];
-
-    const savedUsers = localStorage.getItem(STORAGE_KEYS.ADMIN_USERS);
-    this.adminUsers = savedUsers
-      ? JSON.parse(savedUsers)
-      : [
-          {
-            id: "usr-1",
-            name: "Beka Papiashvili",
-            email: "beka@spilo.ge",
-            roleId: "super_admin",
-            roleName: "Super Admin",
-            status: "ACTIVE",
-            lastLogin: "2026-08-14 10:45",
-          },
-          {
-            id: "usr-2",
-            name: "Nino Beridze",
-            email: "nino@spilo.ge",
-            roleId: "store_manager",
-            roleName: "Store Manager",
-            status: "ACTIVE",
-            lastLogin: "2026-08-13 18:20",
-          },
-        ];
   }
 
-  public subscribe(listener: () => void) {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  }
+  private loadFromStorage() {
+    try {
+      const storedProds = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+      this.products = storedProds ? JSON.parse(storedProds) : PRODUCTS_DATA;
 
-  public notify(broadcast = true) {
-    this.listeners.forEach((listener) => listener());
-    if (broadcast) {
-      try {
-        this.channel?.postMessage({ type: "SYNC", timestamp: Date.now() });
-      } catch (e) {}
+      const storedCats = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      this.categories = storedCats ? JSON.parse(storedCats) : CATEGORIES_DATA;
+
+      const storedBrands = localStorage.getItem(STORAGE_KEYS.BRANDS);
+      this.brands = storedBrands ? JSON.parse(storedBrands) : BRANDS_DATA;
+
+      const storedPromos = localStorage.getItem(STORAGE_KEYS.PROMOTIONS);
+      this.promotions = storedPromos ? JSON.parse(storedPromos) : [];
+
+      const storedCoupons = localStorage.getItem(STORAGE_KEYS.COUPONS);
+      this.coupons = storedCoupons ? JSON.parse(storedCoupons) : [];
+
+      const storedBanners = localStorage.getItem(STORAGE_KEYS.BANNERS);
+      this.banners = storedBanners ? JSON.parse(storedBanners) : [];
+
+      const storedCMS = localStorage.getItem(STORAGE_KEYS.CMS_PAGES);
+      this.cmsPages = storedCMS ? JSON.parse(storedCMS) : [
+        { id: "1", title: "წესები და პირობები", slug: "terms", content: "spilo-ს სარგებლობის პირობები...", lastUpdated: "2026-01-15" },
+        { id: "2", title: "კონფიდენციალურობა", slug: "privacy", content: "პერსონალურ მონაცემთა დაცვა...", lastUpdated: "2026-01-10" },
+      ];
+
+      const storedNav = localStorage.getItem(STORAGE_KEYS.NAVIGATION);
+      this.navItems = storedNav ? JSON.parse(storedNav) : [
+        { id: "1", label: "მთავარი", url: "/", order: 1 },
+        { id: "2", label: "კატალოგი", url: "/catalog", order: 2 },
+        { id: "3", label: "კატეგორიები", url: "/categories", order: 3 },
+      ];
+
+      const storedSupport = localStorage.getItem(STORAGE_KEYS.SUPPORT);
+      this.supportTickets = storedSupport ? JSON.parse(storedSupport) : [];
+
+      const storedLogs = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
+      this.auditLogs = storedLogs ? JSON.parse(storedLogs) : [];
+
+      this.roles = [
+        { id: "role-1", name: "Super Admin", description: "სრული წვდომა სისტემაზე", permissions: ["all"] },
+        { id: "role-2", name: "Store Manager", description: "პროდუქტებისა და შეკვეთების მართვა", permissions: ["products", "orders"] },
+      ];
+
+      const storedAdmins = localStorage.getItem(STORAGE_KEYS.ADMIN_USERS);
+      this.adminUsers = storedAdmins ? JSON.parse(storedAdmins) : [
+        { id: "adm-1", name: "Beka Papiashvili", email: "beka@spilo.ge", roleId: "role-1", roleName: "Super Admin", status: "ACTIVE" },
+      ];
+    } catch (e) {
+      console.error("Error loading dataService from storage", e);
     }
   }
 
   public async syncFromBackend(force = false) {
-    if (typeof window === "undefined" || this.isSyncing) return;
+    if (typeof window === "undefined") return;
+    // BUG FIX #1: Removed isSyncing guard — it was blocking all polling calls after the first request.
+    // force=true is used by polling intervals, so we must always allow it through.
     if (!force && DataService.hasSyncedInitial) return;
 
     DataService.hasSyncedInitial = true;
-    this.isSyncing = true;
     try {
-      const [resProd, resCat, resBrand, resPromo, resCoupon, resBanner, resAdmin] = await Promise.all([
+      const [resProd, resCat, resBrand, resPromo, resCoupon, resBanner, resAdmin, resCMS, resNav, resSupport, resLogs] = await Promise.all([
         fetch("/api/products").then((r) => r.json()).catch(() => null),
         fetch("/api/categories").then((r) => r.json()).catch(() => null),
         fetch("/api/brands").then((r) => r.json()).catch(() => null),
@@ -405,6 +213,10 @@ class DataService {
         fetch("/api/coupons").then((r) => r.json()).catch(() => null),
         fetch("/api/banners").then((r) => r.json()).catch(() => null),
         fetch("/api/admin/users").then((r) => r.json()).catch(() => null),
+        fetch("/api/admin/cms").then((r) => r.json()).catch(() => null),
+        fetch("/api/admin/navigation").then((r) => r.json()).catch(() => null),
+        fetch("/api/admin/support").then((r) => r.json()).catch(() => null),
+        fetch("/api/admin/audit-logs").then((r) => r.json()).catch(() => null),
       ]);
 
       let hasChanges = false;
@@ -447,15 +259,56 @@ class DataService {
         this.adminUsers = resAdmin.data;
         hasChanges = true;
       }
+      if (resCMS && resCMS.success && Array.isArray(resCMS.data) && resCMS.data.length > 0) {
+        this.cmsPages = resCMS.data;
+        hasChanges = true;
+      }
+      if (resNav && resNav.success && Array.isArray(resNav.data) && resNav.data.length > 0) {
+        this.navItems = resNav.data;
+        hasChanges = true;
+      }
+      if (resSupport && resSupport.success && Array.isArray(resSupport.data)) {
+        this.supportTickets = [...resSupport.data];
+        localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+        hasChanges = true;
+      }
+      if (resLogs && resLogs.success && Array.isArray(resLogs.data) && resLogs.data.length > 0) {
+        this.auditLogs = resLogs.data;
+        hasChanges = true;
+      }
 
       if (hasChanges) {
-        this.notify(false); // Only notify local React subscribers without broadcast loops
+        this.notify();
       }
-    } catch (err) {
-      console.warn("syncFromBackend fallback to local storage:", err);
-    } finally {
-      this.isSyncing = false;
+    } catch (e) {
+      console.warn("syncFromBackend error:", e);
     }
+  }
+
+  // Dedicated lightweight support-only GET sync for chat polling intervals
+  public async syncSupportOnly(): Promise<void> {
+    if (typeof window === "undefined") return;
+    try {
+      const res = await fetch("/api/admin/support", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      if (res && res.success && Array.isArray(res.data)) {
+        this.supportTickets = [...res.data];
+        localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+        this.notify();
+      }
+    } catch (e) {
+      console.warn("syncSupportOnly error:", e);
+    }
+  }
+
+  public subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notify() {
+    this.listeners.forEach((listener) => listener());
   }
 
   // --- PRODUCTS ---
@@ -464,74 +317,74 @@ class DataService {
   }
 
   public getProductById(id: string): Product | undefined {
-    return this.products.find((p) => p.id === id || p.slug === id);
+    return this.products.find((p) => String(p.id) === String(id));
   }
 
-  public saveProduct(productData: Partial<Product> & { title: string; price: number }): Product {
-    let existingIndex = this.products.findIndex((p) => p.id === productData.id);
-    let updatedProduct: Product;
+  public getProductBySlug(slug: string): Product | undefined {
+    return this.products.find((p) => p.slug === slug);
+  }
 
-    if (existingIndex >= 0) {
-      updatedProduct = { ...this.products[existingIndex], ...productData };
-      this.products[existingIndex] = updatedProduct;
-      this.logAction("Beka Papiashvili", "UPDATE_PRODUCT", `Product #${updatedProduct.id}`, `განახლდა პროდუქტი: ${updatedProduct.title}`);
+  public saveProduct(productData: Partial<Product> & { title: string }): Product {
+    let saved: Product;
+    const isUpdate = !!productData.id;
+
+    if (isUpdate) {
+      const idx = this.products.findIndex((p) => String(p.id) === String(productData.id));
+      if (idx >= 0) {
+        saved = { ...this.products[idx], ...productData } as Product;
+        this.products[idx] = saved;
+      } else {
+        saved = { ...productData, id: productData.id || `prod-${Date.now()}` } as Product;
+        this.products.unshift(saved);
+      }
     } else {
-      const newId = productData.id || `prod-${Date.now()}`;
-      updatedProduct = {
-        id: newId,
-        sku: productData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
-        code: productData.code || `${Math.floor(100000 + Math.random() * 900000)}`,
-        title: productData.title,
-        slug: productData.slug || productData.title.toLowerCase().replace(/\s+/g, "-"),
-        description: productData.description || "",
-        price: Number(productData.price),
-        discountPrice: productData.discountPrice ? Number(productData.discountPrice) : undefined,
-        discountPercentage: productData.discountPrice
-          ? Math.round(((Number(productData.price) - Number(productData.discountPrice)) / Number(productData.price)) * 100)
-          : undefined,
-        monthlyInstallment: Math.round(Number(productData.price) / 12),
-        stock: Number(productData.stock ?? 10),
-        categoryId: productData.categoryId || "mobiles",
-        categoryName: productData.categoryName || "მობილურები",
-        brandId: productData.brandId || "apple",
-        brandName: productData.brandName || "Apple",
-        images: productData.images && productData.images.length > 0 ? productData.images : ["https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg"],
-        rating: productData.rating || 5.0,
-        reviewCount: productData.reviewCount || 1,
-        isFeatured: productData.isFeatured ?? true,
-        specs: productData.specs || [],
-        variants: productData.variants || [],
-      };
-      this.products.unshift(updatedProduct);
-      this.logAction("Beka Papiashvili", "CREATE_PRODUCT", `Product #${updatedProduct.id}`, `შეიქმნა ახალი პროდუქტი: ${updatedProduct.title}`);
+      saved = {
+        id: `prod-${Date.now()}`,
+        slug: productData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        price: 0,
+        images: ["/placeholder.png"],
+        category: "სხვა",
+        brand: "სხვა",
+        inStock: true,
+        stock: 10,
+        ...productData,
+      } as Product;
+      this.products.unshift(saved);
     }
 
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
+    this.logAction("Beka Papiashvili", isUpdate ? "UPDATE_PRODUCT" : "CREATE_PRODUCT", `Product #${saved.id}`, `შენახულია პროდუქტი: ${saved.title}`);
     this.notify();
 
-    // Async sync to MySQL
     if (typeof window !== "undefined") {
-      const isUpdate = Boolean(productData.id && existingIndex >= 0);
       const url = isUpdate ? `/api/products/${productData.id}` : "/api/products";
       const method = isUpdate ? "PUT" : "POST";
-
       fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedProduct),
-      }).catch((err) => console.warn("Failed async sync to MySQL:", err));
+        body: JSON.stringify(saved),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const index = this.products.findIndex((p) => String(p.id) === String(saved.id));
+            if (index >= 0) {
+              this.products[index] = res.data;
+              localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
+              this.notify();
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed async sync product to MySQL:", err));
     }
 
-    return updatedProduct;
+    return saved;
   }
 
   public deleteProduct(id: string): void {
-    const product = this.getProductById(id);
-    this.products = this.products.filter((p) => p.id !== id);
+    this.products = this.products.filter((p) => String(p.id) !== String(id));
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
-    if (product) {
-      this.logAction("Beka Papiashvili", "DELETE_PRODUCT", `Product #${id}`, `წაიშალა პროდუქტი: ${product.title}`);
-    }
+    this.logAction("Beka Papiashvili", "DELETE_PRODUCT", `Product #${id}`, "წაიშალა პროდუქტი");
     this.notify();
 
     if (typeof window !== "undefined") {
@@ -544,47 +397,62 @@ class DataService {
     return this.categories;
   }
 
-  public saveCategory(categoryData: Partial<Category> & { name: string }): Category {
-    let existingIndex = this.categories.findIndex((c) => c.id === categoryData.id);
-    let updatedCategory: Category;
+  public saveCategory(category: Partial<Category> & { name: string }): Category {
+    let saved: Category;
+    const isUpdate = !!category.id;
 
-    if (existingIndex >= 0) {
-      updatedCategory = { ...this.categories[existingIndex], ...categoryData };
-      this.categories[existingIndex] = updatedCategory;
+    if (isUpdate) {
+      const idx = this.categories.findIndex((c) => String(c.id) === String(category.id));
+      if (idx >= 0) {
+        saved = { ...this.categories[idx], ...category } as Category;
+        this.categories[idx] = saved;
+      } else {
+        saved = { ...category, id: category.id || `cat-${Date.now()}` } as Category;
+        this.categories.unshift(saved);
+      }
     } else {
-      updatedCategory = {
-        id: categoryData.id || `cat-${Date.now()}`,
-        name: categoryData.name,
-        slug: categoryData.slug || categoryData.name.toLowerCase().replace(/\s+/g, "-"),
-        icon: categoryData.icon || "Sparkles",
-        children: categoryData.children || [],
-      };
-      this.categories.push(updatedCategory);
+      saved = {
+        id: `cat-${Date.now()}`,
+        slug: category.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        icon: "Package",
+        ...category,
+      } as Category;
+      this.categories.unshift(saved);
     }
 
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
-    this.logAction("Beka Papiashvili", "SAVE_CATEGORY", `Category #${updatedCategory.id}`, `შენახულია კატეგორია: ${updatedCategory.name}`);
+    this.logAction("Beka Papiashvili", isUpdate ? "UPDATE_CATEGORY" : "CREATE_CATEGORY", `Category #${saved.id}`, `შენახულია კატეგორია: ${saved.name}`);
     this.notify();
 
     if (typeof window !== "undefined") {
-      const isUpdate = Boolean(categoryData.id && existingIndex >= 0);
       const url = "/api/categories";
       const method = isUpdate ? "PUT" : "POST";
-
       fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedCategory),
-      }).catch((err) => console.warn("Failed async sync category to MySQL:", err));
+        body: JSON.stringify(saved),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const index = this.categories.findIndex((c) => String(c.id) === String(saved.id));
+            if (index >= 0) {
+              this.categories[index] = res.data;
+              localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
+              this.notify();
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed async sync category to MySQL:", err));
     }
 
-    return updatedCategory;
+    return saved;
   }
 
   public deleteCategory(id: string): void {
-    this.categories = this.categories.filter((c) => c.id !== id);
+    this.categories = this.categories.filter((c) => String(c.id) !== String(id));
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(this.categories));
-    this.logAction("Beka Papiashvili", "DELETE_CATEGORY", `Category #${id}`, `წაიშალა კატეგორია ID: ${id}`);
+    this.logAction("Beka Papiashvili", "DELETE_CATEGORY", `Category #${id}`, "წაიშალა კატეგორია");
     this.notify();
 
     if (typeof window !== "undefined") {
@@ -597,46 +465,62 @@ class DataService {
     return this.brands;
   }
 
-  public saveBrand(brandData: Partial<Brand> & { name: string }): Brand {
-    let existingIndex = this.brands.findIndex((b) => b.id === brandData.id);
-    let updatedBrand: Brand;
+  public saveBrand(brand: Partial<Brand> & { name: string }): Brand {
+    let saved: Brand;
+    const isUpdate = !!brand.id;
 
-    if (existingIndex >= 0) {
-      updatedBrand = { ...this.brands[existingIndex], ...brandData };
-      this.brands[existingIndex] = updatedBrand;
+    if (isUpdate) {
+      const idx = this.brands.findIndex((b) => String(b.id) === String(brand.id));
+      if (idx >= 0) {
+        saved = { ...this.brands[idx], ...brand } as Brand;
+        this.brands[idx] = saved;
+      } else {
+        saved = { ...brand, id: brand.id || `brand-${Date.now()}` } as Brand;
+        this.brands.unshift(saved);
+      }
     } else {
-      updatedBrand = {
-        id: brandData.id || `brand-${Date.now()}`,
-        name: brandData.name,
-        slug: brandData.slug || brandData.name.toLowerCase().replace(/\s+/g, "-"),
-        logo: brandData.logo || "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
-        featured: brandData.featured ?? true,
-      };
-      this.brands.push(updatedBrand);
+      saved = {
+        id: `brand-${Date.now()}`,
+        slug: brand.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        logo: "/placeholder.png",
+        ...brand,
+      } as Brand;
+      this.brands.unshift(saved);
     }
 
     localStorage.setItem(STORAGE_KEYS.BRANDS, JSON.stringify(this.brands));
-    this.logAction("Beka Papiashvili", "SAVE_BRAND", `Brand #${updatedBrand.id}`, `შენახულია ბრენდი: ${updatedBrand.name}`);
+    this.logAction("Beka Papiashvili", isUpdate ? "UPDATE_BRAND" : "CREATE_BRAND", `Brand #${saved.id}`, `შენახულია ბრენდი: ${saved.name}`);
     this.notify();
 
     if (typeof window !== "undefined") {
-      const isUpdate = Boolean(brandData.id && existingIndex >= 0);
       const url = "/api/brands";
       const method = isUpdate ? "PUT" : "POST";
-
       fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedBrand),
-      }).catch((err) => console.warn("Failed async sync brand to MySQL:", err));
+        body: JSON.stringify(saved),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const index = this.brands.findIndex((b) => String(b.id) === String(saved.id));
+            if (index >= 0) {
+              this.brands[index] = res.data;
+              localStorage.setItem(STORAGE_KEYS.BRANDS, JSON.stringify(this.brands));
+              this.notify();
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed async sync brand to MySQL:", err));
     }
 
-    return updatedBrand;
+    return saved;
   }
 
   public deleteBrand(id: string): void {
-    this.brands = this.brands.filter((b) => b.id !== id);
+    this.brands = this.brands.filter((b) => String(b.id) !== String(id));
     localStorage.setItem(STORAGE_KEYS.BRANDS, JSON.stringify(this.brands));
+    this.logAction("Beka Papiashvili", "DELETE_BRAND", `Brand #${id}`, "წაიშალა ბრენდი");
     this.notify();
 
     if (typeof window !== "undefined") {
@@ -762,6 +646,14 @@ class DataService {
     }
     localStorage.setItem(STORAGE_KEYS.CMS_PAGES, JSON.stringify(this.cmsPages));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/admin/cms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(page),
+      }).catch(() => {});
+    }
   }
 
   // --- NAVIGATION ---
@@ -778,12 +670,24 @@ class DataService {
     }
     localStorage.setItem(STORAGE_KEYS.NAVIGATION, JSON.stringify(this.navItems));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/admin/navigation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item),
+      }).catch(() => {});
+    }
   }
 
   public deleteNavigationItem(id: string): void {
     this.navItems = this.navItems.filter((n) => n.id !== id);
     localStorage.setItem(STORAGE_KEYS.NAVIGATION, JSON.stringify(this.navItems));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/admin/navigation?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    }
   }
 
   // --- SUPPORT TICKETS ---
@@ -791,14 +695,28 @@ class DataService {
     return [...this.supportTickets];
   }
 
-  public addUserSupportMessage(customerName: string, customerPhone: string, text: string, topic = "ონლაინ კონსულტაცია", customerEmail = ""): string {
-    let ticket = this.supportTickets.find((t) => (t.customerPhone === customerPhone || (t.customerName === customerName && customerName !== "სტუმარი")) && t.status !== "CLOSED");
+  public addUserSupportMessage(
+    customerName: string,
+    customerPhone: string,
+    text: string,
+    topic = "ონლაინ კონსულტაცია",
+    customerEmail = "",
+    customerId = ""
+  ): string {
+    // Ticket lookup strictly based on customerId (exact match) and status === OPEN
+    let ticket = this.supportTickets.find(
+      (t) => t.status === "OPEN" && (
+        (customerId && t.customerId === customerId) ||
+        (customerPhone && customerPhone !== "+995 5XX XX XX XX" && t.customerPhone === customerPhone)
+      )
+    );
     
     const timeStr = new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
 
     if (!ticket) {
       ticket = {
         id: `tkt-${Date.now()}`,
+        customerId: customerId || `cust-${Date.now()}`,
         customerName: customerName.trim() || "სტუმარი მომხმარებელი",
         customerPhone: customerPhone.trim() || "+995 5XX XX XX XX",
         customerEmail: customerEmail.trim() || `${customerPhone ? customerPhone.replace(/[^0-9]/g, "") : "guest"}@spilo.ge`,
@@ -811,6 +729,7 @@ class DataService {
     } else {
       this.supportTickets = this.supportTickets.map(t => t.id === ticket!.id ? { 
         ...t, 
+        customerId: customerId || t.customerId,
         customerName: customerName || t.customerName,
         customerPhone: customerPhone || t.customerPhone,
         status: "OPEN" as const, 
@@ -826,13 +745,48 @@ class DataService {
 
     localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ticket.id,
+          customerId: ticket.customerId,
+          userName: ticket.customerName,
+          userPhone: ticket.customerPhone,
+          userEmail: ticket.customerEmail,
+          status: ticket.status,
+          messages: ticket.messages,
+        }),
+      }).catch(() => {});
+    }
+
     return ticket.id;
   }
 
-  public addSupportReply(ticketId: string, replyText: string): void {
+  public addSupportReply(ticketId: string, replyText: string, adminName?: string, adminAvatar = ""): void {
+    let finalAdminName = adminName;
+    if (!finalAdminName || finalAdminName === "Beka Papiashvili") {
+      try {
+        const { useStore } = require("@/store/useStore");
+        const storeState = useStore.getState();
+        finalAdminName =
+          storeState.adminUser?.name ||
+          storeState.user?.name ||
+          (storeState.adminUser?.email ? storeState.adminUser.email.split("@")[0] : "") ||
+          (storeState.user?.email ? storeState.user.email.split("@")[0] : "") ||
+          "ოპერატორი";
+      } catch (e) {
+        finalAdminName = adminName || "ოპერატორი";
+      }
+    }
+
+    let updatedTicket: SupportTicket | undefined;
+
     this.supportTickets = this.supportTickets.map((t) => {
       if (t.id === ticketId) {
-        return {
+        updatedTicket = {
           ...t,
           messages: [
             ...t.messages,
@@ -840,17 +794,30 @@ class DataService {
               sender: "admin" as const,
               text: replyText,
               time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+              adminName: finalAdminName,
+              adminAvatar,
             },
           ],
         };
+        return updatedTicket;
       }
       return t;
     });
     localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
     this.notify();
+
+    if (typeof window !== "undefined" && updatedTicket) {
+      fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTicket),
+      }).catch(() => {});
+    }
   }
 
   public updateSupportTicketStatus(ticketId: string, status: "OPEN" | "CLOSED" | "RESOLVED"): void {
+    let updatedTicket: SupportTicket | undefined;
+
     this.supportTickets = this.supportTickets.map((t) => {
       if (t.id === ticketId) {
         const updatedMessages = [...t.messages];
@@ -861,22 +828,144 @@ class DataService {
             time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
           });
         }
-        return {
+        updatedTicket = {
           ...t,
           status,
           messages: updatedMessages,
         };
+        return updatedTicket;
       }
       return t;
     });
     localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
     this.notify();
+
+    if (typeof window !== "undefined" && updatedTicket) {
+      fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTicket),
+      }).catch(() => {});
+    }
+  }
+
+  public setTypingStatus(ticketId: string, sender: "user" | "admin", isTyping: boolean, adminName?: string): void {
+    let updatedTicket: SupportTicket | undefined;
+
+    this.supportTickets = this.supportTickets.map((t) => {
+      if (t.id === ticketId) {
+        updatedTicket = {
+          ...t,
+          ...(sender === "user"
+            ? { isUserTyping: isTyping }
+            : {
+                isAdminTyping: isTyping,
+                typingAdminName: isTyping ? (adminName || t.typingAdminName || "ოპერატორი") : "",
+                ...(isTyping && !t.assignedToName ? { assignedToName: adminName || "ოპერატორი" } : {}),
+              }),
+        };
+        return updatedTicket;
+      }
+      return t;
+    });
+
+    this.notify();
+
+    if (typeof window !== "undefined" && updatedTicket) {
+      fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: updatedTicket.id,
+          isUserTyping: updatedTicket.isUserTyping,
+          isAdminTyping: updatedTicket.isAdminTyping,
+          typingAdminName: updatedTicket.typingAdminName,
+          assignedToName: updatedTicket.assignedToName,
+        }),
+      }).catch(() => {});
+    }
+  }
+
+  public assignTicket(ticketId: string, adminName: string): void {
+    let updatedTicket: SupportTicket | undefined;
+
+    this.supportTickets = this.supportTickets.map((t) => {
+      if (t.id === ticketId) {
+        updatedTicket = {
+          ...t,
+          assignedToName: adminName,
+        };
+        return updatedTicket;
+      }
+      return t;
+    });
+
+    localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+    this.notify();
+
+    if (typeof window !== "undefined" && updatedTicket) {
+      fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: updatedTicket.id,
+          assignedToName: updatedTicket.assignedToName,
+        }),
+      }).catch(() => {});
+    }
+  }
+
+  public markMessagesAsRead(ticketId: string, reader: "user" | "admin"): void {
+    let updatedTicket: SupportTicket | undefined;
+
+    this.supportTickets = this.supportTickets.map((t) => {
+      if (t.id === ticketId) {
+        let hasUnread = false;
+        const updatedMessages = t.messages.map((m) => {
+          const isOppositeSender = (reader === "user" && m.sender === "admin") || (reader === "admin" && m.sender === "user");
+          if (isOppositeSender && !m.read) {
+            hasUnread = true;
+            return { ...m, read: true };
+          }
+          return m;
+        });
+
+        if (hasUnread) {
+          updatedTicket = {
+            ...t,
+            messages: updatedMessages,
+          };
+          return updatedTicket;
+        }
+      }
+      return t;
+    });
+
+    if (updatedTicket) {
+      localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
+      this.notify();
+
+      if (typeof window !== "undefined") {
+        fetch("/api/admin/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: updatedTicket.id,
+            messages: updatedTicket.messages,
+          }),
+        }).catch(() => {});
+      }
+    }
   }
 
   public deleteSupportTicket(ticketId: string): void {
     this.supportTickets = this.supportTickets.filter((t) => t.id !== ticketId);
     localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch(`/api/admin/support?id=${encodeURIComponent(ticketId)}`, { method: "DELETE" }).catch(() => {});
+    }
   }
 
   // --- AUDIT LOGS ---
@@ -898,6 +987,18 @@ class DataService {
     if (this.auditLogs.length > 100) this.auditLogs.pop();
     localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(this.auditLogs));
     this.notify();
+
+    if (typeof window !== "undefined") {
+      fetch("/api/admin/audit-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adminEmail: "beka@spilo.ge",
+          action: `${action}: ${entity}`,
+          target: details,
+        }),
+      }).catch(() => {});
+    }
   }
 
   // --- ROLES & ADMIN USERS ---
