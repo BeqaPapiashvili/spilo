@@ -7,23 +7,26 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  phone             String?  @unique
-  email             String?  @unique
+  id                String       @id @default(cuid())
+  phone             String?      @unique
+  email             String?      @unique
   password          String?
   name              String?
   firstName         String?
   lastName          String?
   idNumber          String?
-  isGeorgianCitizen Boolean  @default(true)
-  address           String?  @db.Text
-  smsNotify         Boolean  @default(true)
-  emailNotify       Boolean  @default(true)
-  role              String   @default("CUSTOMER") // CUSTOMER | SUPER_ADMIN | STORE_MANAGER
+  isGeorgianCitizen Boolean      @default(true)
+  address           String?      @db.Text
+  smsNotify         Boolean      @default(true)
+  emailNotify       Boolean      @default(true)
+  role              String       @default("CUSTOMER") // CUSTOMER | SUPER_ADMIN | STORE_MANAGER
   orders            Order[]
   cart              Cart?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  addresses         Address[]
+  reviews           Review[]
+  priceAlerts       PriceAlert[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
 
 model Category {
@@ -51,30 +54,104 @@ model Brand {
 }
 
 model Product {
-  id                 String      @id @default(cuid())
+  id                 String           @id @default(cuid())
   title              String
-  slug               String      @unique
-  sku                String      @unique
-  description        String?     @db.Text
+  slug               String           @unique
+  sku                String           @unique
+  description        String?          @db.Text
   price              Float
   discountPrice      Float?
   discountPercentage Int?
   monthlyInstallment Float?
-  stock              Int         @default(10)
+  stock              Int              @default(10)
   categoryId         String
-  category           Category    @relation(fields: [categoryId], references: [id])
+  category           Category         @relation(fields: [categoryId], references: [id])
   brandId            String
-  brand              Brand       @relation(fields: [brandId], references: [id])
-  images             Json        // Array of image URLs stored as JSON
-  specs              Json?       // Structured specifications JSON
+  brand              Brand            @relation(fields: [brandId], references: [id])
+  images             Json             // Array of image URLs stored as JSON
+  specs              Json?            // Structured specifications JSON
   colorName          String?
   storage            String?
-  isFeatured         Boolean     @default(false)
-  isFlashDeal        Boolean     @default(false)
+  isFeatured         Boolean          @default(false)
+  isFlashDeal        Boolean          @default(false)
   cartItems          CartItem[]
   orderItems         OrderItem[]
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  reviews            Review[]
+  variants           ProductVariant[]
+  priceAlerts        PriceAlert[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  author           String
+  rating           Int      @default(5)
+  comment          String   @db.Text
+  verifiedPurchase Boolean  @default(true)
+  likes            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String?  @default("ჩემი მისამართი")
+  city       String   @default("თბილისი")
+  street     String
+  apartment  String?
+  postalCode String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ProductVariant {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name          String   // e.g. "Color", "Storage"
+  type          String   @default("text") // "color" | "text"
+  label         String
+  value         String
+  colorHex      String?
+  priceModifier Float    @default(0)
+  stock         Int      @default(10)
+  sku           String?
+  image         String?  @db.Text
+  inStock       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model PriceAlert {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email       String
+  targetPrice Float
+  isActive    Boolean  @default(true)
+  notified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+  @@index([userId])
 }
 
 model Cart {
@@ -151,31 +228,54 @@ model AuditLog {
 model Promotion {
   id                 String   @id @default(cuid())
   title              String
+  name               String?
+  slug               String?
+  description        String?  @db.Text
   subtitle           String?
   image              String   @db.Text
+  bannerImage        String?  @db.Text
   link               String?
+  discountType       String?  @default("percentage")
+  discountValue      Float?
   discountPercentage Int?
+  startDate          String?
+  endDate            String?
+  status             String?  @default("ACTIVE")
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
 
 model Coupon {
-  id         String    @id @default(cuid())
-  code       String    @unique
-  discount   Float
-  validUntil DateTime?
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  code           String    @unique
+  discount       Float?
+  discountType   String?   @default("percentage")
+  discountValue  Float?
+  minOrderAmount Float?    @default(0)
+  startDate      String?
+  endDate        String?
+  usedCount      Int       @default(0)
+  status         String    @default("ACTIVE")
+  validUntil     DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Banner {
-  id        String   @id @default(cuid())
-  title     String
-  image     String   @db.Text
-  link      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  title        String
+  subtitle     String?
+  ctaText      String?  @default("ნახვა")
+  ctaLink      String?
+  image        String   @db.Text
+  imageDesktop String?  @db.Text
+  position     String   @default("HERO")
+  priority     Int      @default(1)
+  isActive     Boolean  @default(true)
+  link         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model SupportTicket {
@@ -275,6 +375,19 @@ model SystemSetting {
   id        String   @id @default(cuid())
   key       String   @unique
   value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StorefrontSection {
+  id        String   @id @default(cuid())
+  key       String?
+  type      String   @default("PRODUCT_CAROUSEL")
+  title     String?
+  subtitle  String?
+  isEnabled Boolean  @default(true)
+  sortOrder Int      @default(0)
+  config    Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

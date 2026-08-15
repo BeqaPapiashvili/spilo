@@ -9,6 +9,10 @@ export interface CartItem {
   discountPrice?: number;
   image: string;
   quantity: number;
+  color?: string;
+  storage?: string;
+  warrantyMonths?: number;
+  extraProtection?: boolean;
 }
 
 export interface WishlistItem {
@@ -47,6 +51,8 @@ export interface UserProfile {
 }
 
 interface StoreState {
+  sessionId: string;
+  getSessionId: () => string;
   cart: CartItem[];
   wishlist: WishlistItem[];
   orders: OrderRecord[];
@@ -63,6 +69,7 @@ interface StoreState {
 
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
+  hydrateUserData: (userId: string) => Promise<void>;
 
   // Admin Auth Actions
   setAdminSession: (admin: { id: string; name: string; email: string; role: string } | null, token: string | null) => void;
@@ -105,9 +112,30 @@ interface StoreState {
   clearRecentSearches: () => void;
 }
 
+const generateSessionId = () => {
+  if (typeof window !== "undefined") {
+    let sess = localStorage.getItem("spilo_session_id");
+    if (!sess) {
+      sess = `sess_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
+      localStorage.setItem("spilo_session_id", sess);
+    }
+    return sess;
+  }
+  return `sess_server_${Date.now()}`;
+};
+
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
+      sessionId: typeof window !== "undefined" ? (localStorage.getItem("spilo_session_id") || `sess_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`) : "",
+      getSessionId: () => {
+        let sess = get().sessionId;
+        if (!sess) {
+          sess = generateSessionId();
+          set({ sessionId: sess });
+        }
+        return sess;
+      },
       cart: [],
       wishlist: [],
       orders: [],
@@ -124,6 +152,62 @@ export const useStore = create<StoreState>()(
 
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+
+      hydrateUserData: async (userId: string) => {
+        try {
+          const [cartRes, wishlistRes] = await Promise.all([
+            fetch(`/api/cart?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
+            fetch(`/api/wishlist?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
+          ]);
+
+          if (cartRes && cartRes.success && Array.isArray(cartRes.items) && cartRes.items.length > 0) {
+            const dbCartItems: CartItem[] = cartRes.items.map((ci: any) => ({
+              id: ci.product?.id || ci.productId,
+              title: ci.product?.title || "Product",
+              price: ci.product?.price || 0,
+              discountPrice: ci.product?.discountPrice,
+              image: Array.isArray(ci.product?.images) ? ci.product.images[0] : (ci.product?.images || ""),
+              quantity: ci.quantity || 1,
+            }));
+
+            set((state) => {
+              const merged = [...state.cart];
+              for (const item of dbCartItems) {
+                const existing = merged.find((i) => i.id === item.id);
+                if (!existing) {
+                  merged.push(item);
+                }
+              }
+              return { cart: merged };
+            });
+          }
+
+          if (wishlistRes && wishlistRes.success && Array.isArray(wishlistRes.items) && wishlistRes.items.length > 0) {
+            const dbWishlistItems: WishlistItem[] = wishlistRes.items.map((wi: any) => ({
+              id: wi.product?.id || wi.productId,
+              title: wi.product?.title || "Product",
+              price: wi.product?.price || 0,
+              discountPrice: wi.product?.discountPrice,
+              image: Array.isArray(wi.product?.images) ? wi.product.images[0] : (wi.product?.images || ""),
+              monthlyInstallment: wi.product?.monthlyInstallment,
+              discountPercentage: wi.product?.discountPercentage,
+            }));
+
+            set((state) => {
+              const merged = [...state.wishlist];
+              for (const item of dbWishlistItems) {
+                const existing = merged.find((i) => i.id === item.id);
+                if (!existing) {
+                  merged.push(item);
+                }
+              }
+              return { wishlist: merged };
+            });
+          }
+        } catch (err) {
+          console.warn("Hydration error:", err);
+        }
+      },
 
       setAdminSession: (adminUser, adminToken) => set({ adminUser, adminToken }),
       updateUserRole: (email, role) =>
@@ -149,9 +233,9 @@ export const useStore = create<StoreState>()(
       // Cart
       addToCart: (item, openCart = false) => {
         set((state) => {
-          const existing = state.cart.find((i) => i.id === item.id);
+          const existing = state.cart.find((i) => i.id === item.id && i.color === item.color && i.storage === item.storage);
           const newCart = existing
-            ? state.cart.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
+            ? state.cart.map((i) => (i.id === item.id && i.color === item.color && i.storage === item.storage ? { ...i, quantity: i.quantity + 1 } : i))
             : [...state.cart, { ...item, quantity: 1 }];
 
           get().addToast({
@@ -167,11 +251,13 @@ export const useStore = create<StoreState>()(
         });
 
         // Async sync with SQL backend API
+        const sessId = get().getSessionId();
         fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: get().user?.id,
+            sessionId: sessId,
             productId: item.id,
             quantity: 1,
           }),
@@ -179,8 +265,9 @@ export const useStore = create<StoreState>()(
       },
 
       removeFromCart: (id) => {
+        const sessId = get().getSessionId();
         set((state) => ({ cart: state.cart.filter((i) => i.id !== id) }));
-        fetch(`/api/cart?productId=${encodeURIComponent(id)}&userId=${encodeURIComponent(get().user?.id || "")}`, {
+        fetch(`/api/cart?productId=${encodeURIComponent(id)}&userId=${encodeURIComponent(get().user?.id || "")}&sessionId=${encodeURIComponent(sessId)}`, {
           method: "DELETE",
         }).catch(() => {});
       },
@@ -194,6 +281,7 @@ export const useStore = create<StoreState>()(
 
       // Wishlist
       toggleWishlist: (item) => {
+        const sessId = get().getSessionId();
         set((state) => {
           const exists = state.wishlist.some((i) => i.id === item.id);
           if (exists) {
@@ -218,6 +306,7 @@ export const useStore = create<StoreState>()(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: get().user?.id,
+            sessionId: sessId,
             productId: item.id,
           }),
         }).catch(() => {});
@@ -272,6 +361,7 @@ export const useStore = create<StoreState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               userId: get().user?.id,
+              sessionId: get().getSessionId(),
               productId: id,
             }),
           }).catch(() => {});
@@ -315,6 +405,7 @@ export const useStore = create<StoreState>()(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: get().user?.id,
+            sessionId: get().getSessionId(),
             productId: id,
           }),
         }).catch(() => {});
@@ -325,7 +416,12 @@ export const useStore = create<StoreState>()(
         set((state) => ({ highlightDifferencesOnly: !state.highlightDifferencesOnly })),
       toggleAuthModal: (open) => 
         set((state) => ({ isAuthModalOpen: open !== undefined ? open : !state.isAuthModalOpen })),
-      setUser: (user) => set({ user, isAuthModalOpen: false, ...(user === null ? { adminUser: null, adminToken: null } : {}) }),
+      setUser: (user) => {
+        set({ user, isAuthModalOpen: false, ...(user === null ? { adminUser: null, adminToken: null } : {}) });
+        if (user?.id) {
+          get().hydrateUserData(user.id);
+        }
+      },
 
       // Toasts
       addToast: ({ title, message, type = "success", duration = 4000 }) => {
@@ -349,6 +445,7 @@ export const useStore = create<StoreState>()(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: get().user?.id,
+            sessionId: get().getSessionId(),
             productId: item.id,
           }),
         }).catch(() => {});
@@ -366,6 +463,7 @@ export const useStore = create<StoreState>()(
     {
       name: 'spilo-store-storage',
       partialize: (state) => ({
+        sessionId: state.sessionId,
         cart: state.cart,
         wishlist: state.wishlist,
         orders: state.orders,
@@ -380,8 +478,15 @@ export const useStore = create<StoreState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
+          if (!state.sessionId && typeof window !== "undefined") {
+            state.sessionId = localStorage.getItem("spilo_session_id") || `sess_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
+          }
+          if (state.user?.id) {
+            state.hydrateUserData(state.user.id);
+          }
         }
       },
     }
   )
 );
+

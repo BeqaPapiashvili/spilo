@@ -7,16 +7,23 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  return new PrismaClient({
     adapter: new PrismaMariaDb(connectionString),
   });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
 export function getPrismaClient(): PrismaClient {
-  return prisma;
+  if (!globalForPrisma.prisma || !(globalForPrisma.prisma as any).storefrontSection) {
+    const fresh = createPrismaClient();
+    globalForPrisma.prisma = fresh;
+    return fresh;
+  }
+  return globalForPrisma.prisma;
 }

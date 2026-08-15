@@ -130,8 +130,8 @@ function CheckoutContent() {
 
   // Step 2: Payment Details state
   const [paymentCategory, setPaymentCategory] = useState<
-    "installment" | "card" | "points" | "transfer" | "keepz" | "crypto"
-  >("installment");
+    "card" | "installment" | "cod" | "transfer" | "points" | "keepz" | "crypto"
+  >("card");
   const [selectedInstallmentBank, setSelectedInstallmentBank] = useState<
     "bog" | "tbc" | "tbc_ganatsileba" | "credo"
   >("bog");
@@ -161,7 +161,7 @@ function CheckoutContent() {
       try {
         const query = user.email
           ? `email=${encodeURIComponent(user.email)}`
-          : `phone=${encodeURIComponent(user.phone)}`;
+          : `phone=${encodeURIComponent(user.phone || "")}`;
         const res = await fetch(`/api/user/profile?${query}`);
         const data = await res.json();
 
@@ -271,28 +271,59 @@ function CheckoutContent() {
       address: fullShippingAddress,
     };
 
-    // Save order in local Zustand store
-    const orderId = addOrder({
-      items: [...cart],
-      totalAmount,
-      paymentMethod: paymentMethodLabel,
-      address: fullShippingAddress,
-    });
+    let finalOrderNumber = `SP-${Date.now().toString().slice(-6)}`;
 
-    // Post to MySQL API Endpoint asynchronously
+    // Post to MySQL API Endpoint
     try {
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderPayload),
       });
+
+      const resData = await res.json();
+      if (resData.success && resData.order) {
+        finalOrderNumber = resData.order.orderNumber || resData.order.id || finalOrderNumber;
+        
+        const newOrderRecord = {
+          id: finalOrderNumber,
+          date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
+          status: "მუშავდება" as const,
+          items: [...cart],
+          totalAmount,
+          paymentMethod: paymentMethodLabel,
+          address: fullShippingAddress,
+        };
+
+        const existingOrders = useStore.getState().orders;
+        useStore.getState().setOrders([newOrderRecord, ...existingOrders.filter((o) => o.id !== finalOrderNumber)]);
+      } else {
+        addOrder({
+          items: [...cart],
+          totalAmount,
+          paymentMethod: paymentMethodLabel,
+          address: fullShippingAddress,
+        });
+      }
     } catch (err) {
       console.warn("Failed to persist order to MySQL:", err);
+      addOrder({
+        items: [...cart],
+        totalAmount,
+        paymentMethod: paymentMethodLabel,
+        address: fullShippingAddress,
+      });
     }
+
+    addToast({
+      title: "შეკვეთა მიღებულია!",
+      message: `შეკვეთის N ${finalOrderNumber}`,
+      type: "success",
+    });
 
     clearCart();
     setIsSubmitting(false);
-    router.push(`/checkout/success?orderId=${orderId}`);
+    router.push(`/checkout/success?orderId=${finalOrderNumber}`);
   };
 
   return (
@@ -559,11 +590,12 @@ function CheckoutContent() {
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                     {[
-                      { id: "installment", label: "განვადებით შეძენა" },
                       { id: "card", label: "ბარათით გადახდა" },
+                      { id: "installment", label: "0% განვადება" },
+                      { id: "cod", label: "ადგილზე გადახდა (COD)" },
+                      { id: "transfer", label: "საბანკო გადარიცხვა" },
                       { id: "points", label: "ქულებით შეძენა" },
-                      { id: "transfer", label: "გადარიცხვა" },
-                      { id: "keepz", label: "Keepz - ონლაინ ბანკით შეძენა" },
+                      { id: "keepz", label: "Keepz - ონლაინ ბანკი" },
                       { id: "crypto", label: "კრიპტოთი შეძენა" },
                     ].map((item) => (
                       <button
@@ -581,6 +613,29 @@ function CheckoutContent() {
                     ))}
                   </div>
                 </div>
+
+                {/* Sub-Panel: Cash on Delivery */}
+                {paymentCategory === "cod" && (
+                  <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2 border border-gray-200/60">
+                    <p className="text-gray-900 text-sm">ადგილზე გადახდა კურიერთან (Cash on Delivery)</p>
+                    <p>შეკვეთის საფასურს გადაიხდით ნივთის ჩაბარებისას კურიერთან ნაღდი ანგარიშსწორებით ან საბანკო ბარათით (POS ტერმინალით).</p>
+                    <p className="text-emerald-700">✓ წინასწარი გადახდა არ მოითხოვება. შეკვეთა დაუყოვნებლივ გადაეცემა კურიერს.</p>
+                  </div>
+                )}
+
+                {/* Sub-Panel: Bank Transfer */}
+                {paymentCategory === "transfer" && (
+                  <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2.5 border border-gray-200/60">
+                    <p className="text-gray-900 text-sm">საბანკო გადარიცხვა (Manual Bank Transfer)</p>
+                    <p>შეკვეთის დადასტურების შემდეგ მიიღებთ ინვოისს. გთხოვთ გადარიცხოთ თანხა ქვემოთ მითითებულ რეკვიზიტებზე:</p>
+                    <div className="p-3 bg-white rounded-xl border border-gray-200/60 space-y-1 font-mono text-[11px] text-gray-800">
+                      <p>მიმღები: შპს სპილო (Spilo LLC)</p>
+                      <p>TBC Bank: GE89TB7749102938102938</p>
+                      <p>Bank of Georgia: GE12BG0000000889201928</p>
+                      <p className="text-blue-600">დანიშნულება: მიუთითეთ შეკვეთის ნომერი</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Sub-Panel: Installment Banks */}
                 {paymentCategory === "installment" && (
@@ -778,6 +833,25 @@ function CheckoutContent() {
             
             {/* Gray Summary Card */}
             <div className="bg-[#F8FAFC] rounded-2xl p-6 border border-gray-100 space-y-4">
+              <div className="space-y-3 pb-3 border-b border-gray-200/60 max-h-56 overflow-y-auto">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 text-xs">
+                    <img src={item.image} alt={item.title} className="w-10 h-10 object-contain bg-white rounded-lg p-0.5 border border-gray-200/60 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-900 truncate">{item.title}</p>
+                      {(item.color || item.storage || item.extraProtection) && (
+                        <p className="text-[10px] text-gray-500 truncate">
+                          {[item.color, item.storage, item.extraProtection ? "+2 წელი გარანტია" : null].filter(Boolean).join(" • ")}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-gray-900 font-mono shrink-0">
+                      {item.quantity} × {((item.discountPrice || item.price)).toFixed(0)} ₾
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               <div className="space-y-3 text-xs md:text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>ღირებულება</span>

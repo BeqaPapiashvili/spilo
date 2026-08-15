@@ -12,10 +12,16 @@ import {
   Plus, 
   GitCompare,
   CheckCircle2,
-  ShieldCheck
+  ShieldCheck,
+  Image as ImageIcon,
+  Video,
+  FileText,
+  Download,
+  Loader2,
+  Paperclip
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { dataService } from "@/services/dataService";
+import { dataService, ChatAttachment } from "@/services/dataService";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -28,6 +34,7 @@ interface Message {
   adminAvatar?: string;
   liked?: boolean | null;
   read?: boolean;
+  attachment?: ChatAttachment;
 }
 
 export default function SupportChatWidget() {
@@ -40,8 +47,16 @@ export default function SupportChatWidget() {
   const [inputMsg, setInputMsg] = useState("");
   const [isAdminTyping, setIsAdminTyping] = useState(false);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isUserAtBottomRef = useRef(true);
+  const prevMessageCountRef = useRef(1);
   const [customerId, setCustomerId] = useState<string>("");
+
+  // Attachment Menu & Upload States
+  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFileType, setSelectedFileType] = useState<"image" | "video" | "file">("image");
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -96,12 +111,42 @@ export default function SupportChatWidget() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Auto-scroll to bottom of messages
+  // Smooth helper to scroll to bottom
+  const scrollToBottom = (smooth = true) => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+  };
+
+  // User scroll detection: Check if user is scrolled up or at bottom
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 80;
+    isUserAtBottomRef.current = isNearBottom;
+  };
+
+  // Initial scroll when opening chat
   useEffect(() => {
     if (isOpen && chatStep === "chat") {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      isUserAtBottomRef.current = true;
+      setTimeout(() => scrollToBottom(false), 50);
     }
-  }, [messages, isOpen, chatStep, isAdminTyping]);
+  }, [isOpen, chatStep]);
+
+  // Auto-scroll ONLY when a new message is added AND the user was already at the bottom
+  useEffect(() => {
+    if (messages.length > prevMessageCountRef.current) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg?.sender === "user" || isUserAtBottomRef.current) {
+        scrollToBottom(true);
+        isUserAtBottomRef.current = true;
+      }
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages]);
 
   // Real-time synchronization & short polling for support operator messages
   useEffect(() => {
@@ -148,7 +193,7 @@ export default function SupportChatWidget() {
           saveSessionToStorage(guestName, guestPhone, current.id);
         }
         if (current.messages.length > 0) {
-          setMessages([
+          const newMsgList: Message[] = [
             {
               id: "1",
               sender: "bot",
@@ -156,15 +201,35 @@ export default function SupportChatWidget() {
               time: "ახლახანს",
             },
             ...current.messages.map((m, idx) => ({
-              id: `msg-${idx}-${Date.now()}`,
+              id: m.id || `msg-${idx}`,
               sender: m.sender,
               text: m.text,
               time: m.time,
               adminName: m.adminName,
               adminAvatar: m.adminAvatar,
               read: m.read,
+              liked: m.liked,
+              attachment: m.attachment,
             })),
-          ]);
+          ];
+
+          setMessages((prev) => {
+            if (prev.length === newMsgList.length) {
+              const lastOld = prev[prev.length - 1];
+              const lastNew = newMsgList[newMsgList.length - 1];
+              if (
+                lastOld &&
+                lastNew &&
+                lastOld.text === lastNew.text &&
+                lastOld.read === lastNew.read &&
+                lastOld.liked === lastNew.liked &&
+                lastOld.adminName === lastNew.adminName
+              ) {
+                return prev;
+              }
+            }
+            return newMsgList;
+          });
         }
       }
     };
@@ -275,6 +340,91 @@ export default function SupportChatWidget() {
 
     setTicketId(id);
     saveSessionToStorage(guestName, guestPhone, id);
+  };
+
+  const handleTriggerFileUpload = (type: "image" | "video" | "file") => {
+    setSelectedFileType(type);
+    setIsAttachmentMenuOpen(false);
+    if (fileInputRef.current) {
+      if (type === "image") {
+        fileInputRef.current.accept = "image/*";
+      } else if (type === "video") {
+        fileInputRef.current.accept = "video/*";
+      } else {
+        fileInputRef.current.accept = ".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar";
+      }
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      let fileUrl = "";
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+          fileUrl = data.url;
+        }
+      } catch (err) {
+        console.warn("Upload API error, using local URL:", err);
+      }
+
+      if (!fileUrl) {
+        fileUrl = URL.createObjectURL(file);
+      }
+
+      const fileSizeStr = file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${(file.size / 1024).toFixed(0)} KB`;
+
+      const attachment: ChatAttachment = {
+        type: selectedFileType,
+        url: fileUrl,
+        name: file.name,
+        size: fileSizeStr,
+      };
+
+      const timeStr = new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        sender: "user",
+        text: selectedFileType === "image" ? "📷 სურათი" : selectedFileType === "video" ? "🎥 ვიდეო" : `📄 ${file.name}`,
+        time: timeStr,
+        attachment,
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+
+      const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
+      const id = dataService.addUserSupportMessage(
+        guestName.trim() || "მომხმარებელი",
+        formattedPhone,
+        userMessage.text,
+        "ონლაინ კონსულტაცია",
+        `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`,
+        customerId,
+        attachment
+      );
+
+      setTicketId(id);
+      saveSessionToStorage(guestName, guestPhone, id);
+    } catch (err) {
+      console.error("File upload error:", err);
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const handleFeedback = (msgId: string, liked: boolean) => {
@@ -473,7 +623,11 @@ export default function SupportChatWidget() {
                     })()}
 
                     {/* Chat Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
+                    <div
+                      ref={chatContainerRef}
+                      onScroll={handleScroll}
+                      className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30"
+                    >
                       {messages.map((msg) => {
                         const isUser = msg.sender === "user";
                         return (
@@ -493,13 +647,70 @@ export default function SupportChatWidget() {
 
                             <div className={`max-w-[82%] flex flex-col ${isUser ? "items-end" : "items-start"}`}>
                               <div
-                                className={`rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                                className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                                   isUser
                                     ? "bg-blue-600 text-white rounded-tr-none shadow-xs"
                                     : "bg-[#F2F4F8] text-slate-800 rounded-tl-none border border-slate-100"
                                 }`}
                               >
-                                <p>{msg.text}</p>
+                                {/* Attachment Rendering */}
+                                {msg.attachment && (
+                                  <div className="mb-1.5 space-y-1">
+                                    {msg.attachment.type === "image" && (
+                                      <a
+                                        href={msg.attachment.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block rounded-xl overflow-hidden shadow-xs max-w-[220px] bg-black/5"
+                                      >
+                                        <img
+                                          src={msg.attachment.url}
+                                          alt={msg.attachment.name}
+                                          className="w-full max-h-48 object-cover rounded-xl hover:opacity-95 transition-opacity"
+                                        />
+                                      </a>
+                                    )}
+
+                                    {msg.attachment.type === "video" && (
+                                      <div className="rounded-xl overflow-hidden shadow-xs max-w-[240px] bg-black">
+                                        <video
+                                          src={msg.attachment.url}
+                                          controls
+                                          className="w-full max-h-48 object-cover rounded-xl"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {msg.attachment.type === "file" && (
+                                      <a
+                                        href={msg.attachment.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        download={msg.attachment.name}
+                                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors ${
+                                          isUser
+                                            ? "bg-blue-700/80 border-blue-400/30 text-white hover:bg-blue-700"
+                                            : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+                                        }`}
+                                      >
+                                        <div className="w-8 h-8 rounded-lg bg-black/10 flex items-center justify-center shrink-0">
+                                          <FileText size={16} />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-xs truncate">{msg.attachment.name}</p>
+                                          {msg.attachment.size && (
+                                            <p className="text-[10px] opacity-75">{msg.attachment.size}</p>
+                                          )}
+                                        </div>
+                                        <Download size={13} className="shrink-0 opacity-75" />
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+
+                                {msg.text && (!msg.attachment || !["📷 სურათი", "🎥 ვიდეო"].includes(msg.text)) && (
+                                  <p className="whitespace-pre-line">{msg.text}</p>
+                                )}
                               </div>
 
                               <div className="flex items-center gap-1.5 mt-1 px-1">
@@ -542,6 +753,13 @@ export default function SupportChatWidget() {
                         );
                       })}
 
+                      {isUploading && (
+                        <div className="flex items-center gap-2 text-xs text-slate-700 bg-slate-100 p-2.5 rounded-2xl max-w-[200px] ml-auto border border-slate-200/60 shadow-xs">
+                          <Loader2 size={14} className="animate-spin text-slate-900 shrink-0" />
+                          <span>ფაილი იტვირთება...</span>
+                        </div>
+                      )}
+
                       {isAdminTyping && (
                         <div className="flex items-start gap-2 justify-start">
                           <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 mt-1 border border-slate-200">
@@ -556,40 +774,114 @@ export default function SupportChatWidget() {
                           </div>
                         </div>
                       )}
-
-                      <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Bottom Rounded Input Bar */}
+                    {/* Hidden Native File Input */}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelected}
+                      className="hidden"
+                    />
+
+                    {/* Bottom Rounded Input Bar with Custom Minimal Monochrome Popover */}
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         handleSend();
                       }}
-                      className="p-3 bg-white border-t border-slate-100 flex items-center gap-2"
+                      className="p-3 bg-white border-t border-slate-100 flex items-center gap-2 relative"
                     >
+                      {/* Sleek Light Attachment Menu with Clean SVGs */}
+                      <AnimatePresence>
+                        {isAttachmentMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="absolute bottom-16 left-3 z-30 w-52 bg-white/95 backdrop-blur-md rounded-2xl p-1.5 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.12)] border border-slate-200/90 divide-y divide-slate-100"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerFileUpload("image")}
+                              className="w-full px-3 py-2.5 rounded-xl text-left text-xs text-slate-800 hover:bg-slate-50 flex items-center gap-3 cursor-pointer transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-slate-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="4" ry="4" />
+                                <circle cx="9" cy="9" r="2" />
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                              </svg>
+                              <div>
+                                <span className="block leading-tight text-slate-800">სურათი</span>
+                                <span className="text-[10px] text-slate-400">JPG, PNG, WebP, GIF</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerFileUpload("video")}
+                              className="w-full px-3 py-2.5 rounded-xl text-left text-xs text-slate-800 hover:bg-slate-50 flex items-center gap-3 cursor-pointer transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-slate-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                <rect width="14" height="14" x="2" y="5" rx="3" />
+                                <polygon points="17 9 22 6 22 18 17 15 17 9" />
+                              </svg>
+                              <div>
+                                <span className="block leading-tight text-slate-800">ვიდეო</span>
+                                <span className="text-[10px] text-slate-400">MP4, MOV, WebM</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerFileUpload("file")}
+                              className="w-full px-3 py-2.5 rounded-xl text-left text-xs text-slate-800 hover:bg-slate-50 flex items-center gap-3 cursor-pointer transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-slate-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" x2="8" y1="13" y2="13" />
+                                <line x1="16" x2="8" y1="17" y2="17" />
+                                <line x1="10" x2="8" y1="9" y2="9" />
+                              </svg>
+                              <div>
+                                <span className="block leading-tight text-slate-800">დოკუმენტი / ფაილი</span>
+                                <span className="text-[10px] text-slate-400">PDF, Word, Excel, ZIP</span>
+                              </div>
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Plus / Attachment Toggle Button */}
                       <button
                         type="button"
-                        onClick={() => handleSend("0% განვადების პირობები")}
-                        className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-                        title="დამატებითი მოქმედებები"
+                        onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                          isAttachmentMenuOpen
+                            ? "bg-blue-600 text-white rotate-45 shadow-sm shadow-blue-500/25"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        }`}
+                        title="ფაილის, სურათის ან ვიდეოს გაგზავნა"
                       >
-                        <Plus size={16} />
+                        <Plus size={16} className="transition-transform duration-150" />
                       </button>
 
                       <input
                         type="text"
                         value={inputMsg}
                         onChange={handleInputChange}
-                        placeholder="Ask me anything..."
+                        placeholder="ჩაწერეთ შეკითხვა..."
                         className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all placeholder:text-slate-400"
                       />
 
                       <button
                         type="submit"
-                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-blue-500/20"
+                        disabled={isUploading || !inputMsg.trim()}
+                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-blue-500/20"
                       >
-                        <Send size={14} />
+                        {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       </button>
                     </form>
 

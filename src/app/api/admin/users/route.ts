@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
   try {
@@ -42,15 +43,34 @@ export async function POST(request: Request) {
       );
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
+
     const admin = await prisma.adminUser.create({
       data: {
-        name,
-        email: email.trim().toLowerCase(),
-        password: password.trim(),
+        name: name.trim(),
+        email: cleanEmail,
+        password: hashedPassword,
         role: role || "STORE_MANAGER",
         status: status || "ACTIVE",
       },
     });
+
+    // Also sync to User table for login compatibility
+    await prisma.user.upsert({
+      where: { email: cleanEmail },
+      update: {
+        name: name.trim(),
+        password: hashedPassword,
+        role: role || "STORE_MANAGER",
+      },
+      create: {
+        name: name.trim(),
+        email: cleanEmail,
+        password: hashedPassword,
+        role: role || "STORE_MANAGER",
+      },
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -75,7 +95,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, status, role, password } = body;
+    const { id, name, email, status, role, password } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -84,14 +104,40 @@ export async function PUT(request: Request) {
       );
     }
 
+    let hashedPassword: string | undefined = undefined;
+    if (password && password.trim()) {
+      hashedPassword = await bcrypt.hash(password.trim(), 10);
+    }
+
+    const updateData: any = {};
+    if (name) updateData.name = name.trim();
+    if (email) updateData.email = email.trim().toLowerCase();
+    if (status) updateData.status = status;
+    if (role) updateData.role = role;
+    if (hashedPassword) updateData.password = hashedPassword;
+
     const admin = await prisma.adminUser.update({
       where: { id },
-      data: {
-        ...(status && { status }),
-        ...(role && { role }),
-        ...(password && { password: password.trim() }),
-      },
+      data: updateData,
     });
+
+    // Also sync to User table
+    if (admin.email) {
+      await prisma.user.upsert({
+        where: { email: admin.email },
+        update: {
+          name: admin.name,
+          role: admin.role,
+          ...(hashedPassword && { password: hashedPassword }),
+        },
+        create: {
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          password: hashedPassword || "admin123",
+        },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,
@@ -108,6 +154,39 @@ export async function PUT(request: Request) {
     console.error("PUT /api/admin/users error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "ადმინისტრატორის განახლება ვერ მოხერხდა" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "ID აუცილებელია" },
+        { status: 400 }
+      );
+    }
+
+    const admin = await prisma.adminUser.findUnique({ where: { id } });
+    if (admin) {
+      await prisma.adminUser.delete({ where: { id } });
+      if (admin.email) {
+        await prisma.user.delete({ where: { email: admin.email } }).catch(() => {});
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "ადმინისტრატორი წაიშალა MySQL ბაზიდან",
+    });
+  } catch (error: any) {
+    console.error("DELETE /api/admin/users error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "ადმინისტრატორის წაშლა ვერ მოხერხდა" },
       { status: 500 }
     );
   }

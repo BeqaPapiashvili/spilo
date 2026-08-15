@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Settings, Save, Globe, Mail, Phone, MapPin, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Settings, Save, Globe, Mail, Phone, MapPin, Check, Loader2 } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const [storeName, setStoreName] = useState("Spilo E-Commerce");
@@ -10,12 +10,54 @@ export default function AdminSettingsPage() {
   const [address, setAddress] = useState("თბილისი, ჭავჭავაძის გამზირი #34");
   const [currency, setCurrency] = useState("GEL (₾)");
   const [locale, setLocale] = useState("ka-GE");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          const d = res.data;
+          if (d.storeName) setStoreName(d.storeName);
+          if (d.contactEmail) setContactEmail(d.contactEmail);
+          if (d.contactPhone) setContactPhone(d.contactPhone);
+          if (d.address) setAddress(d.address);
+          if (d.currency) setCurrency(d.currency);
+          if (d.locale) setLocale(d.locale);
+        }
+      })
+      .catch((err) => console.error("Error loading settings:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeName,
+          contactEmail,
+          contactPhone,
+          address,
+          currency,
+          locale,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -91,8 +133,19 @@ export default function AdminSettingsPage() {
 
         {/* Save Button */}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button type="submit" className={saved ? "adm-btn-secondary" : "adm-btn-primary"} style={{ padding: "0.625rem 1.5rem" }}>
-            {saved ? <><Check size={15} /> შენახულია!</> : <><Save size={15} /> ცვლილებების შენახვა</>}
+          <button
+            type="submit"
+            disabled={saving}
+            className={saved ? "adm-btn-secondary" : "adm-btn-primary"}
+            style={{ padding: "0.625rem 1.5rem", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            {saving ? (
+              <><Loader2 size={15} className="animate-spin" /> ინახება...</>
+            ) : saved ? (
+              <><Check size={15} /> შენახულია!</>
+            ) : (
+              <><Save size={15} /> ცვლილებების შენახვა</>
+            )}
           </button>
         </div>
       </form>

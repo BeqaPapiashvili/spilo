@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X, Phone, Archive, User, Edit3, AlertTriangle, Lock, Folder, FolderOpen } from "lucide-react";
+import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X, Phone, Archive, User, Edit3, AlertTriangle, Lock, Folder, FolderOpen, FileText, Download } from "lucide-react";
 import { dataService, SupportTicket } from "@/services/dataService";
 
 import { useStore } from "@/store/useStore";
@@ -28,16 +28,13 @@ export default function AdminSupportPage() {
     const unsub = dataService.subscribe(() => {
       const currentTickets = dataService.getSupportTickets();
       setTickets(currentTickets);
-      if (!activeTicketId && currentTickets.length > 0) {
-        setActiveTicketId(currentTickets[0].id);
-      }
     });
 
     return () => {
       clearInterval(pollInterval);
       unsub();
     };
-  }, [activeTicketId]);
+  }, []);
 
   // Smart auto-scroll: Only when activeTicketId changes or new message arrives while user is near bottom
   useEffect(() => {
@@ -119,31 +116,31 @@ export default function AdminSupportPage() {
 
   const handleFilterChange = (filter: "OPEN" | "RESOLVED" | "ALL") => {
     setSelectedFilter(filter);
-    const newFiltered = tickets.filter((t) => {
-      if (filter === "OPEN") return t.status === "OPEN";
-      if (filter === "RESOLVED") return t.status === "RESOLVED" || t.status === "CLOSED";
-      return true;
-    });
-    if (newFiltered.length > 0) {
-      setActiveTicketId(newFiltered[0].id);
-    } else {
-      setActiveTicketId(null);
+    // If active ticket is not in the newly selected filter, unselect it
+    if (activeTicketId) {
+      const activeInNewFilter = tickets.some((t) => {
+        if (t.id !== activeTicketId) return false;
+        if (filter === "OPEN") return t.status === "OPEN";
+        if (filter === "RESOLVED") return t.status === "RESOLVED" || t.status === "CLOSED";
+        return true;
+      });
+      if (!activeInNewFilter) {
+        setActiveTicketId(null);
+      }
     }
   };
 
   const handleCloseTicket = (ticketId: string) => {
     dataService.updateSupportTicketStatus(ticketId, "RESOLVED");
-    if (selectedFilter === "OPEN") {
-      const remainingOpen = tickets.filter(t => t.id !== ticketId && t.status === "OPEN");
-      setActiveTicketId(remainingOpen[0]?.id || null);
+    if (selectedFilter === "OPEN" && activeTicketId === ticketId) {
+      setActiveTicketId(null);
     }
   };
 
   const handleReopenTicket = (ticketId: string) => {
     dataService.updateSupportTicketStatus(ticketId, "OPEN");
-    if (selectedFilter === "RESOLVED") {
-      const remainingResolved = tickets.filter(t => t.id !== ticketId && (t.status === "RESOLVED" || t.status === "CLOSED"));
-      setActiveTicketId(remainingResolved[0]?.id || null);
+    if (selectedFilter === "RESOLVED" && activeTicketId === ticketId) {
+      setActiveTicketId(null);
     }
   };
 
@@ -152,8 +149,7 @@ export default function AdminSupportPage() {
       dataService.deleteSupportTicket(ticketId);
       dataService.syncFromBackend(true);
       if (activeTicketId === ticketId) {
-        const remaining = tickets.filter(t => t.id !== ticketId);
-        setActiveTicketId(remaining[0]?.id || null);
+        setActiveTicketId(null);
       }
     }
   };
@@ -431,7 +427,67 @@ export default function AdminSupportPage() {
                           border: isAdmin ? "none" : "1px solid #e2e8f0",
                         }}
                       >
-                        {msg.text}
+                        <div>{msg.text}</div>
+
+                        {/* Attachment Rendering in Admin Chat */}
+                        {msg.attachment && (
+                          <div style={{ marginTop: "0.5rem" }}>
+                            {msg.attachment.type === "image" && (
+                              <a
+                                href={msg.attachment.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ display: "block", borderRadius: "0.75rem", overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)", maxWidth: "240px" }}
+                              >
+                                <img
+                                  src={msg.attachment.url}
+                                  alt={msg.attachment.name}
+                                  style={{ width: "100%", maxHeight: "200px", objectFit: "cover", display: "block" }}
+                                />
+                              </a>
+                            )}
+
+                            {msg.attachment.type === "video" && (
+                              <div style={{ borderRadius: "0.75rem", overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)", maxWidth: "260px" }}>
+                                <video
+                                  src={msg.attachment.url}
+                                  controls
+                                  style={{ width: "100%", maxHeight: "200px", objectFit: "cover", display: "block" }}
+                                />
+                              </div>
+                            )}
+
+                            {msg.attachment.type === "file" && (
+                              <a
+                                href={msg.attachment.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                download={msg.attachment.name}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.5rem 0.75rem",
+                                  borderRadius: "0.5rem",
+                                  background: isAdmin ? "rgba(255,255,255,0.15)" : "#f8fafc",
+                                  border: isAdmin ? "1px solid rgba(255,255,255,0.3)" : "1px solid #e2e8f0",
+                                  color: isAdmin ? "#ffffff" : "#1e293b",
+                                  textDecoration: "none",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                <FileText size={16} />
+                                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                                  <span>{msg.attachment.name}</span>
+                                  {msg.attachment.size && (
+                                    <span style={{ display: "block", fontSize: "0.65rem", opacity: 0.75 }}>{msg.attachment.size}</span>
+                                  )}
+                                </div>
+                                <Download size={13} style={{ opacity: 0.75 }} />
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <span style={{ fontSize: "0.65rem", color: "#94a3b8", marginTop: "0.25rem", padding: "0 0.25rem" }}>
@@ -522,10 +578,15 @@ export default function AdminSupportPage() {
               </form>
             </>
           ) : (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem", textAlign: "center", color: "#94a3b8" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
-                <MessageSquare size={32} />
-                <p style={{ fontSize: "0.82rem" }}>აირჩიეთ ჩათი მარცხენა სიიდან მიმოწერა რომ დაიწყოთ</p>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem", textAlign: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.875rem", maxWidth: "300px" }}>
+                <div style={{ width: "3.75rem", height: "3.75rem", borderRadius: "1rem", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <MessageSquare size={26} />
+                </div>
+                <h3 style={{ fontSize: "0.95rem", color: "#0f172a", margin: 0 }}>ჩატი არ არის არჩეული</h3>
+                <p style={{ fontSize: "0.78rem", color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+                  მომხმარებელთან მიმოწერის სანახავად და სასაუბროდ გთხოვთ დააჭიროთ სასურველ ჩატს მარცხენა სიიდან.
+                </p>
               </div>
             </div>
           )}

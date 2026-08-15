@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { CreditCard, Check, ShieldCheck, Zap, Lock, Key, Server, Settings2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { CreditCard, Check, ShieldCheck, Zap, Lock, Key, Server, Settings2, Loader2 } from "lucide-react";
 
 interface PaymentGateway {
   id: string;
@@ -15,55 +15,73 @@ interface PaymentGateway {
   commission: number;
 }
 
-export default function AdminPaymentsPage() {
-  const [gateways, setGateways] = useState<PaymentGateway[]>([
-    {
-      id: "bog-ipay",
-      name: "Bank of Georgia (iPay)",
-      provider: "საქართველოს ბანკი",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Bank_of_Georgia_logo.svg",
-      enabled: true,
-      testMode: true,
-      merchantId: "BOG_CLIENT_884920",
-      secretKey: "sk_test_bog_9948271049281729",
-      commission: 1.5,
-    },
-    {
-      id: "tbc-checkout",
-      name: "TBC Checkout",
-      provider: "თიბისი ბანკი",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/4/4b/TBC_Bank_logo.svg",
-      enabled: true,
-      testMode: true,
-      merchantId: "TBC_MERCHANT_440192",
-      secretKey: "sk_test_tbc_8819204918274019",
-      commission: 1.5,
-    },
-    {
-      id: "payze",
-      name: "Payze Payments (Cards + Apple Pay)",
-      provider: "Payze Gateway",
-      logo: "https://payze.io/wp-content/uploads/2021/04/payze-logo.svg",
-      enabled: true,
-      testMode: true,
-      merchantId: "PAYZE_API_KEY_1104",
-      secretKey: "sk_test_payze_44910284729104",
-      commission: 1.8,
-    },
-    {
-      id: "cod",
-      name: "ნაღდი ანგარიშსწორება კურიერთან (Cash on Delivery)",
-      provider: "Spilo Logistics",
-      logo: "",
-      enabled: true,
-      testMode: false,
-      merchantId: "SPILO_COD_INTERNAL",
-      secretKey: "none",
-      commission: 0,
-    },
-  ]);
+const DEFAULT_GATEWAYS: PaymentGateway[] = [
+  {
+    id: "bog-ipay",
+    name: "Bank of Georgia (iPay)",
+    provider: "საქართველოს ბანკი",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Bank_of_Georgia_logo.svg",
+    enabled: true,
+    testMode: true,
+    merchantId: "BOG_CLIENT_884920",
+    secretKey: "sk_test_bog_9948271049281729",
+    commission: 1.5,
+  },
+  {
+    id: "tbc-checkout",
+    name: "TBC Checkout",
+    provider: "თიბისი ბანკი",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/4/4b/TBC_Bank_logo.svg",
+    enabled: true,
+    testMode: true,
+    merchantId: "TBC_MERCHANT_440192",
+    secretKey: "sk_test_tbc_8819204918274019",
+    commission: 1.5,
+  },
+  {
+    id: "payze",
+    name: "Payze Payments (Cards + Apple Pay)",
+    provider: "Payze Gateway",
+    logo: "https://payze.io/wp-content/uploads/2021/04/payze-logo.svg",
+    enabled: true,
+    testMode: true,
+    merchantId: "PAYZE_API_KEY_1104",
+    secretKey: "sk_test_payze_44910284729104",
+    commission: 1.8,
+  },
+  {
+    id: "cod",
+    name: "ნაღდი ანგარიშსწორება კურიერთან (Cash on Delivery)",
+    provider: "Spilo Logistics",
+    logo: "",
+    enabled: true,
+    testMode: false,
+    merchantId: "SPILO_COD_INTERNAL",
+    secretKey: "none",
+    commission: 0,
+  },
+];
 
+export default function AdminPaymentsPage() {
+  const [gateways, setGateways] = useState<PaymentGateway[]>(DEFAULT_GATEWAYS);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data && res.data.payment_gateways) {
+          try {
+            const parsed = JSON.parse(res.data.payment_gateways);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setGateways(parsed);
+            }
+          } catch {}
+        }
+      })
+      .catch((err) => console.error("Error loading gateways:", err));
+  }, []);
 
   const handleToggle = (id: string) => {
     setGateways(gateways.map((g) => (g.id === id ? { ...g, enabled: !g.enabled } : g)));
@@ -73,9 +91,26 @@ export default function AdminPaymentsPage() {
     setGateways(gateways.map((g) => (g.id === id ? { ...g, testMode: !g.testMode } : g)));
   };
 
-  const handleSaveAll = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_gateways: JSON.stringify(gateways),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } catch (err) {
+      console.error("Save payment gateways error:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -93,9 +128,17 @@ export default function AdminPaymentsPage() {
         <button
           type="button"
           onClick={handleSaveAll}
+          disabled={saving}
           className={saved ? "adm-btn-secondary" : "adm-btn-primary"}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
         >
-          {saved ? <><Check size={14} /> შენახულია!</> : <><Check size={14} /> პარამეტრების შენახვა</>}
+          {saving ? (
+            <><Loader2 size={14} className="animate-spin" /> ინახება...</>
+          ) : saved ? (
+            <><Check size={14} /> შენახულია!</>
+          ) : (
+            <><Check size={14} /> პარამეტრების შენახვა</>
+          )}
         </button>
       </div>
 

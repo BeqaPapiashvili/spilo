@@ -100,15 +100,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const currentPrice = product.discountPrice || product.price;
 
   // Add to cart without opening cart drawer (openCart = false)
-  const handleAddToCart = (qty: number = 1) => {
+  const handleAddToCart = (qty: number = 1, options?: { color?: string; storage?: string; hasExtraProtection?: boolean; unitPrice?: number }) => {
+    const finalPrice = options?.unitPrice ? options.unitPrice : product.price + (options?.hasExtraProtection ? 29 : 0);
+    const finalDiscountPrice = product.discountPrice ? (product.discountPrice + (options?.hasExtraProtection ? 29 : 0)) : undefined;
+
     for (let i = 0; i < qty; i++) {
       addToCart(
         {
           id: product.id,
           title: product.title,
-          price: product.price,
-          discountPrice: product.discountPrice,
+          price: finalPrice,
+          discountPrice: finalDiscountPrice,
           image: product.images[0] || product.image || "",
+          color: options?.color,
+          storage: options?.storage,
+          extraProtection: options?.hasExtraProtection,
         },
         false
       );
@@ -117,7 +123,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     setTimeout(() => setIsAdded(false), 2000);
   };
 
-  const handleOpenQuickBuy = (qty: number = 1) => {
+  const handleOpenQuickBuy = (qty: number = 1, options?: { color?: string; storage?: string; hasExtraProtection?: boolean; unitPrice?: number }) => {
     setQuickBuyQty(qty);
     setIsQuickBuyOpen(true);
   };
@@ -236,6 +242,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         {/* Sticky Underline Tabs: Specs, Description, Delivery & FAQ */}
         <div id="product-tabs" className="mt-8">
           <ProductSpecsAndTabs
+            productId={product.id}
             specs={product.specs}
             description={product.description}
             warrantyMonths={product.warrantyMonths}

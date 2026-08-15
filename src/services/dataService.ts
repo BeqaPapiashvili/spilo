@@ -55,6 +55,25 @@ export interface NavigationItem {
   order: number;
 }
 
+export interface ChatAttachment {
+  type: "image" | "video" | "file";
+  url: string;
+  name: string;
+  size?: string;
+}
+
+export interface ChatMessage {
+  id?: string;
+  sender: "user" | "bot" | "admin";
+  text: string;
+  time: string;
+  adminName?: string;
+  adminAvatar?: string;
+  read?: boolean;
+  liked?: boolean | null;
+  attachment?: ChatAttachment;
+}
+
 export interface SupportTicket {
   id: string;
   customerId?: string; // Unique client session ID for private chat isolation
@@ -68,7 +87,7 @@ export interface SupportTicket {
   typingAdminName?: string; // Name of operator currently typing in admin
   assignedToName?: string;  // Name of operator assigned/handling this chat
   time: string;
-  messages: { sender: "user" | "bot" | "admin"; text: string; time: string; adminName?: string; adminAvatar?: string; read?: boolean }[];
+  messages: ChatMessage[];
 }
 
 export interface AuditLog {
@@ -549,7 +568,19 @@ class DataService {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(promo),
-      }).catch((err) => console.warn("Failed async sync promo to MySQL:", err));
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const index = this.promotions.findIndex((p) => p.id === promo.id);
+            if (index >= 0) {
+              this.promotions[index] = { ...this.promotions[index], ...res.data };
+              localStorage.setItem(STORAGE_KEYS.PROMOTIONS, JSON.stringify(this.promotions));
+              this.notify();
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed async sync promo to MySQL:", err));
     }
   }
 
@@ -584,7 +615,19 @@ class DataService {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(coupon),
-      }).catch((err) => console.warn("Failed async sync coupon to MySQL:", err));
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const index = this.coupons.findIndex((c) => c.id === coupon.id);
+            if (index >= 0) {
+              this.coupons[index] = { ...this.coupons[index], ...res.data };
+              localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(this.coupons));
+              this.notify();
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed async sync coupon to MySQL:", err));
     }
   }
 
@@ -618,7 +661,19 @@ class DataService {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(banner),
-      }).catch((err) => console.warn("Failed async sync banner to MySQL:", err));
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const index = this.banners.findIndex((b) => b.id === banner.id);
+            if (index >= 0) {
+              this.banners[index] = { ...this.banners[index], ...res.data };
+              localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(this.banners));
+              this.notify();
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed async sync banner to MySQL:", err));
     }
   }
 
@@ -701,7 +756,8 @@ class DataService {
     text: string,
     topic = "ონლაინ კონსულტაცია",
     customerEmail = "",
-    customerId = ""
+    customerId = "",
+    attachment?: ChatAttachment
   ): string {
     // Ticket lookup strictly based on customerId (exact match) and status === OPEN
     let ticket = this.supportTickets.find(
@@ -741,6 +797,7 @@ class DataService {
       sender: "user",
       text,
       time: timeStr,
+      attachment,
     });
 
     localStorage.setItem(STORAGE_KEYS.SUPPORT, JSON.stringify(this.supportTickets));
@@ -765,7 +822,7 @@ class DataService {
     return ticket.id;
   }
 
-  public addSupportReply(ticketId: string, replyText: string, adminName?: string, adminAvatar = ""): void {
+  public addSupportReply(ticketId: string, replyText: string, adminName?: string, adminAvatar = "", attachment?: ChatAttachment): void {
     let finalAdminName = adminName;
     if (!finalAdminName || finalAdminName === "Beka Papiashvili") {
       try {
@@ -796,6 +853,7 @@ class DataService {
               time: new Date().toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
               adminName: finalAdminName,
               adminAvatar,
+              attachment,
             },
           ],
         };

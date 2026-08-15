@@ -1,19 +1,74 @@
 "use client";
 
-import React, { useState } from "react";
-import { Globe, Save, Check, Search, Share2, Sparkles } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Globe, Save, Check, Search, Share2, Sparkles, Loader2 } from "lucide-react";
 
 export default function AdminSEOManagerPage() {
   const [siteTitle, setSiteTitle] = useState("Spilo — ონლაინ ტექნიკის მაღაზია | ტელეფონები, ლეპტოპები");
   const [metaDesc, setMetaDesc] = useState("შეიძინეთ უახლესი ტექნიკა 0% ონლაინ განვადებით და უფასო მიწოდებით მთელ საქართველოში Spilo-ზე.");
-  const [ogImage, setOgImage] = useState("https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg");
+  const [ogImage, setOgImage] = useState("https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80");
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState("G-SPILO99214");
   const [facebookPixelId, setFacebookPixelId] = useState("FB_PIXEL_8849201");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    fetch("/api/admin/seo")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const homeSeo = res.data.find((s: any) => s.pageSlug === "home") || res.data[0];
+          if (homeSeo) {
+            if (homeSeo.metaTitle) setSiteTitle(homeSeo.metaTitle);
+            if (homeSeo.metaDescription) setMetaDesc(homeSeo.metaDescription);
+            if (homeSeo.metaKeywords) {
+              try {
+                const kw = JSON.parse(homeSeo.metaKeywords);
+                if (kw.ogImage) setOgImage(kw.ogImage);
+                if (kw.googleAnalyticsId) setGoogleAnalyticsId(kw.googleAnalyticsId);
+                if (kw.facebookPixelId) setFacebookPixelId(kw.facebookPixelId);
+              } catch {
+                // Ignore parsing error
+              }
+            }
+          }
+        }
+      })
+      .catch((err) => console.error("Error fetching SEO settings:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const extraMeta = JSON.stringify({
+        ogImage,
+        googleAnalyticsId,
+        facebookPixelId,
+      });
+
+      const res = await fetch("/api/admin/seo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageSlug: "home",
+          metaTitle: siteTitle,
+          metaDescription: metaDesc,
+          metaKeywords: extraMeta,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } catch (err) {
+      console.error("Failed to save SEO:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -31,9 +86,17 @@ export default function AdminSEOManagerPage() {
         <button
           type="button"
           onClick={handleSave}
+          disabled={saving}
           className={saved ? "adm-btn-secondary" : "adm-btn-primary"}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
         >
-          {saved ? <><Check size={14} /> შენახულია!</> : <><Save size={14} /> SEO-ს შენახვა</>}
+          {saving ? (
+            <><Loader2 size={14} className="animate-spin" /> ინახება...</>
+          ) : saved ? (
+            <><Check size={14} /> შენახულია!</>
+          ) : (
+            <><Save size={14} /> SEO-ს შენახვა</>
+          )}
         </button>
       </div>
 

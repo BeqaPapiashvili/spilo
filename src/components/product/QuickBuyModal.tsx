@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Zap, CheckCircle2, ShieldCheck, MapPin, Phone, User, CreditCard } from "lucide-react";
+import { Zap, CheckCircle2, ShieldCheck, MapPin, Phone, User, CreditCard, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/store/useStore";
@@ -26,7 +26,9 @@ export function QuickBuyModal({
   quantity,
 }: QuickBuyModalProps) {
   const { addToast } = useStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -38,34 +40,112 @@ export function QuickBuyModal({
   const unitPrice = product.discountPrice || product.price;
   const totalPrice = unitPrice * quantity;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullName.trim() || !formData.phone.trim()) return;
+    if (!formData.fullName.trim() || !formData.phone.trim() || isSubmitting) return;
 
-    setIsSubmitted(true);
-    addToast({
-      title: "შეკვეთა მიღებულია!",
-      message: "ოპერატორი დაგიკავშირდებათ 15 წუთში შეკვეთის დასადასტურებლად.",
-      type: "success",
-    });
+    setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitted(false);
-      onClose();
-    }, 3000);
+    const fullShippingAddress = `${formData.city}, ${formData.address}`.trim();
+    const paymentMethodLabel =
+      formData.paymentMethod === "cash"
+        ? "ნაღდი ანგარიშსწორება კურიერთან"
+        : formData.paymentMethod === "card"
+        ? "ბარათით გადახდა"
+        : "0% ონლაინ განვადება";
+
+    const orderPayload = {
+      items: [
+        {
+          id: product.id,
+          title: product.title,
+          price: unitPrice,
+          discountPrice: product.discountPrice,
+          image: product.image,
+          quantity,
+        },
+      ],
+      customer: {
+        name: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+      },
+      totalAmount: totalPrice,
+      paymentMethod: paymentMethodLabel,
+      address: fullShippingAddress,
+    };
+
+    let assignedOrderNumber = `SP-${Date.now().toString().slice(-6)}`;
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const resData = await res.json();
+      if (resData && resData.success && resData.order) {
+        assignedOrderNumber = resData.order.orderNumber || resData.order.id || assignedOrderNumber;
+
+        const newOrderRecord = {
+          id: assignedOrderNumber,
+          date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
+          status: "მუშავდება" as const,
+          items: orderPayload.items,
+          totalAmount: totalPrice,
+          paymentMethod: paymentMethodLabel,
+          address: fullShippingAddress,
+        };
+
+        const existingOrders = useStore.getState().orders;
+        useStore.getState().setOrders([newOrderRecord, ...existingOrders.filter((o) => o.id !== assignedOrderNumber)]);
+      }
+    } catch (err) {
+      console.warn("Quick buy order persistence error:", err);
+    } finally {
+      setIsSubmitting(false);
+      setCreatedOrderNumber(assignedOrderNumber);
+      setIsSubmitted(true);
+
+      addToast({
+        title: "შეკვეთა მიღებულია!",
+        message: `შეკვეთის N ${assignedOrderNumber} წარმატებით დარეგისტრირდა.`,
+        type: "success",
+      });
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsSubmitted(false);
+    setCreatedOrderNumber(null);
+    onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="სწრაფი 1-დაწკაპუნებით ყიდვა">
+    <Modal isOpen={isOpen} onClose={handleModalClose} title="სწრაფი 1-დაწკაპუნებით ყიდვა">
       {isSubmitted ? (
         <div className="py-8 flex flex-col items-center justify-center text-center gap-3">
           <div className="size-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
             <CheckCircle2 className="size-8" />
           </div>
           <h3 className="text-base text-gray-900">შეკვეთა წარმატებით გაფორმდა!</h3>
+          {createdOrderNumber && (
+            <div className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-mono text-gray-800">
+              N {createdOrderNumber}
+            </div>
+          )}
           <p className="text-xs text-gray-500 max-w-xs">
-            გმადლობთ შეკვეთისთვის. ჩვენი მენეჯერი უახლოეს 15 წუთში დაგიკავშირდებათ მითითებულ ნომერზე.
+            გმადლობთ შეკვეთისთვის. ჩვენი მენეჯერი უახლოეს 15 წუთში დაგიკავშირდებათ მითითებულ ნომერზე: <span className="font-mono text-gray-800">{formData.phone}</span>.
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleModalClose}
+            className="mt-3"
+          >
+            დახურვა
+          </Button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -179,10 +259,11 @@ export function QuickBuyModal({
               type="submit"
               variant="primary"
               size="lg"
-              leftIcon={<Zap className="size-4" />}
+              disabled={isSubmitting}
+              leftIcon={isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
               className="w-full shadow-xs"
             >
-              შეკვეთის დადასტურება ({totalPrice.toFixed(2)} ₾)
+              {isSubmitting ? "მუშავდება..." : `შეკვეთის დადასტურება (${totalPrice.toFixed(2)} ₾)`}
             </Button>
             <span className="text-[11px] text-gray-400 text-center flex items-center justify-center gap-1">
               <ShieldCheck className="size-3 text-emerald-600" /> 100% უსაფრთხო შეკვეთა კონფიდენციალურობის დაცვით

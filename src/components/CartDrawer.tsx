@@ -53,6 +53,13 @@ export default function CartDrawer() {
                     <img src={item.image} alt={item.title} className="w-16 h-16 object-contain bg-white p-1 rounded-xl shrink-0" />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xs md:text-sm text-gray-900 truncate">{item.title}</h3>
+                      {(item.color || item.storage || item.extraProtection) && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.color && <span className="text-[10px] text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded-md">{item.color}</span>}
+                          {item.storage && <span className="text-[10px] text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded-md">{item.storage}</span>}
+                          {item.extraProtection && <span className="text-[10px] text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-md">+2 წელი გარანტია</span>}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between mt-2">
                         <div className="text-sm md:text-base text-gray-900 tracking-tight">
                           {((item.discountPrice || item.price) * item.quantity).toFixed(2)} ₾

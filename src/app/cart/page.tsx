@@ -144,6 +144,13 @@ export default function CartPage() {
                       >
                         {item.title}
                       </Link>
+                      {(item.color || item.storage || item.extraProtection) && (
+                        <div className="flex flex-wrap gap-1.5 py-0.5">
+                          {item.color && <span className="text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">{item.color}</span>}
+                          {item.storage && <span className="text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">{item.storage}</span>}
+                          {item.extraProtection && <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">+2 წელი გარანტია</span>}
+                        </div>
+                      )}
                       <div className="flex items-baseline gap-2">
                         <span className="text-sm md:text-base text-gray-900">
                           {((item.discountPrice || item.price) * item.quantity).toFixed(2)} ₾

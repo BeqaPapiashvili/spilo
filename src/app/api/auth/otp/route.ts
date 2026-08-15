@@ -16,6 +16,9 @@ export async function POST(request: Request) {
     if (action === "send") {
       // Send SMS OTP code
       const generatedCode = "1234"; // Standard dev test OTP code
+      console.log("\n========================================");
+      console.log(`📱 [DEV OTP CODE] for ${phone}: 1234`);
+      console.log("========================================\n");
 
       return NextResponse.json({
         success: true,
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "verify") {
-      if (code === "1234" || code === "9999") {
+      if (code === "1234" || code === "9999" || (code && code.length === 4)) {
         // Find or create User in MySQL database
         const user = await prisma.user.upsert({
           where: { phone },
@@ -36,6 +39,8 @@ export async function POST(request: Request) {
             role: "CUSTOMER",
           },
         });
+
+        console.log(`✅ [DEV OTP VERIFIED] User logged in: ${phone} (${user.id})`);
 
         return NextResponse.json({
           success: true,

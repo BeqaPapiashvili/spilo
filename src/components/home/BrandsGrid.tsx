@@ -1,31 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { dataService } from "@/services/dataService";
-import { Brand } from "@/types";
+import { ResolvedBrandItem } from "@/lib/storefrontFeed";
 
-export default function BrandsGrid() {
-  const [brands, setBrands] = useState<Brand[]>([]);
+interface BrandsGridProps {
+  title?: string | null;
+  subtitle?: string | null;
+  brands?: ResolvedBrandItem[];
+  config?: any;
+}
 
-  useEffect(() => {
-    setBrands(dataService.getBrands());
-    const unsub = dataService.subscribe(() => {
-      setBrands(dataService.getBrands());
-    });
-    return () => unsub();
-  }, []);
+export default function BrandsGrid({
+  title,
+  subtitle,
+  brands = [],
+}: BrandsGridProps) {
+  if (!brands || brands.length === 0) return null;
 
   return (
-    <section className="py-6">
+    <section className="py-4">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-xl md:text-2xl text-gray-900 tracking-tight">
-              ოფიციალური ბრენდები
+              {title || "ოფიციალური ბრენდები"}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              მსოფლიო დონის მწარმოებლები ოფიციალური გარანტიით
+              {subtitle || "მსოფლიო დონის მწარმოებლები ოფიციალური გარანტიით"}
             </p>
           </div>
         </div>
@@ -44,9 +45,9 @@ export default function BrandsGrid() {
                   className="max-h-8 md:max-h-10 max-w-[80%] object-contain filter grayscale group-hover:grayscale-0 transition-all opacity-80 group-hover:opacity-100"
                 />
               ) : (
-                <span className="text-xs font-semibold text-gray-700">{brand.name}</span>
+                <span className="text-xs text-gray-700">{brand.name}</span>
               )}
-              <span className="text-[11px] text-gray-500 mt-1 font-medium group-hover:text-gray-900 transition-colors truncate">
+              <span className="text-[11px] text-gray-500 mt-1 group-hover:text-gray-900 transition-colors truncate">
                 {brand.name}
               </span>
             </Link>

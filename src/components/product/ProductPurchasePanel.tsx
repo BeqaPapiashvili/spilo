@@ -20,6 +20,13 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/store/useStore";
 
+export interface ProductPurchaseOptions {
+  color?: string;
+  storage?: string;
+  hasExtraProtection?: boolean;
+  unitPrice?: number;
+}
+
 interface ProductPurchasePanelProps {
   product: {
     id: string;
@@ -42,8 +49,8 @@ interface ProductPurchasePanelProps {
   isAdded: boolean;
   onToggleWishlist: () => void;
   onToggleCompare: () => void;
-  onAddToCart: (qty: number) => void;
-  onOpenQuickBuy: (qty: number) => void;
+  onAddToCart: (qty: number, options?: ProductPurchaseOptions) => void;
+  onOpenQuickBuy: (qty: number, options?: ProductPurchaseOptions) => void;
 }
 
 export function ProductPurchasePanel({
@@ -62,7 +69,17 @@ export function ProductPurchasePanel({
   const [purchaseMode, setPurchaseMode] = useState<"direct" | "installment">("direct");
   const [selectedBank, setSelectedBank] = useState<"TBC" | "BOG" | "Credo" | "Space">("TBC");
   const [installmentMonths, setInstallmentMonths] = useState<number>(12);
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
+    const defaults: Record<string, string> = {};
+    if (product.variants && product.variants.length > 0) {
+      product.variants.forEach((v) => {
+        if (v.options && v.options.length > 0) {
+          defaults[v.id] = v.options[0].value;
+        }
+      });
+    }
+    return defaults;
+  });
   const [hasExtraProtection, setHasExtraProtection] = useState(false);
   const [isPriceAlertActive, setIsPriceAlertActive] = useState(false);
 
@@ -378,7 +395,16 @@ export function ProductPurchasePanel({
           {/* 1-Click Buy Primary Button using Button UI component */}
           <Button
             type="button"
-            onClick={() => onOpenQuickBuy(quantity)}
+            onClick={() => {
+              const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
+              const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
+              onOpenQuickBuy(quantity, {
+                color: colorVal,
+                storage: storageVal,
+                hasExtraProtection,
+                unitPrice,
+              });
+            }}
             variant="primary"
             size="lg"
             leftIcon={<Zap className="size-4" />}
@@ -391,7 +417,16 @@ export function ProductPurchasePanel({
         {/* Add to Cart Secondary Button using Button UI component */}
         <Button
           type="button"
-          onClick={() => onAddToCart(quantity)}
+          onClick={() => {
+            const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
+            const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
+            onAddToCart(quantity, {
+              color: colorVal,
+              storage: storageVal,
+              hasExtraProtection,
+              unitPrice,
+            });
+          }}
           variant="secondary"
           size="lg"
           leftIcon={isAdded ? <Check className="size-5 text-emerald-600" /> : <ShoppingBag className="size-5" />}

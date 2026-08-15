@@ -8,7 +8,16 @@ import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
 import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
 
-export default function FlashDealsSection() {
+interface FlashDealsSectionProps {
+  title?: string | null;
+  subtitle?: string | null;
+  config?: {
+    limit?: number;
+    showTimer?: boolean;
+  } | null;
+}
+
+export default function FlashDealsSection({ title, subtitle, config }: FlashDealsSectionProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

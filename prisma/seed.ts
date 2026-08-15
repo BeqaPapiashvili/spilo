@@ -51,6 +51,20 @@ async function main() {
       },
     });
   }
+
+  // Ensure photo-video and mobiles exist
+  await prisma.category.upsert({
+    where: { id: "photo-video" },
+    update: { name: "ფოტო & ვიდეო", slug: "photo-video" },
+    create: { id: "photo-video", name: "ფოტო & ვიდეო", slug: "photo-video", icon: "Camera" },
+  });
+
+  await prisma.category.upsert({
+    where: { id: "mobiles" },
+    update: { name: "მობილურები", slug: "mobiles" },
+    create: { id: "mobiles", name: "მობილურები", slug: "mobiles", icon: "Smartphone" },
+  });
+
   console.log("✅ Seeded Categories");
 
   // 3. Seed Products
@@ -83,7 +97,7 @@ async function main() {
       discountPercentage: 6,
       monthlyInstallment: 172,
       stock: 8,
-      categoryId: "phones",
+      categoryId: "mobiles",
       brandId: "apple",
       images: ["https://veli.store/media-cdn/__sized__/product/iPhone_16_Pro_Max_Desert_Titanium_PDP_Image_Position_1__en-US_1-thumbnail-200x200-95.jpg"],
       isFeatured: true,
@@ -158,12 +172,95 @@ async function main() {
   }
   console.log("✅ Seeded Delivery Zones");
 
-  // 7. Seed System Settings
+  // 7. Seed Reviews
+  const reviewsData = [
+    {
+      id: "rev-1",
+      productId: "dji-neo",
+      author: "გიორგი მაისურაძე",
+      rating: 5,
+      comment: "შესანიშნავი დრონია! ძალიან მარტივი სამართავია და გადაღების ხარისხი 4K-ში უმაღლესია.",
+      verifiedPurchase: true,
+      likes: 12,
+    },
+    {
+      id: "rev-2",
+      productId: "iphone-16-pro-max",
+      author: "ნინო ჩხეიძე",
+      rating: 5,
+      comment: "Desert Titanium ფერი ულამაზესია. ელემენტი მთელი 2 დღე ძლებს, კამერა საოცრებაა!",
+      verifiedPurchase: true,
+      likes: 24,
+    },
+  ];
+
+  for (const rev of reviewsData) {
+    await prisma.review.upsert({
+      where: { id: rev.id },
+      update: rev,
+      create: rev,
+    });
+  }
+  console.log("✅ Seeded Reviews");
+
+  // 8. Seed Product Variants
+  const variantsData = [
+    {
+      id: "var-ip16pm-desert-256",
+      productId: "iphone-16-pro-max",
+      name: "ფერი",
+      type: "color",
+      label: "Desert Titanium",
+      value: "desert-titanium",
+      colorHex: "#D4B996",
+      priceModifier: 0,
+      stock: 5,
+      sku: "IP16PM-DT-256",
+    },
+    {
+      id: "var-ip16pm-black-256",
+      productId: "iphone-16-pro-max",
+      name: "ფერი",
+      type: "color",
+      label: "Black Titanium",
+      value: "black-titanium",
+      colorHex: "#3C3B37",
+      priceModifier: 0,
+      stock: 3,
+      sku: "IP16PM-BT-256",
+    },
+    {
+      id: "var-ip16pm-natural-512",
+      productId: "iphone-16-pro-max",
+      name: "მეხსიერება",
+      type: "text",
+      label: "512 GB",
+      value: "512gb",
+      priceModifier: 600,
+      stock: 4,
+      sku: "IP16PM-NT-512",
+    },
+  ];
+
+  for (const v of variantsData) {
+    await prisma.productVariant.upsert({
+      where: { id: v.id },
+      update: v,
+      create: v,
+    });
+  }
+  console.log("✅ Seeded Product Variants");
+
+  // 9. Seed System Settings
   const defaultSettings = [
-    { key: "site_name", value: "Spilo.ge" },
-    { key: "support_phone", value: "+995 32 2 00 00 00" },
-    { key: "support_email", value: "info@spilo.ge" },
-    { key: "free_shipping_threshold", value: "100" },
+    { key: "storeName", value: "Spilo E-Commerce" },
+    { key: "contactEmail", value: "info@spilo.ge" },
+    { key: "contactPhone", value: "+995 32 2 00 00 00" },
+    { key: "address", value: "თბილისი, ჭავჭავაძის გამზირი #34" },
+    { key: "freeShippingThreshold", value: "100" },
+    { key: "standardDeliveryFee", value: "5" },
+    { key: "expressDeliveryFee", value: "15" },
+    { key: "regionsDeliveryFee", value: "10" },
   ];
 
   for (const s of defaultSettings) {
@@ -174,6 +271,230 @@ async function main() {
     });
   }
   console.log("✅ Seeded System Settings");
+
+  // 10. Seed Granular Storefront Sections
+  await prisma.storefrontSection.deleteMany();
+
+  const granularSections = [
+    {
+      key: "hero_banner",
+      type: "HERO_BANNER",
+      title: "Hero Banner Carousel (მთავარი ბანერები)",
+      subtitle: "სლაიდერი აქციებისა და შეთავაზებებისთვის",
+      isEnabled: true,
+      sortOrder: 0,
+      config: {
+        autoplay: true,
+        interval: 5000,
+        heroSlides: [
+          {
+            id: "hero-1",
+            image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80",
+            badge: "სპეციალური შეთავაზება",
+            title: "იპოვე იდეალური საჩუქარი ყველასთვის",
+            subtitle: "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად spilo-თი",
+            buttonText: "შეარჩიე საჩუქარი",
+            link: "/catalog",
+          },
+          {
+            id: "hero-2",
+            image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1400&q=80",
+            badge: "Next-Gen Gaming",
+            title: "PlayStation 5 & VR2 ექსკლუზივი",
+            subtitle: "საუკეთესო ფასები და 0% განვადება წამყვან ბანკებში",
+            buttonText: "გეიმინგ კატალოგი",
+            link: "/catalog?category=gaming",
+          },
+          {
+            id: "hero-3",
+            image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80",
+            badge: "Apple Official",
+            title: "iPhone 16 Pro & Apple Intelligence",
+            subtitle: "ტიტანის კორპუსი და პროფესიონალური კამერის სისტემა",
+            buttonText: "აღმოაჩინე",
+            link: "/catalog?brand=apple",
+          },
+        ],
+      },
+    },
+    {
+      key: "categories_grid",
+      type: "CATEGORY_GRID",
+      title: "Category Cards Carousel (კატეგორიები)",
+      subtitle: "სწრაფი ნავიგაციის კატეგორიების ბარათები",
+      isEnabled: true,
+      sortOrder: 1,
+      config: { limit: 8 },
+    },
+    {
+      key: "dji_products",
+      type: "PRODUCT_CAROUSEL",
+      title: "DJI ტექნიკა & აქსესუარები",
+      subtitle: "პროფესიონალური დრონები და სტაბილიზატორები",
+      isEnabled: true,
+      sortOrder: 2,
+      config: { brand: "dji", categoryId: "photo-video", limit: 8, targetLink: "/catalog?category=photo-video" },
+    },
+    {
+      key: "promo_cards",
+      type: "PROMO_CAROUSEL",
+      title: "სპეციალური შეთავაზებები (Promo Cards)",
+      subtitle: "აქციები და ფასდაკლების ბარათები",
+      isEnabled: true,
+      sortOrder: 3,
+      config: {
+        promoCards: [
+          {
+            id: "pc-1",
+            title: "ტანსაცმელი & ფეხსაცმელი",
+            badge: "40%-მდე",
+            bgColor: "#FFC5E3",
+            bgImageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80",
+            link: "/catalog",
+          },
+          {
+            id: "pc-2",
+            title: "აუდიოტექნიკა",
+            badge: "40%-მდე",
+            bgColor: "#E2D9FF",
+            bgImageUrl: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=500&q=80",
+            link: "/catalog?category=audio",
+          },
+          {
+            id: "pc-3",
+            title: "ქართული ბრენდები",
+            badge: "40%-მდე",
+            bgColor: "#FFE6C7",
+            bgImageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
+            link: "/catalog",
+          },
+        ],
+      },
+    },
+    {
+      key: "mobile_products",
+      type: "PRODUCT_CAROUSEL",
+      title: "სმარტფონები & აქსესუარები",
+      subtitle: "უახლესი ფლაგმანური სმარტფონები ოფიციალური გარანტიით",
+      isEnabled: true,
+      sortOrder: 4,
+      config: { categoryId: "mobiles", limit: 8, targetLink: "/catalog?category=mobiles" },
+    },
+    {
+      key: "apple_promo_banner",
+      type: "BANNER",
+      title: "iPhone 16 Pro Series",
+      subtitle: "ტიტანის კორპუსი, A18 Pro ჩიპი და ინოვაციური კამერის მართვა. 0%-იანი ონლაინ განვადებით.",
+      isEnabled: true,
+      sortOrder: 5,
+      config: {
+        tagText: "Apple Flagship",
+        buttonText: "ყიდვა",
+        bannerUrl: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80",
+        link: "/catalog",
+      },
+    },
+    {
+      key: "laptop_products",
+      type: "PRODUCT_CAROUSEL",
+      title: "ლეპტოპები & კომპიუტერები",
+      subtitle: "სამუშაო და გეიმინგ ლეპტოპები საუკეთესო ფასად",
+      isEnabled: true,
+      sortOrder: 6,
+      config: { categoryId: "laptops", limit: 8, targetLink: "/catalog?category=laptops" },
+    },
+    {
+      key: "ps5_promo_banner",
+      type: "BANNER",
+      title: "PlayStation 5 Slim & DualSense",
+      subtitle: "ჩაერთე გეიმინგის ახალ ეპოქაში. 4K 120Hz გრაფიკა და ულტრა-სწრაფი SSD.",
+      isEnabled: true,
+      sortOrder: 7,
+      config: {
+        tagText: "Next-Gen Gaming",
+        buttonText: "კონსოლების ნახვა",
+        bannerUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1400&q=80",
+        link: "/catalog",
+      },
+    },
+    {
+      key: "brands_carousel",
+      type: "BRAND_GRID",
+      title: "ოფიციალური ბრენდები",
+      subtitle: "მსოფლიო დონის მწარმოებლები ოფიციალური გარანტიით",
+      isEnabled: true,
+      sortOrder: 8,
+      config: {},
+    },
+    {
+      key: "recently_viewed",
+      type: "RECENTLY_VIEWED",
+      title: "Recently Viewed (ბოლოს ნანახი)",
+      subtitle: "მომხმარებლის მიერ ბოლოს დათვალიერებული ნივთები",
+      isEnabled: true,
+      sortOrder: 9,
+      config: {},
+    },
+    {
+      key: "trust_strip",
+      type: "TRUST_STRIP",
+      title: "Spilo გარანტია & სერვისები",
+      subtitle: "სწრაფი მიწოდება, ოფიციალური გარანტია, 0% განვადება და სასაჩუქრე შეფუთვა",
+      isEnabled: true,
+      sortOrder: 10,
+      config: {
+        trustItems: [
+          {
+            id: "trust-1",
+            icon: "Truck",
+            title: "სწრაფი მიწოდება",
+            subtitle: "უფასოდ მთელ საქართველოში",
+            link: "/page/delivery",
+            iconColor: "#2563eb",
+          },
+          {
+            id: "trust-2",
+            icon: "ShieldCheck",
+            title: "ოფიციალური გარანტია",
+            subtitle: "100% ორიგინალი პროდუქცია",
+            link: "/page/warranty",
+            iconColor: "#16a34a",
+          },
+          {
+            id: "trust-3",
+            icon: "CreditCard",
+            title: "0% განვადება",
+            subtitle: "ყველა წამყვან ბანკში",
+            link: "/page/installments",
+            iconColor: "#d97706",
+          },
+          {
+            id: "trust-4",
+            icon: "Sparkles",
+            title: "სასაჩუქრე შეფუთვა",
+            subtitle: "უფასო შეფუთვა და ბარათი",
+            link: "/catalog",
+            iconColor: "#9333ea",
+          },
+        ],
+      },
+    },
+  ];
+
+  for (const sec of granularSections) {
+    await prisma.storefrontSection.create({
+      data: {
+        key: sec.key,
+        type: sec.type,
+        title: sec.title,
+        subtitle: sec.subtitle,
+        isEnabled: sec.isEnabled,
+        sortOrder: sec.sortOrder,
+        config: sec.config,
+      },
+    });
+  }
+  console.log("✅ Seeded Granular Storefront Sections");
 
   console.log("🎉 MySQL Seed Completed Successfully!");
 }

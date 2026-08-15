@@ -1,18 +1,57 @@
 "use client";
 
-import React, { useState } from "react";
-import { Truck, Check, Save, MapPin, DollarSign, Clock, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Truck, Check, Save, MapPin, DollarSign, Clock, ShieldCheck, Loader2 } from "lucide-react";
 
 export default function AdminDeliveryPage() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(100);
   const [standardDeliveryFee, setStandardDeliveryFee] = useState(5);
   const [expressDeliveryFee, setExpressDeliveryFee] = useState(15);
   const [regionsDeliveryFee, setRegionsDeliveryFee] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    fetch("/api/admin/delivery")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          const d = res.data;
+          if (d.freeShippingThreshold !== undefined) setFreeShippingThreshold(Number(d.freeShippingThreshold));
+          if (d.standardDeliveryFee !== undefined) setStandardDeliveryFee(Number(d.standardDeliveryFee));
+          if (d.expressDeliveryFee !== undefined) setExpressDeliveryFee(Number(d.expressDeliveryFee));
+          if (d.regionsDeliveryFee !== undefined) setRegionsDeliveryFee(Number(d.regionsDeliveryFee));
+        }
+      })
+      .catch((err) => console.error("Error loading delivery settings:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/delivery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          freeShippingThreshold,
+          standardDeliveryFee,
+          expressDeliveryFee,
+          regionsDeliveryFee,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } catch (err) {
+      console.error("Failed to save delivery settings:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -30,9 +69,17 @@ export default function AdminDeliveryPage() {
         <button
           type="button"
           onClick={handleSave}
+          disabled={saving}
           className={saved ? "adm-btn-secondary" : "adm-btn-primary"}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
         >
-          {saved ? <><Check size={14} /> შენახულია!</> : <><Save size={14} /> პარამეტრების შენახვა</>}
+          {saving ? (
+            <><Loader2 size={14} className="animate-spin" /> ინახება...</>
+          ) : saved ? (
+            <><Check size={14} /> შენახულია!</>
+          ) : (
+            <><Save size={14} /> პარამეტრების შენახვა</>
+          )}
         </button>
       </div>
 

@@ -4,7 +4,13 @@ import PromoCarousel from "@/components/PromoCarousel";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-export default function PromoBannersSection() {
+interface PromoBannersSectionProps {
+  title?: string | null;
+  subtitle?: string | null;
+  config?: any;
+}
+
+export default function PromoBannersSection({ title, subtitle }: PromoBannersSectionProps = {}) {
   return (
     <div className="space-y-14">
       {/* Promo Banner Swiper */}

@@ -71,22 +71,22 @@ export default function Footer() {
           <div>
             <h5 className="text-lg mb-4 text-white">კატეგორიები</h5>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">ტექნიკა</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">სილამაზე & მოვლა</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">სახლი & ეზო</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">ტანსაცმელი</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">საბავშვო</Link></li>
+              <li><Link href="/catalog?category=mobiles" className="hover:text-blue-400 transition-colors">ტექნიკა & სმარტფონები</Link></li>
+              <li><Link href="/catalog?category=laptops" className="hover:text-blue-400 transition-colors">ლეპტოპები & IT</Link></li>
+              <li><Link href="/catalog?category=audio" className="hover:text-blue-400 transition-colors">აუდიო & ყურსასმენები</Link></li>
+              <li><Link href="/catalog?category=tablets" className="hover:text-blue-400 transition-colors">ტაბლეტები</Link></li>
+              <li><Link href="/catalog?category=smartwatch" className="hover:text-blue-400 transition-colors">სმარტ საათები</Link></li>
             </ul>
           </div>
 
           <div>
             <h5 className="text-lg mb-4 text-white">ინფორმაცია</h5>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">ჩვენ შესახებ</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">მიწოდების პირობები</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">განვადება</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">კონფიდენციალურობა</Link></li>
-              <li><Link href="#" className="hover:text-blue-400 transition-colors">წესები და პირობები</Link></li>
+              <li><Link href="/page/about" className="hover:text-blue-400 transition-colors">ჩვენ შესახებ</Link></li>
+              <li><Link href="/page/delivery" className="hover:text-blue-400 transition-colors">მიწოდების პირობები</Link></li>
+              <li><Link href="/page/installments" className="hover:text-blue-400 transition-colors">0% განვადება</Link></li>
+              <li><Link href="/page/privacy" className="hover:text-blue-400 transition-colors">კონფიდენციალურობა</Link></li>
+              <li><Link href="/page/terms" className="hover:text-blue-400 transition-colors">წესები და პირობები</Link></li>
             </ul>
           </div>
 

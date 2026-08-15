@@ -18,7 +18,30 @@ export default function AdminAuditLogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    // Initial local logs
     setLogs(dataService.getAuditLogs());
+
+    // Fetch live MySQL logs
+    fetch("/api/admin/audit-logs")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const dbMapped: AuditLog[] = res.data.map((l: any) => ({
+            id: l.id,
+            timestamp: new Date(l.createdAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+            userName: l.adminEmail || "Admin User",
+            action: l.action,
+            entity: l.target,
+            details: `${l.action} შესრულდა ობიექტზე: ${l.target}`,
+          }));
+          setLogs((prev) => {
+            const ids = new Set(dbMapped.map((d) => d.id));
+            return [...dbMapped, ...prev.filter((p) => !ids.has(p.id))];
+          });
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch MySQL audit logs:", err));
+
     const unsub = dataService.subscribe(() => setLogs(dataService.getAuditLogs()));
     return () => unsub();
   }, []);

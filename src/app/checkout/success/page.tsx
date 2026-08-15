@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Package, Home, ShoppingBag, FileText } from "lucide-react";
 import Link from "next/link";
@@ -10,26 +10,54 @@ import { useStore } from "@/store/useStore";
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId") || "SPL-92841";
-  const { orders } = useStore();
+  const { orders, setOrders } = useStore();
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [dbOrder, setDbOrder] = useState<any | null>(null);
 
-  const activeOrder = orders.find((o) => o.id === orderId) || {
+  useEffect(() => {
+    if (orderId) {
+      fetch(`/api/orders/${encodeURIComponent(orderId)}`)
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success && res.data) {
+            const o = res.data;
+            const mapped = {
+              id: o.orderNumber || o.id,
+              rawId: o.id,
+              date: new Date(o.createdAt).toLocaleDateString("ka-GE", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+              status:
+                o.status === "DELIVERED"
+                  ? "ჩაბარებულია"
+                  : o.status === "SHIPPED"
+                  ? "გზაშია"
+                  : o.status === "CANCELLED"
+                  ? "გაუქმებულია"
+                  : "მუშავდება",
+              items: Array.isArray(o.items) ? o.items : [],
+              totalAmount: o.totalAmount,
+              paymentMethod: o.paymentMethod || "ბარათით გადახდა",
+              address: o.shippingAddress || "",
+            };
+            setDbOrder(mapped);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [orderId]);
+
+  const storeOrder = orders.find((o) => o.id === orderId);
+  const activeOrder = dbOrder || storeOrder || {
     id: orderId,
-    date: "14 აგვისტო, 2026",
+    date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
     status: "მუშავდება" as const,
-    items: [
-      {
-        id: "dji-neo",
-        title: "დრონი DJI Neo Drone Gray",
-        price: 799,
-        discountPrice: 699,
-        image: "https://veli.store/media-cdn/__sized__/product/DJI_Neo_Drone-1-thumbnail-200x200-95.jpeg",
-        quantity: 1,
-      }
-    ],
-    totalAmount: 699,
-    paymentMethod: "0% ონლაინ განვადება (TBC)",
-    address: "თბილისი, ჭავჭავაძის გამზ. 34, ბინა 12",
+    items: [],
+    totalAmount: 0,
+    paymentMethod: "საბანკო ბარათი",
+    address: "თბილისი, საქართველო",
   };
 
   return (
