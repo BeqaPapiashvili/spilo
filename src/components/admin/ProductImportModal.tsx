@@ -3,7 +3,6 @@
 import React, { useState, useRef } from "react";
 import { UploadCloud, FileText, Download, Check, AlertCircle, X, Loader2, Sparkles } from "lucide-react";
 import { parseProductsCSV, generateSampleProductsCSV, downloadFile, ParsedProduct } from "@/utils/exportImport";
-import { dataService } from "@/services/dataService";
 
 export const ProductImportModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const [file, setFile] = useState<File | null>(null);
@@ -37,26 +36,38 @@ export const ProductImportModal: React.FC<{ isOpen: boolean; onClose: () => void
     reader.readAsText(selectedFile, "UTF-8");
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (parsedProducts.length === 0) return;
 
     setIsProcessing(true);
     let count = 0;
 
-    parsedProducts.forEach((p) => {
-      dataService.saveProduct(p);
-      count++;
-    });
-
-    dataService.logAction(
-      "Beka Papiashvili",
-      "BULK_PRODUCT_IMPORT",
-      `Products Import`,
-      `წარმატებით დაიმპორტდა ${count} ახალი პროდუქტი CSV ფაილიდან (${file?.name || "import.csv"})`
-    );
-
-    setIsProcessing(false);
-    setSuccessCount(count);
+    try {
+      for (const p of parsedProducts) {
+        await fetch("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: p.title,
+            slug: p.slug || p.title.toLowerCase().replace(/\s+/g, "-"),
+            sku: p.sku || `SKU-${Date.now()}-${count}`,
+            description: p.description || "",
+            price: Number(p.price),
+            discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+            stock: Number(p.stock || 10),
+            categoryId: p.categoryId || "mobiles",
+            brandId: p.brandId || "apple",
+            images: p.images || [p.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80"],
+          }),
+        });
+        count++;
+      }
+      setSuccessCount(count);
+    } catch (err) {
+      console.error("Bulk import error:", err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (

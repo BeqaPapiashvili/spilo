@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { signToken, setAuthCookie } from "@/lib/jwt";
 
 export async function POST(request: Request) {
   try {
@@ -47,8 +48,8 @@ export async function POST(request: Request) {
       });
 
       if (admin) {
-        const hashedAdminPassword = admin.password?.startsWith("$2a$") || admin.password?.startsWith("$2b$") 
-          ? admin.password 
+        const hashedAdminPassword = admin.password?.startsWith("$2a$") || admin.password?.startsWith("$2b$")
+          ? admin.password
           : await bcrypt.hash(admin.password || submittedPassword, 10);
 
         user = await prisma.user.upsert({
@@ -75,25 +76,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify password using bcrypt compare or legacy plain text comparison
+    // Verify password strictly using bcrypt compare (backdoors removed)
     const storedPassword = user.password || "";
     let isPasswordValid = false;
 
     if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
       isPasswordValid = await bcrypt.compare(submittedPassword, storedPassword);
-    } else {
-      isPasswordValid =
-        storedPassword === submittedPassword ||
-        (user.role === "SUPER_ADMIN" && (submittedPassword === "admin123" || submittedPassword === "admin"));
-      
+    } else if (storedPassword && storedPassword === submittedPassword) {
+      isPasswordValid = true;
       // Auto-migrate legacy plain text password to bcrypt hash
-      if (isPasswordValid && submittedPassword) {
-        const newHash = await bcrypt.hash(submittedPassword, 10);
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { password: newHash },
-        }).catch(() => {});
-      }
+      const newHash = await bcrypt.hash(submittedPassword, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: newHash },
+      }).catch(() => {});
     }
 
     if (!isPasswordValid) {
@@ -103,11 +99,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Include ALL admin roles (SUPER_ADMIN, STORE_MANAGER, SUPPORT_AGENT, CATALOG_MANAGER, ADMIN)
     const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"].includes(user.role);
 
-    return NextResponse.json({
+    const sessionPayload = {
+      userId: user.id,
+      name: user.name || targetEmail.split("@")[0],
+      email: user.email || targetEmail,
+      role: user.role,
+    };
+
+    // Sign cryptographic JWT token
+    const token = await signToken(sessionPayload);
+
+    const response = NextResponse.json({
       success: true,
+      token,
       user: {
         id: user.id,
         name: user.name || targetEmail.split("@")[0],
@@ -123,9 +129,14 @@ export async function POST(request: Request) {
             role: user.role,
           }
         : null,
-      adminToken: isAdminRole ? `admin_token_${user.id}_${Date.now()}` : null,
+      adminToken: isAdminRole ? token : null,
       message: "ავტორიზაცია წარმატებით დასრულდა",
     });
+
+    // Set signed JWT in secure HTTP-only cookie
+    setAuthCookie(response, token);
+
+    return response;
   } catch (error: any) {
     console.error("POST /api/auth/login error:", error);
     return NextResponse.json(

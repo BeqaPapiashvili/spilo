@@ -77,8 +77,14 @@ function ProfileContent() {
   const { user, adminUser, setUser, wishlist, toggleAuthModal, addToast } = useStore();
   const isAdmin = !!user && (!!adminUser || ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN", "MODERATOR", "MANAGER"].includes(user.role || ""));
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.warn("Logout error:", e);
+    }
     setUser(null);
+    useStore.getState().logoutAdmin();
     addToast({
       title: "გამოსვლა",
       message: "თქვენ წარმატებით გამოხვედით სისტემიდან",

@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Flame } from "lucide-react";
 import ProductCarousel from "@/components/ProductCarousel";
-import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
 import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
 
@@ -18,17 +17,34 @@ interface FlashDealsSectionProps {
 }
 
 export default function FlashDealsSection({ title, subtitle, config }: FlashDealsSectionProps) {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [flashProducts, setFlashProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const list = dataService.getProducts();
-    setProducts(list);
-    setIsLoading(false);
-    const unsub = dataService.subscribe(() => {
-      setProducts(dataService.getProducts());
-    });
-    return () => unsub();
+    let isMounted = true;
+    const fetchFlashDeals = async () => {
+      try {
+        const res = await fetch("/api/products?flash=true");
+        const json = await res.json();
+        if (isMounted) {
+          if (json.success && Array.isArray(json.data)) {
+            setFlashProducts(json.data);
+          } else {
+            setFlashProducts([]);
+          }
+        }
+      } catch (err) {
+        console.error("FlashDealsSection: fetch error:", err);
+        if (isMounted) setFlashProducts([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchFlashDeals();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const formatForCarousel = (items: Product[]) =>
@@ -37,25 +53,10 @@ export default function FlashDealsSection({ title, subtitle, config }: FlashDeal
       image: p.image || (p.images && p.images[0]) || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80",
     }));
 
-  const djiProducts = formatForCarousel(
-    products.filter(
-      (p) => (p.brandId === "dji" || (p.brandName && p.brandName.toLowerCase() === "dji") || p.categoryId === "photo-video")
-    )
-  );
-  const mobileProducts = formatForCarousel(
-    products.filter(
-      (p) => p.categoryId === "mobiles" || (p.categoryName && p.categoryName.toLowerCase().includes("მობილურ"))
-    )
-  );
-  const laptopProducts = formatForCarousel(
-    products.filter(
-      (p) => p.categoryId === "laptops" || p.categoryId === "gaming" || (p.categoryName && p.categoryName.toLowerCase().includes("ლეპტოპ"))
-    )
-  );
+  const limit = config?.limit || 10;
+  const displayList = formatForCarousel(flashProducts.slice(0, limit));
 
-  const fallbackList = formatForCarousel(products);
-
-  if (isLoading && products.length === 0) {
+  if (isLoading && flashProducts.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
         <ProductGridSkeleton count={4} />
@@ -63,79 +64,37 @@ export default function FlashDealsSection({ title, subtitle, config }: FlashDeal
     );
   }
 
+  // If no products are marked with isFlashDeal=true, hide the section cleanly
+  if (displayList.length === 0) return null;
+
   return (
-    <div className="space-y-14">
-      {/* Product Carousel 1: DJI Drones & Accessories */}
-      <section className="pt-2">
-        <div className="container mx-auto px-4 lg:px-8">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-xl md:text-2xl text-gray-900 tracking-tight">
-                DJI ტექნიკა & აქსესუარები
-              </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                პროფესიონალური დრონები და სტაბილიზატორები
-              </p>
+    <section className="py-4">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Flame className="w-5 h-5" />
             </div>
-            <Link href="/catalog?category=photo-video" className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer">
-              <span>სრულად ნახვა</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <ProductCarousel 
-            products={djiProducts.length > 0 ? djiProducts : fallbackList} 
-          />
-        </div>
-      </section>
-
-      {/* Product Carousel 2: Smartphones & Accessories */}
-      <section>
-        <div className="container mx-auto px-4 lg:px-8">
-          <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-xl md:text-2xl text-gray-900 tracking-tight">
-                სმარტფონები & აქსესუარები
+              <h2 className="text-xl md:text-2xl text-slate-900 leading-tight">
+                {title || "Flash შეთავაზებები"}
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                უახლესი ფლაგმანური სმარტფონები ოფიციალური გარანტიით
-              </p>
+              {subtitle && (
+                <p className="text-xs md:text-sm text-slate-500 mt-0.5">{subtitle}</p>
+              )}
             </div>
-            <Link href="/catalog?category=mobiles" className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer">
-              <span>სრულად ნახვა</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
           </div>
-
-          <ProductCarousel 
-            products={mobileProducts.length > 0 ? mobileProducts : fallbackList} 
-          />
+          <Link
+            href="/catalog?flash=true"
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <span>ყველას ნახვა</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-      </section>
 
-      {/* Product Carousel 3: Laptops & Computers */}
-      <section>
-        <div className="container mx-auto px-4 lg:px-8">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-xl md:text-2xl text-gray-900 tracking-tight">
-                ლეპტოპები & კომპიუტერული ტექნიკა
-              </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                სამუშაო და გეიმინგ ნოუთბუქები საუკეთესო ფასად
-              </p>
-            </div>
-            <Link href="/catalog?category=laptops" className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer">
-              <span>სრულად ნახვა</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <ProductCarousel 
-            products={laptopProducts.length > 0 ? laptopProducts : fallbackList} 
-          />
-        </div>
-      </section>
-    </div>
+        <ProductCarousel products={displayList} />
+      </div>
+    </section>
   );
 }

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ArrowLeft } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
 import { RecentlyViewedCarousel } from "@/components/RecentlyViewedCarousel";
 import { ProductDetailSkeleton } from "@/components/skeletons/ProductDetailSkeleton";
@@ -37,38 +36,31 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [quickBuyQty, setQuickBuyQty] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
 
-  // Fetch product live data
+  // Fetch product live from database
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
 
-    const loadProduct = () => {
-      const found = dataService.getProductById(resolvedParams.id);
-      if (found) {
-        if (isMounted) {
-          setProduct(found);
-          setIsLoading(false);
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`/api/products/${encodeURIComponent(resolvedParams.id)}`);
+        const json = await res.json();
+        if (isMounted && json.success && json.data) {
+          setProduct(json.data);
+        } else if (isMounted) {
+          setProduct(null);
         }
-      } else {
-        fetch(`/api/products/${resolvedParams.id}`)
-          .then((res) => res.json())
-          .then((json) => {
-            if (isMounted && json.success && json.data) {
-              setProduct(json.data);
-            }
-          })
-          .catch(() => {})
-          .finally(() => {
-            if (isMounted) setIsLoading(false);
-          });
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
+        if (isMounted) setProduct(null);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    loadProduct();
-    const unsub = dataService.subscribe(loadProduct);
+    fetchProduct();
     return () => {
       isMounted = false;
-      unsub();
     };
   }, [resolvedParams.id]);
 
@@ -87,10 +79,28 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   }, [product, addRecentlyViewed]);
 
-  if (isLoading || !product) {
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-gray-50/50 py-8">
         <ProductDetailSkeleton />
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main className="min-h-screen bg-[#F8FAFC] py-20">
+        <div className="container mx-auto px-4 text-center space-y-4">
+          <h1 className="text-2xl text-gray-900">პროდუქტი ვერ მოიძებნა</h1>
+          <p className="text-xs sm:text-sm text-gray-500">მოცემული პროდუქტი არ არსებობს ან წაშლილია</p>
+          <Link
+            href="/catalog"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-xs sm:text-sm shadow-xs transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>კატალოგში დაბრუნება</span>
+          </Link>
+        </div>
       </main>
     );
   }
@@ -155,88 +165,88 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="bg-white min-h-screen pb-24">
+    <div className="min-h-screen bg-[#FAF9F6] text-gray-900 font-sans pb-24 md:pb-16">
       {/* Schema.org Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Breadcrumb Navigation Bar */}
-      <div className="bg-gray-50/80 border-b border-gray-100 py-3">
-        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-4">
-          <nav className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-            <Link href="/" className="hover:text-blue-600 transition-colors">მთავარი</Link>
-            <ChevronRight className="size-3.5" />
-            <Link href="/catalog" className="hover:text-blue-600 transition-colors">კატალოგი</Link>
+      {/* Top Breadcrumbs Navigation */}
+      <div className="py-3.5 bg-white border-b border-gray-100 mb-6">
+        <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          <nav className="flex items-center gap-2 text-xs text-gray-500 overflow-x-auto whitespace-nowrap">
+            <Link href="/" className="hover:text-blue-600 transition-colors">
+              მთავარი
+            </Link>
+            <ChevronRight className="size-3.5 text-gray-300 shrink-0" />
+            <Link href="/catalog" className="hover:text-blue-600 transition-colors">
+              კატალოგი
+            </Link>
             {product.categoryName && (
               <>
-                <ChevronRight className="size-3.5" />
-                <Link href={`/catalog?category=${product.categoryId}`} className="hover:text-blue-600 transition-colors">
+                <ChevronRight className="size-3.5 text-gray-300 shrink-0" />
+                <Link
+                  href={`/catalog?category=${product.categoryId}`}
+                  className="hover:text-blue-600 transition-colors"
+                >
                   {product.categoryName}
                 </Link>
               </>
             )}
-            <ChevronRight className="size-3.5" />
-            <span className="text-gray-900 truncate max-w-xs">{product.title}</span>
+            <ChevronRight className="size-3.5 text-gray-300 shrink-0" />
+            <span className="text-gray-900 truncate max-w-[200px]">{product.title}</span>
           </nav>
-
-          <Link
-            href="/catalog"
-            className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors shrink-0"
-          >
-            <ArrowLeft className="size-3.5" /> უკან კატალოგში
-          </Link>
         </div>
       </div>
 
-      {/* Main Showcase Layout */}
-      <div className="container mx-auto px-4 lg:px-8 pt-6 md:pt-10">
-        
-        {/* Top Product Hero Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-          {/* Left: Sticky Media Gallery */}
+      {/* Main Container */}
+      <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+        {/* Back Link */}
+        <div className="mb-4">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>უკან დაბრუნება</span>
+          </button>
+        </div>
+
+        {/* 2-Column Product Detail Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start bg-white rounded-3xl p-6 lg:p-10 border border-gray-200/60 shadow-2xs">
+          {/* Left Column: Pro Media Carousel */}
           <div className="lg:col-span-7">
             <ProductGalleryPro
-              images={product.images}
+              images={product.images && product.images.length > 0 ? product.images : [product.image || ""]}
               title={product.title}
               discountPercentage={product.discountPercentage}
-              isHot={product.isHot}
             />
           </div>
 
-          {/* Right: Purchase Panel & Installment Hub */}
+          {/* Right Column: Dynamic Price, Bank Installment & Pro Purchase Panel */}
           <div className="lg:col-span-5">
             <ProductPurchasePanel
-              product={{
-                id: product.id,
-                title: product.title,
-                brandName: product.brandName,
-                stock: product.stock,
-                sku: product.sku,
-                code: product.code,
-                price: product.price,
-                discountPrice: product.discountPrice,
-                images: product.images,
-                variants: product.variants,
-              }}
+              product={product}
               isLiked={isLiked}
               isCompared={isCompared}
               isAdded={isAdded}
-              onToggleWishlist={() => toggleWishlist({
-                id: product.id,
-                title: product.title,
-                price: product.price,
-                discountPrice: product.discountPrice,
-                image: product.images[0] || "",
-              })}
+              onToggleWishlist={() =>
+                toggleWishlist({
+                  id: product.id,
+                  title: product.title,
+                  price: product.price,
+                  discountPrice: product.discountPrice,
+                  monthlyInstallment: product.monthlyInstallment,
+                  image: product.images[0] || product.image || "",
+                  discountPercentage: product.discountPercentage,
+                })
+              }
               onToggleCompare={() => toggleCompare(product.id)}
               onAddToCart={handleAddToCart}
               onOpenQuickBuy={handleOpenQuickBuy}
             />
           </div>
-
         </div>
 
         {/* Sticky Underline Tabs: Specs, Description, Delivery & FAQ */}
@@ -258,6 +268,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         title={product.title}
         price={currentPrice}
         isAdded={isAdded}
+        stock={product.stock}
         onOpenQuickBuy={() => handleOpenQuickBuy(1)}
         onAddToCart={() => handleAddToCart(1)}
       />

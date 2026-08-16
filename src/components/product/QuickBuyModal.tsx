@@ -84,25 +84,31 @@ export function QuickBuyModal({
       });
 
       const resData = await res.json();
-      if (resData && resData.success && resData.order) {
-        assignedOrderNumber = resData.order.orderNumber || resData.order.id || assignedOrderNumber;
-
-        const newOrderRecord = {
-          id: assignedOrderNumber,
-          date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
-          status: "მუშავდება" as const,
-          items: orderPayload.items,
-          totalAmount: totalPrice,
-          paymentMethod: paymentMethodLabel,
-          address: fullShippingAddress,
-        };
-
-        const existingOrders = useStore.getState().orders;
-        useStore.getState().setOrders([newOrderRecord, ...existingOrders.filter((o) => o.id !== assignedOrderNumber)]);
+      if (!res.ok || !resData.success || !resData.order) {
+        setIsSubmitting(false);
+        addToast({
+          title: "შეკვეთის გაფორმება ვერ მოხერხდა",
+          message: resData.error || "მოხდა შეცდომა შეკვეთის გაფორმებისას",
+          type: "error",
+        });
+        return;
       }
-    } catch (err) {
-      console.warn("Quick buy order persistence error:", err);
-    } finally {
+
+      assignedOrderNumber = resData.order.orderNumber || resData.order.id || assignedOrderNumber;
+
+      const newOrderRecord = {
+        id: assignedOrderNumber,
+        date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
+        status: "მუშავდება" as const,
+        items: orderPayload.items,
+        totalAmount: totalPrice,
+        paymentMethod: paymentMethodLabel,
+        address: fullShippingAddress,
+      };
+
+      const existingOrders = useStore.getState().orders;
+      useStore.getState().setOrders([newOrderRecord, ...existingOrders.filter((o) => o.id !== assignedOrderNumber)]);
+
       setIsSubmitting(false);
       setCreatedOrderNumber(assignedOrderNumber);
       setIsSubmitted(true);
@@ -111,6 +117,14 @@ export function QuickBuyModal({
         title: "შეკვეთა მიღებულია!",
         message: `შეკვეთის N ${assignedOrderNumber} წარმატებით დარეგისტრირდა.`,
         type: "success",
+      });
+    } catch (err: any) {
+      console.warn("Quick buy order persistence error:", err);
+      setIsSubmitting(false);
+      addToast({
+        title: "სერვერთან დაკავშირების შეცდომა",
+        message: "გთხოვთ შეამოწმოთ ინტერნეტთან კავშირი",
+        type: "error",
       });
     }
   };

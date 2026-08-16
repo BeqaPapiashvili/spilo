@@ -28,8 +28,7 @@ import {
   Sliders,
   ExternalLink
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
-import { Product } from "@/types";
+import { Product, Category, Brand } from "@/types";
 import { useStore } from "@/store/useStore";
 import { isRouteAllowed } from "@/lib/permissions";
 
@@ -87,9 +86,23 @@ export const AdminSearchModal: React.FC<AdminSearchModalProps> = ({
   const [activeFilter, setActiveFilter] = useState<"ALL" | "SECTIONS" | "PRODUCTS" | "ORDERS" | "CATEGORIES" | "CUSTOMERS">("ALL");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
+
+      Promise.all([
+        fetch("/api/products").then((r) => r.json()),
+        fetch("/api/categories").then((r) => r.json()),
+        fetch("/api/brands").then((r) => r.json()),
+      ]).then(([pJson, cJson, bJson]) => {
+        if (pJson.success && Array.isArray(pJson.data)) setProducts(pJson.data);
+        if (cJson.success && Array.isArray(cJson.data)) setCategories(cJson.data);
+        if (bJson.success && Array.isArray(bJson.data)) setBrands(bJson.data);
+      }).catch((err) => console.error("AdminSearchModal data load error:", err));
     }
   }, [isOpen]);
 
@@ -107,11 +120,6 @@ export const AdminSearchModal: React.FC<AdminSearchModalProps> = ({
   if (!isOpen) return null;
 
   const searchQuery = query.trim().toLowerCase();
-
-  // Data Sources
-  const products = dataService.getProducts();
-  const categories = dataService.getCategories();
-  const brands = dataService.getBrands();
 
   // Mock Orders
   const orders: MockOrder[] = [

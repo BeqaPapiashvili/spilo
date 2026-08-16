@@ -36,7 +36,22 @@ export async function POST(request: Request) {
     const { userId, sessionId, productId, quantity = 1 } = body;
 
     if (!productId) {
-      return NextResponse.json({ success: false, message: "productId required" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "productId required" }, { status: 400 });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      return NextResponse.json({ success: false, error: "პროდუქტი ვერ მოიძებნა" }, { status: 404 });
+    }
+
+    if (product.stock <= 0) {
+      return NextResponse.json(
+        { success: false, error: "პროდუქტი არ არის მარაგში (ამოწურულია)" },
+        { status: 400 }
+      );
     }
 
     let cart = await prisma.cart.findFirst({
@@ -53,24 +68,32 @@ export async function POST(request: Request) {
       where: { cartId: cart.id, productId },
     });
 
+    const newQuantity = (existingItem?.quantity || 0) + Number(quantity);
+    if (newQuantity > product.stock) {
+      return NextResponse.json(
+        { success: false, error: `მარაგში დარჩენილია მხოლოდ ${product.stock} ცალი` },
+        { status: 400 }
+      );
+    }
+
     if (existingItem) {
       await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + quantity },
+        data: { quantity: newQuantity },
       });
     } else {
       await prisma.cartItem.create({
         data: {
           cartId: cart.id,
           productId,
-          quantity,
+          quantity: Number(quantity) || 1,
         },
       });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "დაემატა კალათაში" });
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 

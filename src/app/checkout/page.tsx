@@ -11,7 +11,8 @@ import {
   Plus,
   Check,
   Loader2,
-  Search
+  Search,
+  Tag
 } from "lucide-react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -141,7 +142,15 @@ function CheckoutContent() {
 
   // Promo Code State
   const [promoCode, setPromoCode] = useState("");
-  const [promoApplied, setPromoApplied] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    id: string;
+    code: string;
+    discountType: string;
+    discountValue: number;
+    discountAmount: number;
+    finalTotal: number;
+  } | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
   // Loading & Errors
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -183,7 +192,66 @@ function CheckoutContent() {
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0);
   const shippingCost = deliveryMethod === "pickup" ? 0 : 0; // Free delivery
-  const totalAmount = cartSubtotal + shippingCost;
+  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const totalAmount = Math.max(0, cartSubtotal + shippingCost - discountAmount);
+
+  const handleApplyCoupon = async () => {
+    if (!promoCode.trim()) {
+      addToast({
+        title: "შეცდომა",
+        message: "გთხოვთ შეიყვანოთ პრომო კოდი",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: promoCode.trim(),
+          orderTotal: cartSubtotal,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.coupon) {
+        setAppliedCoupon(data.coupon);
+        addToast({
+          title: "პრომო კოდი გააქტიურდა!",
+          message: data.message || `ფასდაკლება -${data.coupon.discountAmount} ₾`,
+          type: "success",
+        });
+      } else {
+        setAppliedCoupon(null);
+        addToast({
+          title: "არასწორი პრომო კოდი",
+          message: data.error || "პრომო კოდი ვერ მოიძებნა ან ვადაგასულია",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      addToast({
+        title: "შეცდომა",
+        message: "პრომო კოდის გადამოწმება ვერ მოხერხდა",
+        type: "error",
+      });
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setPromoCode("");
+    addToast({
+      title: "ინფორმაცია",
+      message: "პრომო კოდი მოხსნილია",
+      type: "info",
+    });
+  };
 
   // Filter cities by search term
   const filteredCities = GEORGIAN_CITIES.filter((c) =>
@@ -266,9 +334,10 @@ function CheckoutContent() {
         idNumber: recipientIdNumber,
         personType,
       },
-      totalAmount,
+      totalAmount: Number(totalAmount.toFixed(2)),
       paymentMethod: paymentMethodLabel,
       address: fullShippingAddress,
+      couponCode: appliedCoupon ? appliedCoupon.code : undefined,
     };
 
     let finalOrderNumber = `SP-${Date.now().toString().slice(-6)}`;
@@ -282,48 +351,49 @@ function CheckoutContent() {
       });
 
       const resData = await res.json();
-      if (resData.success && resData.order) {
-        finalOrderNumber = resData.order.orderNumber || resData.order.id || finalOrderNumber;
-        
-        const newOrderRecord = {
-          id: finalOrderNumber,
-          date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
-          status: "მუშავდება" as const,
-          items: [...cart],
-          totalAmount,
-          paymentMethod: paymentMethodLabel,
-          address: fullShippingAddress,
-        };
-
-        const existingOrders = useStore.getState().orders;
-        useStore.getState().setOrders([newOrderRecord, ...existingOrders.filter((o) => o.id !== finalOrderNumber)]);
-      } else {
-        addOrder({
-          items: [...cart],
-          totalAmount,
-          paymentMethod: paymentMethodLabel,
-          address: fullShippingAddress,
+      if (!res.ok || !resData.success) {
+        setIsSubmitting(false);
+        addToast({
+          title: "შეკვეთის გაფორმება ვერ მოხერხდა",
+          message: resData.error || "მოხდა შეცდომა შეკვეთის გაფორმებისას",
+          type: "error",
         });
+        return;
       }
-    } catch (err) {
-      console.warn("Failed to persist order to MySQL:", err);
-      addOrder({
+
+      finalOrderNumber = resData.order?.orderNumber || resData.order?.id || finalOrderNumber;
+      
+      const newOrderRecord = {
+        id: finalOrderNumber,
+        date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
+        status: "მუშავდება" as const,
         items: [...cart],
         totalAmount,
         paymentMethod: paymentMethodLabel,
         address: fullShippingAddress,
+      };
+
+      const existingOrders = useStore.getState().orders;
+      useStore.getState().setOrders([newOrderRecord, ...existingOrders.filter((o) => o.id !== finalOrderNumber)]);
+
+      addToast({
+        title: "შეკვეთა მიღებულია!",
+        message: `შეკვეთის N ${finalOrderNumber}`,
+        type: "success",
+      });
+
+      clearCart();
+      setIsSubmitting(false);
+      router.push(`/checkout/success?orderId=${finalOrderNumber}`);
+    } catch (err: any) {
+      console.error("Failed to persist order to MySQL:", err);
+      setIsSubmitting(false);
+      addToast({
+        title: "სერვერთან დაკავშირების შეცდომა",
+        message: "გთხოვთ შეამოწმოთ კავშირი და სცადოთ ხელახლა",
+        type: "error",
       });
     }
-
-    addToast({
-      title: "შეკვეთა მიღებულია!",
-      message: `შეკვეთის N ${finalOrderNumber}`,
-      type: "success",
-    });
-
-    clearCart();
-    setIsSubmitting(false);
-    router.push(`/checkout/success?orderId=${finalOrderNumber}`);
   };
 
   return (
@@ -855,8 +925,14 @@ function CheckoutContent() {
               <div className="space-y-3 text-xs md:text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>ღირებულება</span>
-                  <span className="text-gray-900 font-mono">{cartSubtotal} ₾</span>
+                  <span className="text-gray-900 font-mono">{cartSubtotal.toFixed(2)} ₾</span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>ფასდაკლება ({appliedCoupon.code})</span>
+                    <span className="font-mono">-{discountAmount.toFixed(2)} ₾</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>მიწოდების ღირებულება</span>
                   <span className="text-[#10B981] font-mono">უფასო (0 ₾)</span>
@@ -865,7 +941,7 @@ function CheckoutContent() {
 
               <div className="pt-3 border-t border-gray-200/60 flex justify-between items-center">
                 <span className="text-xs md:text-sm text-gray-600">გადასახდელი თანხა</span>
-                <span className="text-lg md:text-xl text-blue-600 font-mono">{totalAmount} ₾</span>
+                <span className="text-lg md:text-xl text-blue-600 font-mono">{totalAmount.toFixed(2)} ₾</span>
               </div>
             </div>
 
@@ -901,36 +977,49 @@ function CheckoutContent() {
                   <span>მუშავდება...</span>
                 </>
               ) : (
-                <span>შემდეგი</span>
+                <span>{step === 1 ? "შემდეგი" : "შეკვეთის გაფორმება"}</span>
               )}
             </button>
 
-            {/* Promo Code Card */}
-            <div className="flex gap-2 pt-2">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="შეიყვანე პრომო კოდი ან ვაუჩერი"
-                className="flex-1 h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (promoCode.trim()) {
-                    setPromoApplied(true);
-                    addToast({
-                      title: "პრომო კოდი",
-                      message: "პრომო კოდი მიღებულია",
-                      type: "success",
-                    });
-                  }
-                }}
-                className="px-5 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs cursor-pointer transition-colors shrink-0 shadow-xs"
-              >
-                გააქტიურება
-              </button>
-            </div>
+            {/* Live Database Coupon Form */}
+            {appliedCoupon ? (
+              <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-emerald-600" />
+                  <div>
+                    <p className="text-xs text-emerald-900 font-mono">{appliedCoupon.code}</p>
+                    <p className="text-[10px] text-emerald-700">
+                      -{appliedCoupon.discountType === "percentage" ? `${appliedCoupon.discountValue}%` : `${appliedCoupon.discountValue} ₾`} ფასდაკლება
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="text-xs text-red-500 hover:text-red-700 cursor-pointer"
+                >
+                  მოხსნა
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 pt-2">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder="შეიყვანე პრომო კოდი"
+                  className="flex-1 h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 uppercase font-mono"
+                />
+                <button
+                  type="button"
+                  disabled={isValidatingPromo}
+                  onClick={handleApplyCoupon}
+                  className="px-5 h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white rounded-2xl text-xs cursor-pointer transition-colors shrink-0 shadow-xs flex items-center justify-center gap-1"
+                >
+                  {isValidatingPromo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "გააქტიურება"}
+                </button>
+              </div>
+            )}
 
           </div>
 

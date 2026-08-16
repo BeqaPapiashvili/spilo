@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { signToken, setAuthCookie } from "@/lib/jwt";
 
 export async function POST(request: Request) {
   try {
@@ -17,9 +19,7 @@ export async function POST(request: Request) {
     const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@spilo.ge`;
     const submittedPassword = password.trim();
 
-    console.log(`🔑 Admin login attempt for input: "${cleanInput}" (targetEmail: "${targetEmail}")`);
-
-    // 1. Check User table first
+    // 1. Check User table
     let user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // 2. Check AdminUser table
+    // 2. Check AdminUser table if not in User table
     let admin = await prisma.adminUser.findFirst({
       where: {
         OR: [
@@ -39,72 +39,47 @@ export async function POST(request: Request) {
       },
     });
 
-    // Dynamic auto-creation fallback for admin/beka
     if (!user && !admin) {
-      if (cleanInput === "admin" || cleanInput === "admin@spilo.ge" || cleanInput === "beka" || cleanInput === "beka@spilo.ge") {
-        try {
-          user = await prisma.user.create({
-            data: {
-              name: cleanInput.includes("beka") ? "Beka Papiashvili" : "Admin User",
-              email: targetEmail,
-              password: submittedPassword || "admin123",
-              role: "SUPER_ADMIN",
-            },
-          });
-        } catch (e) {
-          console.error("Error auto-creating user:", e);
-        }
-      }
+      return NextResponse.json(
+        { success: false, error: "ადმინისტრატორი ამ მონაცემებით ვერ მოიძებნა" },
+        { status: 404 }
+      );
     }
 
-    // If found in User table, ensure AdminUser sync
-    if (user && !admin) {
-      try {
-        admin = await prisma.adminUser.create({
-          data: {
-            name: user.name || "Admin User",
-            email: user.email || targetEmail,
-            password: user.password || submittedPassword,
-            role: user.role,
-            status: "ACTIVE",
-          },
-        });
-      } catch (e) {
-        // Ignore duplicate error
-      }
-    }
-
-    // If found in AdminUser table, ensure User sync
-    if (admin && !user) {
-      try {
-        user = await prisma.user.create({
-          data: {
-            name: admin.name,
-            email: admin.email,
-            password: admin.password || submittedPassword,
-            role: admin.role,
-          },
-        });
-      } catch (e) {
-        // Ignore duplicate error
-      }
-    }
-
+    // Role check: Only administrative roles are allowed into admin panel
     const activeRole = user?.role || admin?.role || "CUSTOMER";
-    const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"].includes(activeRole);
-
-    if (!isAdminRole) {
+    const allowedAdminRoles = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"];
+    
+    if (!allowedAdminRoles.includes(activeRole)) {
       return NextResponse.json(
         { success: false, error: "თქვენ არ გაქვთ ადმინ პანელში შესვლის უფლება" },
         { status: 403 }
       );
     }
 
-    const storedPassword = user?.password || admin?.password || "admin123";
-    const isPasswordValid =
-      storedPassword === submittedPassword ||
-      submittedPassword === "admin123" ||
-      submittedPassword === "admin";
+    // Password verification with strict bcrypt comparison (no backdoor bypass)
+    const storedPassword = user?.password || admin?.password || "";
+    let isPasswordValid = false;
+
+    if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
+      isPasswordValid = await bcrypt.compare(submittedPassword, storedPassword);
+    } else if (storedPassword && storedPassword === submittedPassword) {
+      isPasswordValid = true;
+      // Auto-migrate legacy plain text to secure bcrypt hash
+      const newHash = await bcrypt.hash(submittedPassword, 10);
+      if (user?.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { password: newHash },
+        }).catch(() => {});
+      }
+      if (admin?.id) {
+        await prisma.adminUser.update({
+          where: { id: admin.id },
+          data: { password: newHash },
+        }).catch(() => {});
+      }
+    }
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -113,8 +88,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Record audit log
+    const userId = user?.id || admin?.id || "admin";
+    const userName = user?.name || admin?.name || "Admin User";
     const userEmail = user?.email || admin?.email || targetEmail;
+
+    // Record audit log
     try {
       await prisma.auditLog.create({
         data: {
@@ -127,29 +105,42 @@ export async function POST(request: Request) {
       // Ignore audit log error
     }
 
-    console.log(`Admin login SUCCESS for ${userEmail}`);
+    const sessionPayload = {
+      userId,
+      name: userName,
+      email: userEmail,
+      role: activeRole,
+    };
+
+    // Generate cryptographically signed JWT token
+    const token = await signToken(sessionPayload);
 
     const adminPayload = {
-      id: user?.id || admin?.id || "admin-id",
-      name: user?.name || admin?.name || "Admin User",
+      id: userId,
+      name: userName,
       email: userEmail,
       role: activeRole,
       status: "ACTIVE",
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      token: `admin_token_${adminPayload.id}_${Date.now()}`,
+      token,
       admin: adminPayload,
       user: {
-        id: adminPayload.id,
-        name: adminPayload.name,
-        email: adminPayload.email,
+        id: userId,
+        name: userName,
+        email: userEmail,
         phone: user?.phone || "",
-        role: adminPayload.role,
+        role: activeRole,
       },
       message: "ავტორიზაცია წარმატებით დასრულდა",
     });
+
+    // Set secure HTTP-only cookie
+    setAuthCookie(response, token);
+
+    return response;
   } catch (error: any) {
     console.error("POST /api/admin/auth error:", error);
     return NextResponse.json(

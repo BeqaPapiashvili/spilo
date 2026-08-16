@@ -5,8 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronRight, 
-  ArrowRight, 
-  Sparkles,
   Camera,
   Smartphone,
   Laptop,
@@ -18,7 +16,6 @@ import {
   Tablet,
   Sparkle
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
 import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -43,20 +40,27 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
   const [activeCategoryId, setActiveCategoryId] = useState<string>("");
 
   useEffect(() => {
-    const cats = dataService.getCategories();
-    setCategories(cats);
-    if (cats.length > 0 && !activeCategoryId) {
-      setActiveCategoryId(cats[0].id);
-    }
-    const unsub = dataService.subscribe(() => {
-      const updated = dataService.getCategories();
-      setCategories(updated);
-      if (updated.length > 0 && !activeCategoryId) {
-        setActiveCategoryId(updated[0].id);
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && isMounted) {
+          setCategories(json.data);
+          if (json.data.length > 0 && !activeCategoryId) {
+            setActiveCategoryId(json.data[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("MegaMenu: Failed to load categories from database:", err);
       }
-    });
-    return () => unsub();
-  }, [activeCategoryId]);
+    };
+
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const activeCategory = categories.find((cat) => cat.id === activeCategoryId || cat.slug === activeCategoryId) || categories[0];
 
@@ -64,7 +68,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <div className="absolute top-full left-0 right-0 w-full z-50">
-          {/* Backdrop (Absolute top-0 relative to header bottom edge, never overlaps header) */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -83,7 +87,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
           >
             <div className="flex h-[480px]">
               
-              {/* 1. Left Sidebar: Main Categories List with Custom Sleek Scrollbar */}
+              {/* 1. Left Sidebar: Main Categories List */}
               <div className="w-[250px] bg-[#F4F5F7] border-r border-gray-200/80 py-3 px-2.5 pr-1.5 overflow-y-auto shrink-0 select-none custom-sidebar-scrollbar">
                 <div className="flex flex-col gap-1">
                   {categories.map((category) => {
@@ -116,7 +120,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
               <div className="flex-1 bg-white p-6 overflow-y-auto relative flex flex-col justify-between">
                 <div>
                   
-                  {activeCategory.children && activeCategory.children.length > 0 ? (
+                  {activeCategory?.children && activeCategory.children.length > 0 ? (
                     <div className="grid grid-cols-4 gap-6">
                       {activeCategory.children.map((sub) => (
                         <div key={sub.id} className="space-y-2.5">

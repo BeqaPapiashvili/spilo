@@ -17,6 +17,7 @@ export async function GET() {
       startDate: c.startDate || "2026-01-01",
       endDate: c.endDate || "2026-12-31",
       usedCount: c.usedCount || 0,
+      usageLimit: c.usageLimit !== null && c.usageLimit !== undefined ? c.usageLimit : null,
       status: (c.status as "ACTIVE" | "EXPIRED" | "DISABLED") || (c.isActive ? "ACTIVE" : "DISABLED"),
       validUntil: c.validUntil,
       isActive: c.isActive,
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
     const startDate = body.startDate || "2026-01-01";
     const endDate = body.endDate || "2026-12-31";
     const usedCount = body.usedCount !== undefined ? Number(body.usedCount) : 0;
+    const usageLimit = body.usageLimit !== undefined && body.usageLimit !== null && body.usageLimit !== "" ? Number(body.usageLimit) : null;
     const status = body.status || "ACTIVE";
     const isActive = body.isActive !== undefined ? Boolean(body.isActive) : status === "ACTIVE";
     const validUntil = body.validUntil ? new Date(body.validUntil) : null;
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
           startDate,
           endDate,
           usedCount,
+          usageLimit,
           status,
           isActive,
           validUntil,
@@ -81,6 +84,7 @@ export async function POST(request: Request) {
           startDate,
           endDate,
           usedCount,
+          usageLimit,
           status,
           isActive,
           validUntil,
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
           startDate,
           endDate,
           usedCount,
+          usageLimit,
           status,
           isActive,
           validUntil,
@@ -110,6 +115,7 @@ export async function POST(request: Request) {
           startDate,
           endDate,
           usedCount,
+          usageLimit,
           status,
           isActive,
           validUntil,
@@ -128,6 +134,7 @@ export async function POST(request: Request) {
         startDate: coupon.startDate,
         endDate: coupon.endDate,
         usedCount: coupon.usedCount,
+        usageLimit: coupon.usageLimit,
         status: coupon.status,
         isActive: coupon.isActive,
       },

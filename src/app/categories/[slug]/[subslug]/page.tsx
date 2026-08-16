@@ -14,9 +14,9 @@ import {
   Home,
   Gamepad2,
   Watch,
-  Camera
+  Camera,
+  Loader2
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
 import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -39,17 +39,41 @@ export default function DeepSubCategoryItemsPage({ params }: PageProps) {
   const { slug, subslug } = resolvedParams;
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setCategories(dataService.getCategories());
-    const unsub = dataService.subscribe(() => {
-      setCategories(dataService.getCategories());
-    });
-    return () => unsub();
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && isMounted) {
+          setCategories(json.data);
+        }
+      } catch (err) {
+        console.error("DeepSubCategoryItemsPage: Failed to load categories:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const category = categories.find((c) => c.slug === slug || c.id === slug);
   const subCategory = category?.children?.find((s) => s.slug === subslug || s.id === subslug);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        <p className="text-xs text-gray-400">იტვირთება მონაცემები...</p>
+      </div>
+    );
+  }
 
   if (!category || !subCategory) {
     return (
@@ -65,87 +89,74 @@ export default function DeepSubCategoryItemsPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-white pb-24">
       
-      {/* 1. Header Banner */}
+      {/* 1. Breadcrumbs & Header */}
       <section className="bg-[#F8FAFC] border-b border-gray-100 py-8 md:py-10">
-        <div className="container mx-auto px-4 lg:px-8 space-y-3">
-          
-          {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-            <Link href="/" className="hover:text-blue-600 transition-colors">მთავარი</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-            <Link href="/categories" className="hover:text-blue-600 transition-colors">ყველა კატეგორია</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-            <Link href={`/categories/${category.slug}`} className="hover:text-blue-600 transition-colors">{category.name}</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+        <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          <nav className="flex items-center gap-2 text-xs text-gray-500 mb-4 flex-wrap">
+            <Link href="/" className="hover:text-blue-600 transition-colors">
+              მთავარი
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+            <Link href="/categories" className="hover:text-blue-600 transition-colors">
+              კატეგორიები
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+            <Link href={`/categories/${category.slug}`} className="hover:text-blue-600 transition-colors">
+              {category.name}
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
             <span className="text-gray-900">{subCategory.name}</span>
-          </div>
+          </nav>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <Link 
-                href={`/categories/${category.slug}`} 
-                className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 mb-2 transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>უკან {category.name}-ში</span>
-              </Link>
               <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
                 {subCategory.name}
               </h1>
+              <p className="text-xs md:text-sm text-gray-500 mt-1">
+                {category.name} › {subCategory.name} - აირჩიეთ მოდელი ან გადადით კატალოგში
+              </p>
             </div>
 
             <Link
-              href={`/catalog?category=${subCategory.slug}`}
-              className="inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-colors self-start sm:self-auto cursor-pointer"
+              href={`/catalog?category=${category.slug}`}
+              className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-2xs"
             >
-              <span>{subCategory.name} — სრული კატალოგი</span>
+              <span>კატალოგში ნახვა</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-
         </div>
       </section>
 
-      {/* 2. Level-3 Deep Items / Brands Cards Grid */}
-      <section className="pt-8">
-        <div className="container mx-auto px-4 lg:px-8 space-y-10">
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-            {subCategory.items ? (
-              subCategory.items.map((item) => {
-                const href = `/catalog?category=${item.slug}${item.brandQuery ? `&brand=${item.brandQuery}` : ""}`;
+      {/* 2. Level 3 Items Grid */}
+      <div className="container mx-auto px-4 lg:px-8 max-w-7xl pt-10">
+        <h2 className="text-lg text-gray-900 mb-6">მოდელები & ჯგუფები</h2>
 
-                return (
-                  <Link
-                    key={item.id}
-                    href={href}
-                    className="w-full h-[160px] bg-[#EAECEF] hover:bg-[#E2E5EA] rounded-xl p-3.5 flex flex-col justify-between items-start cursor-pointer relative overflow-hidden select-none transition-all group block text-left"
-                  >
-                    <div className="z-10 space-y-1">
-                      <h4 className="text-xs sm:text-sm text-[#111111] group-hover:text-blue-600 transition-colors leading-tight pt-0.5 z-10 text-left">
-                        {item.name}
-                      </h4>
-                      {item.productCount ? (
-                        <span className="text-[11px] text-gray-500 block">
-                          {item.productCount} პროდუქტი
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="absolute bottom-1.5 right-1.5 w-14 h-14 flex items-end justify-end pointer-events-none opacity-40 text-black">
-                      {category.icon && iconMap[category.icon] ? iconMap[category.icon] : <Sparkles className="w-12 h-12 stroke-[1.6]" />}
-                    </div>
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="col-span-full py-12 text-center text-gray-500 text-sm">
-                ამ სუბკატეგორიაში პროდუქტები მალე დაემატება
-              </div>
-            )}
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {subCategory.items && subCategory.items.length > 0 ? (
+            subCategory.items.map((item) => (
+              <Link
+                key={item.id}
+                href={`/catalog?category=${category.slug}${item.brandQuery ? `&brand=${item.brandQuery}` : ""}`}
+                className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-xs transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 group-hover:scale-125 transition-transform" />
+                  <span className="text-xs text-gray-800 group-hover:text-blue-600 transition-colors">
+                    {item.name}
+                  </span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full py-12 text-center text-xs text-gray-400">
+              ჯგუფები არ არის დამატებული.
+            </div>
+          )}
         </div>
-      </section>
+      </div>
 
     </div>
   );

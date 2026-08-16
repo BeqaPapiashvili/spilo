@@ -1,31 +1,40 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { getAuthSession } from "@/lib/jwt";
 
 export async function PUT(request: Request) {
   try {
-    const body = await request.json();
-    const { email, phone, currentPassword, newPassword } = body;
-
-    if (!email && !phone) {
+    // 1. Enforce verified session (IDOR prevention)
+    const session = await getAuthSession(request);
+    if (!session || !session.userId) {
       return NextResponse.json(
-        { success: false, error: "მომხმარებლის იდენტიფიკატორი მიუთითეთ" },
+        { success: false, error: "ავტორიზაცია აუცილებელია (Unauthorized)" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { currentPassword, newPassword } = body;
+
+    // 2. Strict validation: currentPassword and newPassword are both strictly required
+    if (!currentPassword || typeof currentPassword !== "string" || !currentPassword.trim()) {
+      return NextResponse.json(
+        { success: false, error: "გთხოვთ მიუთითოთ მიმდინარე პაროლი" },
         { status: 400 }
       );
     }
 
-    if (!newPassword || newPassword.length < 6) {
+    if (!newPassword || typeof newPassword !== "string" || newPassword.trim().length < 6) {
       return NextResponse.json(
         { success: false, error: "ახალი პაროლი უნდა შეიცავდეს მინიმუმ 6 სიმბოლოს" },
         { status: 400 }
       );
     }
 
-    const whereConditions: any[] = [];
-    if (email) whereConditions.push({ email });
-    if (phone) whereConditions.push({ phone });
-
-    let user = await prisma.user.findFirst({
-      where: { OR: whereConditions },
+    // 3. Lookup authenticated user strictly by session userId
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
     });
 
     if (!user) {
@@ -35,26 +44,43 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Verify current password if user has one set
-    if (user.password && currentPassword) {
-      const isValid = user.password === currentPassword.trim();
-      if (!isValid) {
-        return NextResponse.json(
-          { success: false, error: "მიმდინარე პაროლი არასწორია" },
-          { status: 400 }
-        );
-      }
+    // 4. Verify current password with bcrypt (or legacy migration if applicable)
+    const storedPassword = user.password || "";
+    let isCurrentPasswordValid = false;
+
+    if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
+      isCurrentPasswordValid = await bcrypt.compare(currentPassword.trim(), storedPassword);
+    } else if (storedPassword && storedPassword === currentPassword.trim()) {
+      isCurrentPasswordValid = true;
     }
 
-    // Update password in database
+    if (!isCurrentPasswordValid) {
+      return NextResponse.json(
+        { success: false, error: "მიმდინარე პაროლი არასწორია" },
+        { status: 400 }
+      );
+    }
+
+    // 5. Hash new password with bcrypt — NEVER store plain text
+    const hashedNewPassword = await bcrypt.hash(newPassword.trim(), 10);
+
+    // 6. Update user password
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: newPassword.trim() },
+      data: { password: hashedNewPassword },
     });
+
+    // 7. Sync AdminUser if this user has an associated admin record
+    if (user.email) {
+      await prisma.adminUser.updateMany({
+        where: { email: user.email },
+        data: { password: hashedNewPassword },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,
-      message: "პაროლი წარმატებით განახლდა SQL ბაზაში",
+      message: "პაროლი წარმატებით შეიცვალა",
     });
   } catch (error: any) {
     console.error("PUT /api/user/password error:", error);

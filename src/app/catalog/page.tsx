@@ -1,23 +1,22 @@
 "use client";
 
 import { Suspense, useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
   Search, 
   ChevronRight, 
+  ChevronLeft,
   ChevronDown, 
   ChevronUp, 
-  SlidersHorizontal,
-  ArrowUpDown,
-  RotateCcw,
-  Tag,
-  Check
+  SlidersHorizontal, 
+  ArrowUpDown, 
+  RotateCcw, 
+  Tag, 
+  Check 
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
-
+import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
 import { useCatalogFilters, ABSOLUTE_MAX_PRICE } from "@/hooks/useCatalogFilters";
 
 const COLOR_OPTIONS = [
@@ -30,6 +29,7 @@ const COLOR_OPTIONS = [
 ];
 
 const STORAGE_OPTIONS = ["128GB", "256GB", "512GB", "1TB", "22GB"];
+const PAGE_SIZE = 12;
 
 function CatalogContent() {
   const {
@@ -39,20 +39,132 @@ function CatalogContent() {
     toggleCategory,
     setPriceRange,
     setSort,
+    setPage,
     toggleDiscountedOnly,
     resetFilters: resetHookFilters,
   } = useCatalogFilters();
 
-  // Products State synced with dataService
+  // Products & Pagination State fetched live from MySQL
   const [productsList, setProductsList] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Categories and Brands for sidebar facets
+  const [allCategories, setAllCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [allBrands, setAllBrands] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  // 1. Fetch available Categories & Brands once on mount for filter list
   useEffect(() => {
-    setProductsList(dataService.getProducts());
-    const unsub = dataService.subscribe(() => {
-      setProductsList(dataService.getProducts());
-    });
-    return () => unsub();
+    let isMounted = true;
+    const fetchMetadata = async () => {
+      try {
+        const [catRes, brandRes] = await Promise.all([
+          fetch("/api/categories"),
+          fetch("/api/brands"),
+        ]);
+        const [catJson, brandJson] = await Promise.all([
+          catRes.json(),
+          brandRes.json(),
+        ]);
+        if (isMounted) {
+          if (catJson.success && Array.isArray(catJson.data)) {
+            setAllCategories(catJson.data);
+          }
+          if (brandJson.success && Array.isArray(brandJson.data)) {
+            setAllBrands(brandJson.data);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load category/brand metadata:", err);
+      }
+    };
+
+    fetchMetadata();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // 2. Fetch Filtered Products & Pagination live from /api/products
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
+    const fetchCatalogProducts = async () => {
+      try {
+        const queryParams = new URLSearchParams();
+
+        if (filters.category.length > 0) {
+          queryParams.set("category", filters.category.join(","));
+        }
+        if (filters.brand.length > 0) {
+          queryParams.set("brand", filters.brand.join(","));
+        }
+        if (filters.minPrice > 0) {
+          queryParams.set("minPrice", filters.minPrice.toString());
+        }
+        if (filters.maxPrice < ABSOLUTE_MAX_PRICE) {
+          queryParams.set("maxPrice", filters.maxPrice.toString());
+        }
+        if (filters.inStock) {
+          queryParams.set("inStock", "true");
+        }
+        if (filters.onlyDiscounted) {
+          queryParams.set("discount", "true");
+        }
+        if (filters.sort && filters.sort !== "default") {
+          queryParams.set("sort", filters.sort);
+        }
+        if (filters.searchQuery.trim()) {
+          queryParams.set("q", filters.searchQuery.trim());
+        }
+
+        queryParams.set("page", (filters.page || 1).toString());
+        queryParams.set("limit", PAGE_SIZE.toString());
+
+        const res = await fetch(`/api/products?${queryParams.toString()}`);
+        const json = await res.json();
+
+        if (isMounted) {
+          if (json.success && Array.isArray(json.data)) {
+            setProductsList(json.data);
+            setTotalProducts(json.total ?? json.count ?? json.data.length);
+            setTotalPages(json.totalPages ?? Math.ceil((json.total ?? json.data.length) / PAGE_SIZE) ?? 1);
+          } else {
+            setProductsList([]);
+            setTotalProducts(0);
+            setTotalPages(1);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load catalog products:", err);
+        if (isMounted) {
+          setProductsList([]);
+          setTotalProducts(0);
+          setTotalPages(1);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchCatalogProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    filters.category,
+    filters.brand,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.inStock,
+    filters.onlyDiscounted,
+    filters.sort,
+    filters.page,
+    filters.searchQuery,
+  ]);
 
   // UI Specific State (colors, storage, open accordions)
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
@@ -70,19 +182,25 @@ function CatalogContent() {
   // Dynamic Brand & Category counts
   const brandCounts = useMemo(() => {
     const counts: Record<string, number> = {};
+    allBrands.forEach((b) => {
+      counts[b.name] = 0;
+    });
     productsList.forEach((p: Product) => {
       if (p.brandName) counts[p.brandName] = (counts[p.brandName] || 0) + 1;
     });
     return counts;
-  }, [productsList]);
+  }, [allBrands, productsList]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
+    allCategories.forEach((c) => {
+      counts[c.name] = 0;
+    });
     productsList.forEach((p: Product) => {
       if (p.categoryName) counts[p.categoryName] = (counts[p.categoryName] || 0) + 1;
     });
     return counts;
-  }, [productsList]);
+  }, [allCategories, productsList]);
 
   // Dynamic colors from products & palette
   const dynamicColors = useMemo(() => {
@@ -156,69 +274,21 @@ function CatalogContent() {
 
   const activeFiltersCount = hookActiveCount + selectedColors.length + selectedStorage.length;
 
-  // Main Filter Logic
-  const filteredProducts = useMemo(() => {
+  // Secondary In-Memory Filter for Dynamic Variant Facets (Color & Storage)
+  const displayedProducts = useMemo(() => {
+    if (selectedColors.length === 0 && selectedStorage.length === 0) {
+      return productsList;
+    }
     return productsList.filter((product: Product) => {
-      // Search query
-      if (filters.searchQuery) {
-        const q = filters.searchQuery.toLowerCase();
-        const matchesQuery =
-          product.title.toLowerCase().includes(q) ||
-          product.brandName.toLowerCase().includes(q) ||
-          product.categoryName.toLowerCase().includes(q) ||
-          product.sku.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
-      }
-
-      // Price filter
-      const effectivePrice = product.discountPrice || product.price;
-      if (effectivePrice < filters.minPrice || effectivePrice > filters.maxPrice) return false;
-
-      // Brand filter
-      if (filters.brand.length > 0) {
-        const matchesBrand = filters.brand.some(
-          (b) => product.brandName.toLowerCase() === b.toLowerCase() || product.brandId.toLowerCase() === b.toLowerCase()
-        );
-        if (!matchesBrand) return false;
-      }
-
-      // Category filter
-      if (filters.category.length > 0) {
-        const matchesCategory = filters.category.some(
-          (c) =>
-            product.categoryName.toLowerCase().includes(c.toLowerCase()) ||
-            product.categoryId.toLowerCase().includes(c.toLowerCase())
-        );
-        if (!matchesCategory) return false;
-      }
-
-      // Color filter
-      if (selectedColors.length > 0 && product.colorName && !selectedColors.includes(product.colorName))
+      if (selectedColors.length > 0 && product.colorName && !selectedColors.includes(product.colorName)) {
         return false;
-
-      // Storage filter
-      if (selectedStorage.length > 0 && product.storage && !selectedStorage.includes(product.storage))
+      }
+      if (selectedStorage.length > 0 && product.storage && !selectedStorage.includes(product.storage)) {
         return false;
-
-      // Discount filter
-      if (filters.onlyDiscounted && !product.discountPrice) return false;
-
+      }
       return true;
-    }).sort((a: Product, b: Product) => {
-      const priceA = a.discountPrice || a.price;
-      const priceB = b.discountPrice || b.price;
-      if (filters.sort === "price-asc") return priceA - priceB;
-      if (filters.sort === "price-desc") return priceB - priceA;
-      if (filters.sort === "name-asc") return a.title.localeCompare(b.title, "ka");
-      if (filters.sort === "name-desc") return b.title.localeCompare(a.title, "ka");
-      return 0;
     });
-  }, [
-    productsList,
-    filters,
-    selectedColors,
-    selectedStorage,
-  ]);
+  }, [productsList, selectedColors, selectedStorage]);
 
   // Dual Slider Math
   const minPercent = (filters.minPrice / ABSOLUTE_MAX_PRICE) * 100;
@@ -233,13 +303,14 @@ function CatalogContent() {
             <span>კატალოგი & კატეგორიები</span>
           </h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">
-            სულ მოიძებნა <span className="text-gray-900">{filteredProducts.length}</span> პროდუქტი
+            სულ მოიძებნა <span className="text-gray-900">{totalProducts}</span> პროდუქტი
           </p>
         </div>
 
         {/* Sort & Mobile Filter Toggle */}
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
             className="lg:hidden flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl text-xs text-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.015)] cursor-pointer border border-gray-100"
           >
@@ -250,6 +321,7 @@ function CatalogContent() {
           {/* Clean Sort Dropdown Pill */}
           <div className="relative">
             <button
+              type="button"
               onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
               onBlur={() => setTimeout(() => setIsSortDropdownOpen(false), 200)}
               className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl text-xs text-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.015)] cursor-pointer select-none border border-transparent hover:border-gray-200/60 transition-all"
@@ -260,8 +332,9 @@ function CatalogContent() {
                 {filters.sort === "all" && "ყველა"}
                 {filters.sort === "price-desc" && "ფასი: კლებადობით"}
                 {filters.sort === "price-asc" && "ფასი: ზრდადობით"}
-                {filters.sort === "name-asc" && "დასახელება: A-Z"}
-                {filters.sort === "name-desc" && "დასახელება: Z-A"}
+                {filters.sort === "discount" && "ფასდაკლებით"}
+                {filters.sort === "rating" && "რეიტინგით"}
+                {filters.sort === "newest" && "უახლესი"}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-gray-400 ml-0.5 transition-transform duration-200 ${
@@ -276,57 +349,52 @@ function CatalogContent() {
                   { id: "all", label: "ყველა" },
                   { id: "price-desc", label: "ფასი: კლებადობით" },
                   { id: "price-asc", label: "ფასი: ზრდადობით" },
-                  { id: "name-asc", label: "დასახელება: A-Z" },
-                  { id: "name-desc", label: "დასახელება: Z-A" },
-                ].map((opt) => {
-                  const isSelected = filters.sort === opt.id;
-
-                  return (
-                    <div
-                      key={opt.id}
-                      onClick={() => {
-                        setSort(opt.id);
-                        setIsSortDropdownOpen(false);
-                      }}
-                      className={`flex items-center justify-between px-3.5 py-2 text-xs cursor-pointer transition-colors ${
-                        isSelected ? "bg-blue-50/80 text-blue-700" : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span>{opt.label}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                    </div>
-                  );
-                })}
+                  { id: "discount", label: "ფასდაკლებით" },
+                  { id: "rating", label: "რეიტინგით" },
+                  { id: "newest", label: "უახლესი" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      setSort(s.id);
+                      setIsSortDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      filters.sort === s.id
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span>{s.label}</span>
+                    {filters.sort === s.id && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main Catalog Layout */}
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* Left Filter Sidebar */}
         <aside
-          className={`w-full lg:w-[320px] shrink-0 bg-white rounded-2xl p-6 md:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.015)] space-y-6 ${
+          className={`w-full lg:w-64 bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-gray-100/80 space-y-6 shrink-0 ${
             isMobileFilterOpen ? "block" : "hidden lg:block"
           }`}
         >
-          {/* Header */}
+          {/* Filter Header */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-            <div className="flex items-center gap-2 text-sm text-gray-900">
+            <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-              <span>ფილტრაცია</span>
-              {activeFiltersCount > 0 && (
-                <span className="bg-blue-50 text-blue-600 text-[11px] px-2 py-0.5 rounded-full">
-                  {activeFiltersCount}
-                </span>
-              )}
+              <span className="text-xs text-gray-900">ფილტრები</span>
             </div>
 
             {activeFiltersCount > 0 && (
               <button
+                type="button"
                 onClick={resetFilters}
-                className="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1 cursor-pointer"
+                className="text-[11px] text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>გასუფთავება</span>
@@ -334,13 +402,14 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* Dual-Thumb Price Slider Section */}
+          {/* Dual Range Price Slider */}
           <div className="space-y-4 pb-5 border-b border-gray-100">
             <button
+              type="button"
               onClick={() => setPriceOpen(!priceOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
-              <span>ფასის ინტერვალი (₾)</span>
+              <span>ფასი (₾)</span>
               {priceOpen ? (
                 <ChevronUp className="w-4 h-4 text-gray-400" />
               ) : (
@@ -350,45 +419,39 @@ function CatalogContent() {
 
             {priceOpen && (
               <div className="space-y-4 pt-1">
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 focus-within:border-blue-500 transition-colors">
-                    <span className="text-[10px] text-gray-400 block">დან</span>
-                    <div className="flex items-center justify-between pt-0.5">
-                      <input
-                        type="number"
-                        min={0}
-                        max={filters.maxPrice - 50}
-                        value={filters.minPrice}
-                        onChange={(e) => handleMinPriceChange(Number(e.target.value))}
-                        className="w-full bg-transparent text-gray-900 focus:outline-none text-xs"
-                      />
-                      <span className="text-gray-400 text-xs shrink-0">₾</span>
-                    </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 bg-gray-50 border border-gray-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-blue-500">
+                    <span className="text-[10px] text-gray-400 block leading-none">დან</span>
+                    <input
+                      type="number"
+                      value={filters.minPrice}
+                      onChange={(e) => handleMinPriceChange(Number(e.target.value))}
+                      className="w-full bg-transparent text-xs text-gray-900 focus:outline-none"
+                    />
                   </div>
 
-                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 focus-within:border-blue-500 transition-colors">
-                    <span className="text-[10px] text-gray-400 block">მდე</span>
-                    <div className="flex items-center justify-between pt-0.5">
-                      <input
-                        type="number"
-                        min={filters.minPrice + 50}
-                        max={ABSOLUTE_MAX_PRICE}
-                        value={filters.maxPrice}
-                        onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
-                        className="w-full bg-transparent text-gray-900 focus:outline-none text-xs"
-                      />
-                      <span className="text-gray-400 text-xs shrink-0">₾</span>
-                    </div>
+                  <span className="text-gray-300">-</span>
+
+                  <div className="flex-1 bg-gray-50 border border-gray-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-blue-500">
+                    <span className="text-[10px] text-gray-400 block leading-none">მდე</span>
+                    <input
+                      type="number"
+                      value={filters.maxPrice}
+                      onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
+                      className="w-full bg-transparent text-xs text-gray-900 focus:outline-none"
+                    />
                   </div>
                 </div>
 
-                <div className="relative py-3">
-                  <div className="h-2 bg-gray-100 rounded-full relative w-full overflow-hidden">
+                {/* Dual Slider Bar */}
+                <div className="relative h-5 flex items-center">
+                  <div className="absolute left-0 right-0 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="absolute h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
+                      className="h-full bg-blue-600 rounded-full"
                       style={{
                         left: `${minPercent}%`,
                         width: `${maxPercent - minPercent}%`,
+                        position: "absolute",
                       }}
                     />
                   </div>
@@ -422,6 +485,7 @@ function CatalogContent() {
                   ].map((preset, idx) => (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => {
                         setPriceRange(preset.min, preset.max);
                       }}
@@ -442,6 +506,7 @@ function CatalogContent() {
           {/* Brand Filter */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
+              type="button"
               onClick={() => setBrandOpen(!brandOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
@@ -489,6 +554,7 @@ function CatalogContent() {
           {/* Category Filter */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
+              type="button"
               onClick={() => setCategoryOpen(!categoryOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
@@ -536,6 +602,7 @@ function CatalogContent() {
           {/* Color Selector */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
+              type="button"
               onClick={() => setColorOpen(!colorOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
@@ -548,24 +615,30 @@ function CatalogContent() {
             </button>
 
             {colorOpen && (
-              <div className="flex items-center gap-2.5 pt-1 flex-wrap">
-                {dynamicColors.map((c) => {
-                  const isSelected = selectedColors.includes(c.id);
-
+              <div className="flex flex-wrap gap-2 pt-1">
+                {dynamicColors.map((color) => {
+                  const isSelected = selectedColors.includes(color.label);
                   return (
                     <button
-                      key={c.id}
-                      onClick={() => handleColorToggle(c.id)}
-                      title={c.label}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+                      key={color.id}
+                      type="button"
+                      onClick={() => handleColorToggle(color.label)}
+                      title={color.label}
+                      className={`relative w-7 h-7 rounded-full border transition-all cursor-pointer flex items-center justify-center ${
                         isSelected
-                          ? "ring-2 ring-blue-600 border-white shadow-xs"
+                          ? "ring-2 ring-blue-600 ring-offset-2 scale-105 border-transparent"
                           : "border-gray-200 hover:scale-105"
                       }`}
-                      style={{ backgroundColor: c.hex }}
+                      style={{ backgroundColor: color.hex }}
                     >
                       {isSelected && (
-                        <Check className={`w-4 h-4 ${c.id === "თეთრი" ? "text-gray-900" : "text-white"}`} />
+                        <Check
+                          className={`w-3.5 h-3.5 ${
+                            ["#FFFFFF", "#F5F5DC", "#C5C1B8"].includes(color.hex)
+                              ? "text-gray-900"
+                              : "text-white"
+                          }`}
+                        />
                       )}
                     </button>
                   );
@@ -574,13 +647,14 @@ function CatalogContent() {
             )}
           </div>
 
-          {/* Storage Option Pills */}
+          {/* Storage Filter */}
           <div className="space-y-3 pb-5 border-b border-gray-100">
             <button
+              type="button"
               onClick={() => setStorageOpen(!storageOpen)}
               className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
             >
-              <span>შიდა მეხსიერება</span>
+              <span>მეხსიერება</span>
               {storageOpen ? (
                 <ChevronUp className="w-4 h-4 text-gray-400" />
               ) : (
@@ -589,13 +663,13 @@ function CatalogContent() {
             </button>
 
             {storageOpen && (
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
                 {dynamicStorageOptions.map((s) => {
                   const isSelected = selectedStorage.includes(s);
-
                   return (
                     <button
                       key={s}
+                      type="button"
                       onClick={() => handleStorageToggle(s)}
                       className={`py-2 px-3 rounded-xl text-xs transition-all cursor-pointer text-center ${
                         isSelected
@@ -635,23 +709,74 @@ function CatalogContent() {
           </div>
         </aside>
 
-        {/* Right Product Grid */}
+        {/* Right Product Grid & Pagination */}
         <main className="flex-1 w-full space-y-6">
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  title={product.title}
-                  price={product.price}
-                  discountPrice={product.discountPrice}
-                  monthlyInstallment={product.monthlyInstallment}
-                  image={product.images[0]}
-                  discountPercentage={product.discountPercentage}
-                />
-              ))}
-            </div>
+          {isLoading ? (
+            <ProductGridSkeleton count={8} />
+          ) : displayedProducts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {displayedProducts.map((product) => {
+                  const prodImg = product.images?.[0] || product.image || "";
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      id={product.id}
+                      title={product.title}
+                      price={product.price}
+                      discountPrice={product.discountPrice}
+                      monthlyInstallment={product.monthlyInstallment}
+                      image={prodImg}
+                      discountPercentage={product.discountPercentage}
+                      stock={product.stock}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-8">
+                  <button
+                    type="button"
+                    disabled={filters.page <= 1}
+                    onClick={() => setPage(filters.page - 1)}
+                    className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>წინა</span>
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    const isCurrent = p === (filters.page || 1);
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPage(p)}
+                        className={`w-8 h-8 rounded-xl text-xs flex items-center justify-center transition-colors cursor-pointer ${
+                          isCurrent
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "border border-gray-200 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    disabled={filters.page >= totalPages}
+                    onClick={() => setPage(filters.page + 1)}
+                    className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  >
+                    <span>შემდეგი</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-white rounded-2xl p-12 text-center space-y-4 max-w-lg mx-auto shadow-[0_8px_30px_rgb(0,0,0,0.015)] my-8">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
@@ -665,6 +790,7 @@ function CatalogContent() {
               </p>
               <div className="pt-2">
                 <button
+                  type="button"
                   onClick={resetFilters}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl transition-colors cursor-pointer"
                 >

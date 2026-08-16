@@ -1,48 +1,27 @@
 import { NextResponse } from "next/server";
-import { getPrismaClient } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/jwt";
 
 export async function GET(request: Request) {
-  const prisma = getPrismaClient();
   try {
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get("email");
-    const phone = searchParams.get("phone");
-    const id = searchParams.get("id");
-
-    if (!email && !phone && !id) {
+    // 1. Enforce verified session (IDOR prevention - ignore arbitrary query parameters)
+    const session = await getAuthSession(request);
+    if (!session || !session.userId) {
       return NextResponse.json(
-        { success: false, error: "მომხმარებლის იდენტიფიკატორი მიუთითეთ" },
-        { status: 400 }
+        { success: false, error: "ავტორიზაცია აუცილებელია (Unauthorized)" },
+        { status: 401 }
       );
     }
 
-    const whereConditions: any[] = [];
-    if (id) whereConditions.push({ id });
-    if (email) whereConditions.push({ email });
-    if (phone) whereConditions.push({ phone });
-
-    let user = await prisma.user.findFirst({
-      where: { OR: whereConditions },
+    // 2. Fetch authenticated user data strictly by session userId
+    let user = await prisma.user.findUnique({
+      where: { id: session.userId },
     });
 
-    // If user not in User table, search in AdminUser and sync to User table
-    if (!user && email) {
-      const admin = await prisma.adminUser.findFirst({
-        where: { email },
+    if (!user && session.email) {
+      user = await prisma.user.findFirst({
+        where: { email: session.email },
       });
-      if (admin) {
-        user = await prisma.user.upsert({
-          where: { email: admin.email },
-          update: { role: admin.role, name: admin.name },
-          create: {
-            id: admin.id,
-            name: admin.name,
-            email: admin.email,
-            password: admin.password || "admin123",
-            role: admin.role,
-          },
-        });
-      }
     }
 
     if (!user) {
@@ -52,15 +31,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch orders associated with this user
-    const orderWhere: any[] = [{ userId: user.id }];
-    if (user.phone) orderWhere.push({ contactPhone: user.phone });
-    if (user.email) orderWhere.push({ customerName: user.name });
-
+    // 3. Fetch orders strictly belonging to this authenticated user
     let orders: any[] = [];
     try {
       orders = await prisma.order.findMany({
-        where: { OR: orderWhere },
+        where: { userId: user.id },
         include: { items: true },
         orderBy: { createdAt: "desc" },
       });
@@ -111,7 +86,7 @@ export async function GET(request: Request) {
           id: i.productId,
           title: i.title,
           price: i.price,
-          image: i.image || "https://veli.store/media-cdn/__sized__/product/iphone16pro-thumbnail-200x200-95.jpg",
+          image: i.image || "/placeholder.png",
           quantity: i.quantity,
         })),
       })),
@@ -126,16 +101,22 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const prisma = getPrismaClient();
   try {
+    // 1. Enforce verified session (IDOR prevention)
+    const session = await getAuthSession(request);
+    if (!session || !session.userId) {
+      return NextResponse.json(
+        { success: false, error: "ავტორიზაცია აუცილებელია (Unauthorized)" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
-      id,
-      email,
-      phone,
       firstName,
       lastName,
       name,
+      phone,
       isGeorgianCitizen,
       idNumber,
       address,
@@ -143,63 +124,24 @@ export async function PUT(request: Request) {
       emailNotify,
     } = body;
 
-    if (!email && !phone && !id) {
-      return NextResponse.json(
-        { success: false, error: "მომხმარებლის იდენტიფიკატორი მიუთითეთ" },
-        { status: 400 }
-      );
-    }
-
     const computedName =
       name || (firstName || lastName ? `${firstName || ""} ${lastName || ""}`.trim() : undefined);
 
-    let existingUser = id ? await prisma.user.findUnique({ where: { id } }) : null;
+    // 2. Lookup authenticated user
+    const existingUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+    });
 
     if (!existingUser) {
-      const whereConditions: any[] = [];
-      if (email) whereConditions.push({ email });
-      if (phone) whereConditions.push({ phone });
-      existingUser = await prisma.user.findFirst({
-        where: { OR: whereConditions },
-      });
+      return NextResponse.json(
+        { success: false, error: "მომხმარებელი ვერ მოიძებნა" },
+        { status: 404 }
+      );
     }
 
-    // If user not in User table yet, search in AdminUser table and sync
-    if (!existingUser && email) {
-      const admin = await prisma.adminUser.findFirst({
-        where: { email },
-      });
-      if (admin) {
-        existingUser = await prisma.user.upsert({
-          where: { email: admin.email },
-          update: { role: admin.role, name: admin.name },
-          create: {
-            id: admin.id,
-            name: admin.name,
-            email: admin.email,
-            password: admin.password || "admin123",
-            role: admin.role,
-          },
-        });
-      }
-    }
-
-    // If still not found, create new User record in MySQL
-    if (!existingUser) {
-      const targetEmail = email || `user_${Date.now()}@spilo.ge`;
-      existingUser = await prisma.user.create({
-        data: {
-          email: targetEmail,
-          phone: phone || null,
-          name: computedName || "მომხმარებელი",
-          role: "CUSTOMER",
-        },
-      });
-    }
-
+    // 3. Construct update payload strictly allowing safe customer fields (no role escalation or ID tampering)
     const updateData: any = {};
     if (computedName !== undefined) updateData.name = computedName;
-    if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
@@ -209,54 +151,29 @@ export async function PUT(request: Request) {
     if (smsNotify !== undefined) updateData.smsNotify = Boolean(smsNotify);
     if (emailNotify !== undefined) updateData.emailNotify = Boolean(emailNotify);
 
-    let updatedUser: any;
+    const updatedUser = await prisma.user.update({
+      where: { id: existingUser.id },
+      data: updateData,
+    });
 
-    try {
-      updatedUser = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: updateData,
-      });
-    } catch (err: any) {
-      console.warn("Prisma update fallback, using direct SQL update:", err?.message);
-      await prisma.$executeRawUnsafe(
-        `UPDATE User SET name = ?, email = ?, phone = ?, address = ?, firstName = ?, lastName = ?, idNumber = ?, isGeorgianCitizen = ?, smsNotify = ?, emailNotify = ? WHERE id = ?`,
-        computedName || existingUser.name || null,
-        email !== undefined ? email : existingUser.email,
-        phone !== undefined ? phone : existingUser.phone,
-        address !== undefined ? address : existingUser.address || null,
-        firstName !== undefined ? firstName : existingUser.firstName || null,
-        lastName !== undefined ? lastName : existingUser.lastName || null,
-        idNumber !== undefined ? idNumber : existingUser.idNumber || null,
-        isGeorgianCitizen !== undefined ? (isGeorgianCitizen ? 1 : 0) : (existingUser.isGeorgianCitizen ? 1 : 0),
-        smsNotify !== undefined ? (smsNotify ? 1 : 0) : (existingUser.smsNotify ? 1 : 0),
-        emailNotify !== undefined ? (emailNotify ? 1 : 0) : (existingUser.emailNotify ? 1 : 0),
-        existingUser.id
-      ).catch((sqlErr) => console.warn("Raw SQL update error:", sqlErr));
-
-      updatedUser = await prisma.user.findUnique({
-        where: { id: existingUser.id },
-      });
-    }
-
-    const finalAddress = updatedUser?.address || address || "";
-    const splitName = (updatedUser?.name || "").split(" ");
+    const splitName = (updatedUser.name || "").split(" ");
 
     return NextResponse.json({
       success: true,
-      message: "პროფილის მონაცემები წარმატებით განახლდა ბაზაში",
+      message: "პროფილის მონაცემები წარმატებით განახლდა",
       user: {
-        id: existingUser.id,
-        email: updatedUser?.email || email || "",
-        phone: updatedUser?.phone || phone || "",
-        name: updatedUser?.name || computedName || "",
-        firstName: updatedUser?.firstName || firstName || splitName[0] || "",
-        lastName: updatedUser?.lastName || lastName || splitName.slice(1).join(" ") || "",
-        role: updatedUser?.role || "CUSTOMER",
-        isGeorgianCitizen: updatedUser?.isGeorgianCitizen ?? true,
-        idNumber: updatedUser?.idNumber || idNumber || "",
-        address: finalAddress,
-        smsNotify: updatedUser?.smsNotify ?? true,
-        emailNotify: updatedUser?.emailNotify ?? true,
+        id: updatedUser.id,
+        email: updatedUser.email || "",
+        phone: updatedUser.phone || "",
+        name: updatedUser.name || "",
+        firstName: updatedUser.firstName || splitName[0] || "",
+        lastName: updatedUser.lastName || splitName.slice(1).join(" ") || "",
+        role: updatedUser.role || "CUSTOMER",
+        isGeorgianCitizen: updatedUser.isGeorgianCitizen ?? true,
+        idNumber: updatedUser.idNumber || "",
+        address: updatedUser.address || "",
+        smsNotify: updatedUser.smsNotify ?? true,
+        emailNotify: updatedUser.emailNotify ?? true,
       },
     });
   } catch (error: any) {

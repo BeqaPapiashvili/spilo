@@ -1,48 +1,96 @@
 import { NextResponse } from "next/server";
-import { getPrismaClient } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/audit";
 
 export async function GET() {
   try {
-    const prisma = getPrismaClient();
     const items = await prisma.navigationItem.findMany({
       orderBy: { order: "asc" },
     });
-    return NextResponse.json({ success: true, data: items });
+    return NextResponse.json({ success: true, count: items.length, data: items });
   } catch (error: any) {
+    console.error("GET /api/admin/navigation error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const body = await request.json();
-    const { id, label, url, order = 0 } = body;
+
+    // Check for bulk reorder: { reorder: [{ id, order }] }
+    if (body.reorder && Array.isArray(body.reorder)) {
+      await prisma.$transaction(
+        body.reorder.map((item: { id: string; order: number }) =>
+          prisma.navigationItem.update({
+            where: { id: item.id },
+            data: { order: Number(item.order) },
+          })
+        )
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "ნავიგაციის თანმიმდევრობა განახლდა",
+      });
+    }
+
+    const { id, label, url, order = 0, isActive = true } = body;
 
     if (!label || !url) {
       return NextResponse.json({ success: false, message: "Label and URL are required" }, { status: 400 });
     }
 
+    let result;
+
     if (id) {
-      const updated = await prisma.navigationItem.update({
+      result = await prisma.navigationItem.update({
         where: { id },
-        data: { label, url, order: Number(order) },
+        data: {
+          label: label.trim(),
+          url: url.trim(),
+          order: Number(order),
+          isActive: Boolean(isActive),
+        },
       });
-      return NextResponse.json({ success: true, data: updated });
+
+      await recordAuditLog({
+        action: "NAVIGATION_UPDATE",
+        entity: "NavigationItem",
+        target: `${result.label} (${result.id})`,
+        details: `განახლდა ნავიგაცია: ${result.url}, რიგი: ${result.order}, სტატუსი: ${result.isActive ? "აქტიური" : "არააქტიური"}`,
+      });
     } else {
-      const created = await prisma.navigationItem.create({
-        data: { label, url, order: Number(order) },
+      result = await prisma.navigationItem.create({
+        data: {
+          label: label.trim(),
+          url: url.trim(),
+          order: Number(order),
+          isActive: Boolean(isActive),
+        },
       });
-      return NextResponse.json({ success: true, data: created });
+
+      await recordAuditLog({
+        action: "NAVIGATION_CREATE",
+        entity: "NavigationItem",
+        target: `${result.label} (${result.id})`,
+        details: `შეიქმნა ნავიგაციის ელემენტი: ${result.url}`,
+      });
     }
+
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
+    console.error("POST /api/admin/navigation error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
+export async function PUT(request: Request) {
+  return POST(request);
+}
+
 export async function DELETE(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -50,9 +98,22 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: "ID is required" }, { status: 400 });
     }
 
+    const existing = await prisma.navigationItem.findUnique({ where: { id } });
+
     await prisma.navigationItem.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+
+    if (existing) {
+      await recordAuditLog({
+        action: "NAVIGATION_DELETE",
+        entity: "NavigationItem",
+        target: `${existing.label} (${existing.id})`,
+        details: "ნავიგაციის ელემენტი წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
+
+    return NextResponse.json({ success: true, message: "ნავიგაციის ელემენტი წაიშალა" });
   } catch (error: any) {
+    console.error("DELETE /api/admin/navigation error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

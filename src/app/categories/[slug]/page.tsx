@@ -14,9 +14,9 @@ import {
   Gamepad2,
   Watch,
   Camera,
-  Tablet
+  Tablet,
+  Loader2
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
 import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -40,16 +40,40 @@ export default function SubCategoriesPage({ params }: PageProps) {
   const slug = resolvedParams.slug;
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setCategories(dataService.getCategories());
-    const unsub = dataService.subscribe(() => {
-      setCategories(dataService.getCategories());
-    });
-    return () => unsub();
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && isMounted) {
+          setCategories(json.data);
+        }
+      } catch (err) {
+        console.error("SubCategoriesPage: Failed to load categories:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const category = categories.find((c) => c.slug === slug || c.id === slug);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        <p className="text-xs text-gray-400">იტვირთება მონაცემები...</p>
+      </div>
+    );
+  }
 
   if (!category) {
     return (
@@ -65,74 +89,82 @@ export default function SubCategoriesPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-white pb-24">
       
-      {/* 1. Header Banner */}
+      {/* 1. Breadcrumbs & Header */}
       <section className="bg-[#F8FAFC] border-b border-gray-100 py-8 md:py-10">
-        <div className="container mx-auto px-4 lg:px-8 space-y-3">
-          
-          {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-            <Link href="/" className="hover:text-blue-600 transition-colors">მთავარი</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-            <Link href="/categories" className="hover:text-blue-600 transition-colors">ყველა კატეგორია</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+        <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          <nav className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+            <Link href="/" className="hover:text-blue-600 transition-colors">
+              მთავარი
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+            <Link href="/categories" className="hover:text-blue-600 transition-colors">
+              კატეგორიები
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
             <span className="text-gray-900">{category.name}</span>
-          </div>
+          </nav>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="text-blue-600 p-3 bg-white border border-gray-200 rounded-2xl shadow-2xs">
+              {category.icon && iconMap[category.icon] ? iconMap[category.icon] : <Sparkles className="w-8 h-8" />}
+            </div>
             <div>
-              <Link 
-                href="/categories" 
-                className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 mb-2 transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>უკან კატეგორიებში</span>
-              </Link>
               <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
                 {category.name}
               </h1>
+              <p className="text-xs md:text-sm text-gray-500 mt-1">
+                აირჩიეთ ქვეკატეგორია ან დაათვალიერეთ ყველა პროდუქტი
+              </p>
             </div>
-
-            <Link
-              href={`/catalog?category=${category.slug}`}
-              className="inline-flex items-center gap-2 bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-colors self-start sm:self-auto cursor-pointer"
-            >
-              <span>სრული კატალოგის ნახვა</span>
-            </Link>
           </div>
-
         </div>
       </section>
 
-      {/* 2. Subcategory Visual Cards Grid (No hover scale animations) */}
-      <section className="pt-8">
-        <div className="container mx-auto px-4 lg:px-8 space-y-10">
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-            {category.children?.map((sub) => {
-              const href = sub.items && sub.items.length > 0
-                ? `/categories/${category.slug}/${sub.slug}`
-                : `/catalog?category=${sub.slug}`;
+      {/* 2. Subcategories Grid */}
+      <div className="container mx-auto px-4 lg:px-8 max-w-7xl pt-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg text-gray-900">ქვეკატეგორიები</h2>
+          <Link
+            href={`/catalog?category=${category.slug}`}
+            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+          >
+            <span>ყველა პროდუქტის ნახვა ({category.name})</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
 
-              return (
-                <Link
-                  key={sub.id}
-                  href={href}
-                  className="w-full h-[160px] bg-[#EAECEF] hover:bg-[#E2E5EA] rounded-xl p-3.5 flex flex-col justify-between items-start cursor-pointer relative overflow-hidden select-none group block text-left"
-                >
-                  <h4 className="text-xs sm:text-sm text-[#111111] leading-tight pt-0.5 z-10 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {category.children && category.children.length > 0 ? (
+            category.children.map((sub) => (
+              <Link
+                key={sub.id}
+                href={`/categories/${category.slug}/${sub.slug}`}
+                className="group p-5 rounded-2xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-lg transition-all flex flex-col justify-between h-40"
+              >
+                <div className="flex items-start justify-between">
+                  <span className="p-2.5 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <Sparkles className="w-5 h-5" />
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                </div>
+
+                <div>
+                  <h3 className="text-sm text-gray-900 group-hover:text-blue-600 transition-colors">
                     {sub.name}
-                  </h4>
-
-                  <div className="absolute bottom-1.5 right-1.5 w-14 h-14 flex items-end justify-end pointer-events-none opacity-40 text-black">
-                    {category.icon && iconMap[category.icon] ? iconMap[category.icon] : <Sparkles className="w-12 h-12 stroke-[1.6]" />}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {sub.items?.length ? `${sub.items.length} ჯგუფი / მოდელი` : "დათვალიერება"}
+                  </p>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full py-12 text-center text-xs text-gray-400">
+              ქვეკატეგორიები არ არის დამატებული.
+            </div>
+          )}
         </div>
-      </section>
+      </div>
 
     </div>
   );

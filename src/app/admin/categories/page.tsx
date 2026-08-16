@@ -15,9 +15,9 @@ import {
   Tag, 
   Sparkles,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
 import { Category, SubCategory, DeepCategoryItem } from "@/types";
 
 // Swiper styles
@@ -37,6 +37,8 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedL1Id, setSelectedL1Id] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const swiperPrevRef = useRef<HTMLButtonElement>(null);
   const swiperNextRef = useRef<HTMLButtonElement>(null);
@@ -47,22 +49,26 @@ export default function AdminCategoriesPage() {
   const [inputName, setInputName] = useState("");
   const [inputSlug, setInputSlug] = useState("");
 
-  useEffect(() => {
-    const loaded = dataService.getCategories();
-    setCategories([...loaded]);
-
-    if (loaded.length > 0 && !selectedL1Id) {
-      setSelectedL1Id(loaded[0].id);
-    }
-
-    const unsub = dataService.subscribe(() => {
-      const updated = dataService.getCategories();
-      setCategories([...updated]);
-      if (updated.length > 0 && (!selectedL1Id || !updated.some((c) => c.id === selectedL1Id))) {
-        setSelectedL1Id(updated[0].id);
+  const loadCategories = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/categories");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setCategories(json.data);
+        if (json.data.length > 0 && !selectedL1Id) {
+          setSelectedL1Id(json.data[0].id);
+        }
       }
-    });
-    return () => unsub();
+    } catch (err) {
+      console.error("AdminCategoriesPage: Failed to load categories:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
   }, []);
 
   const activeCategory = categories.find((c) => c.id === selectedL1Id) || categories[0];
@@ -129,79 +135,131 @@ export default function AdminCategoriesPage() {
   };
 
   // --- Save Modal ---
-  const handleSaveModal = (e: React.FormEvent) => {
+  const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputName.trim()) return;
-    const finalSlug = inputSlug.trim() || inputName.toLowerCase().replace(/\s+/g, "-");
+    setIsSaving(true);
 
-    if (modalState.mode === "ADD_L1" || modalState.mode === "EDIT_L1") {
-      const editId = modalState.mode === "EDIT_L1" ? modalState.category.id : undefined;
-      const existing = modalState.mode === "EDIT_L1" ? modalState.category : {};
-      dataService.saveCategory({
-        ...existing,
-        id: editId,
-        name: inputName.trim(),
-        slug: finalSlug,
-      });
-    } else if (modalState.mode === "ADD_L2" || modalState.mode === "EDIT_L2") {
-      const l1 = categories.find((c) => c.id === modalState.parentL1Id);
-      if (l1) {
-        let updatedChildren = [...(l1.children || [])];
-        if (modalState.mode === "ADD_L2") {
-          updatedChildren.push({ id: `sub-${Date.now()}`, name: inputName.trim(), slug: finalSlug, items: [] });
-        } else {
-          updatedChildren = updatedChildren.map((s) => s.id === modalState.subCategory.id ? { ...s, name: inputName.trim(), slug: finalSlug } : s);
-        }
-        dataService.saveCategory({ ...l1, children: updatedChildren });
-      }
-    } else if (modalState.mode === "ADD_L3" || modalState.mode === "EDIT_L3") {
-      const l1 = categories.find((c) => c.id === modalState.parentL1Id);
-      if (l1 && l1.children) {
-        const updatedChildren = l1.children.map((sub) => {
-          if (sub.id === modalState.parentL2Id) {
-            let updatedItems = [...(sub.items || [])];
-            if (modalState.mode === "ADD_L3") {
-              updatedItems.push({ id: `item-${Date.now()}`, name: inputName.trim(), slug: finalSlug });
-            } else {
-              updatedItems = updatedItems.map((i) => i.id === modalState.item.id ? { ...i, name: inputName.trim(), slug: finalSlug } : i);
-            }
-            return { ...sub, items: updatedItems };
-          }
-          return sub;
+    try {
+      const finalSlug = inputSlug.trim() || inputName.toLowerCase().replace(/\s+/g, "-");
+
+      if (modalState.mode === "ADD_L1") {
+        await fetch("/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: inputName.trim(),
+            slug: finalSlug,
+            icon: "Sparkles",
+            children: [],
+          }),
         });
-        dataService.saveCategory({ ...l1, children: updatedChildren });
+      } else if (modalState.mode === "EDIT_L1") {
+        await fetch("/api/categories", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: modalState.category.id,
+            name: inputName.trim(),
+            slug: finalSlug,
+          }),
+        });
+      } else if (modalState.mode === "ADD_L2" || modalState.mode === "EDIT_L2") {
+        const l1 = categories.find((c) => c.id === modalState.parentL1Id);
+        if (l1) {
+          let updatedChildren = [...(l1.children || [])];
+          if (modalState.mode === "ADD_L2") {
+            updatedChildren.push({ id: `sub-${Date.now()}`, name: inputName.trim(), slug: finalSlug, items: [] });
+          } else {
+            updatedChildren = updatedChildren.map((s) => s.id === modalState.subCategory.id ? { ...s, name: inputName.trim(), slug: finalSlug } : s);
+          }
+          await fetch("/api/categories", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: l1.id, children: updatedChildren }),
+          });
+        }
+      } else if (modalState.mode === "ADD_L3" || modalState.mode === "EDIT_L3") {
+        const l1 = categories.find((c) => c.id === modalState.parentL1Id);
+        if (l1 && l1.children) {
+          const updatedChildren = l1.children.map((sub) => {
+            if (sub.id === modalState.parentL2Id) {
+              let updatedItems = [...(sub.items || [])];
+              if (modalState.mode === "ADD_L3") {
+                updatedItems.push({ id: `item-${Date.now()}`, name: inputName.trim(), slug: finalSlug });
+              } else {
+                updatedItems = updatedItems.map((i) => i.id === modalState.item.id ? { ...i, name: inputName.trim(), slug: finalSlug } : i);
+              }
+              return { ...sub, items: updatedItems };
+            }
+            return sub;
+          });
+          await fetch("/api/categories", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: l1.id, children: updatedChildren }),
+          });
+        }
       }
-    }
 
-    setIsModalOpen(false);
+      setIsModalOpen(false);
+      loadCategories();
+    } catch (err) {
+      console.error("Failed to save category:", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // --- Deletes ---
-  const handleDeleteL1 = (id: string, name: string) => {
+  const handleDeleteL1 = async (id: string, name: string) => {
     if (confirm(`გსურთ მთავარი კატეგორიის "${name}" წაშლა?`)) {
-      dataService.deleteCategory(id);
-      if (selectedL1Id === id) setSelectedL1Id(null);
+      try {
+        await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (selectedL1Id === id) setSelectedL1Id(null);
+        loadCategories();
+      } catch (err) {
+        console.error("Delete L1 error:", err);
+      }
     }
   };
 
-  const handleDeleteL2 = (l2Id: string, name: string) => {
+  const handleDeleteL2 = async (l2Id: string, name: string) => {
     if (!activeCategory || !activeCategory.children) return;
     if (confirm(`გსურთ ქვეკატეგორიის "${name}" წაშლა?`)) {
-      const updated = activeCategory.children.filter((s) => s.id !== l2Id);
-      dataService.saveCategory({ ...activeCategory, children: updated });
+      try {
+        const updated = activeCategory.children.filter((s) => s.id !== l2Id);
+        await fetch("/api/categories", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: activeCategory.id, children: updated }),
+        });
+        loadCategories();
+      } catch (err) {
+        console.error("Delete L2 error:", err);
+      }
     }
   };
 
-  const handleDeleteL3 = (l2Id: string, l3Id: string, name: string) => {
+  const handleDeleteL3 = async (l2Id: string, l3Id: string, name: string) => {
     if (!activeCategory || !activeCategory.children) return;
     if (confirm(`გსურთ "${name}" წაშლა?`)) {
-      const updated = activeCategory.children.map((sub) => {
-        if (sub.id === l2Id && sub.items) {
-          return { ...sub, items: sub.items.filter((i) => i.id !== l3Id) };
-        }
-        return sub;
-      });
-      dataService.saveCategory({ ...activeCategory, children: updated });
+      try {
+        const updated = activeCategory.children.map((sub) => {
+          if (sub.id === l2Id && sub.items) {
+            return { ...sub, items: sub.items.filter((i) => i.id !== l3Id) };
+          }
+          return sub;
+        });
+        await fetch("/api/categories", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: activeCategory.id, children: updated }),
+        });
+        loadCategories();
+      } catch (err) {
+        console.error("Delete L3 error:", err);
+      }
     }
   };
 
@@ -219,352 +277,261 @@ export default function AdminCategoriesPage() {
             კატეგორიები & ქვეკატეგორიები ({categories.length})
           </h1>
           <p className="text-xs md:text-sm text-slate-500">
-            აირჩიეთ მთავარი კატეგორია Swiper ტაბებიდან და მართეთ მისი ქვეკატეგორიები და ბრენდები.
+            მართეთ 3-დონიანი იერარქია: მთავარი კატეგორიები, ქვეკატეგორიები და დეტალური ჯგუფები.
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleOpenAddL1}
-          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-all shadow-xs hover:shadow-md shrink-0"
+          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
         >
           <FolderPlus className="w-4 h-4" />
-          <span>+ ახალი მთავარი კატეგორია</span>
+          <span>ახალი მთავარი კატეგორია</span>
         </button>
       </div>
 
-      {/* Search Input Bar */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs">
-        <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ძიება: კატეგორიები, ქვეკატეგორიები, ბრენდები..."
-            className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
-          />
+      {/* Level 1 Swiper Carousel Navigation */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs relative">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <div className="flex items-center gap-2 text-xs text-slate-700">
+            <Folder className="w-4 h-4 text-blue-600" />
+            <span>მთავარი კატეგორიები (დონე 1)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              ref={swiperPrevRef}
+              className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              ref={swiperNextRef}
+              className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Official Swiper React Carousel Deck */}
-      <div className="bg-white rounded-3xl p-3.5 border border-slate-200/80 shadow-xs relative flex items-center gap-2.5">
-        
-        {/* Navigation Prev Button */}
-        <button
-          ref={swiperPrevRef}
-          type="button"
-          className="w-9 h-9 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-2xs z-10"
-          title="მარცხნივ"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-
-        {/* Swiper Slider */}
-        <div className="flex-1 overflow-hidden">
+        {isLoading ? (
+          <div className="py-6 text-center text-xs text-slate-400">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-600 mx-auto mb-1" />
+            <span>იტვირთება კატეგორიები...</span>
+          </div>
+        ) : (
           <Swiper
             modules={[Navigation, FreeMode, Mousewheel]}
-            slidesPerView="auto"
-            spaceBetween={10}
-            freeMode={true}
-            mousewheel={{ forceToAxis: true }}
             navigation={{
               prevEl: swiperPrevRef.current,
               nextEl: swiperNextRef.current,
             }}
-            onBeforeInit={(swiper) => {
-              // @ts-ignore
+            onBeforeInit={(swiper: any) => {
               swiper.params.navigation.prevEl = swiperPrevRef.current;
-              // @ts-ignore
               swiper.params.navigation.nextEl = swiperNextRef.current;
             }}
-            className="w-full select-none"
+            slidesPerView="auto"
+            spaceBetween={12}
+            freeMode={true}
+            mousewheel={{ forceToAxis: true }}
+            className="w-full"
           >
-            {filteredCategories.map((cat) => {
-              const isSelected = activeCategory?.id === cat.id;
-
+            {categories.map((cat) => {
+              const isSelected = selectedL1Id === cat.id;
               return (
-                <SwiperSlide key={cat.id} style={{ width: "auto" }}>
-                  <button
-                    type="button"
+                <SwiperSlide key={cat.id} className="!w-auto">
+                  <div
                     onClick={() => setSelectedL1Id(cat.id)}
-                    className={`h-11 px-4.5 rounded-2xl text-xs flex items-center gap-3 shrink-0 transition-all cursor-pointer select-none ${
+                    className={`px-4 py-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${
                       isSelected
-                        ? "bg-slate-900 text-white shadow-xs border border-slate-900"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80"
+                        ? "bg-blue-50 border-blue-300 text-blue-800 shadow-2xs"
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
                     }`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${isSelected ? "bg-blue-400 animate-pulse" : "bg-slate-300"}`} />
-                    <span className="whitespace-nowrap font-medium">{cat.name}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                      isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
-                    }`}>
-                      {cat.children?.length || 0}
-                    </span>
-                  </button>
+                    <span>{cat.name}</span>
+                    <span className="text-[10px] opacity-60">({cat.children?.length || 0})</span>
+                    <div className="flex items-center gap-0.5 ml-1">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleOpenEditL1(cat); }}
+                        className="p-1 hover:text-blue-600 rounded"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteL1(cat.id, cat.name); }}
+                        className="p-1 hover:text-red-600 rounded"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
                 </SwiperSlide>
               );
             })}
-
-            <SwiperSlide style={{ width: "auto" }}>
-              <button
-                type="button"
-                onClick={handleOpenAddL1}
-                className="h-11 px-4 rounded-2xl text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer border border-dashed border-blue-200 whitespace-nowrap"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>ახალი L1</span>
-              </button>
-            </SwiperSlide>
           </Swiper>
-        </div>
-
-        {/* Navigation Next Button */}
-        <button
-          ref={swiperNextRef}
-          type="button"
-          className="w-9 h-9 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-2xs z-10"
-          title="მარჯვნივ"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-
+        )}
       </div>
 
-      {/* Active Main Category Dedicated Workspace Card */}
-      {activeCategory ? (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 md:p-8 space-y-6">
-          
-          {/* Custom Hero Card for Active Category */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-200/80">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center text-blue-600 shrink-0">
-                <FolderTree className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg text-slate-900">{activeCategory.name}</h2>
-                  <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/80 rounded-full text-[10px] font-mono uppercase">
-                    მთავარი კატეგორია (L1)
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 font-mono">URL Path: /catalog/{activeCategory.slug}</p>
-              </div>
+      {/* Subcategories (Level 2 & 3) Tree Panel */}
+      {activeCategory && (
+        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-xs space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+              <h2 className="text-lg text-slate-900 flex items-center gap-2">
+                <span>{activeCategory.name}</span>
+                <span className="text-xs text-slate-400 font-mono">({activeCategory.slug})</span>
+              </h2>
+              <p className="text-xs text-slate-500">ქვეკატეგორიებისა და ჯგუფების იერარქია</p>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleOpenAddL2()}
-                className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ L2 ქვეკატეგორიის დამატება</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenEditL1(activeCategory)}
-                className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
-                title="კატეგორიის რედაქტირება"
-              >
-                <Edit3 className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDeleteL1(activeCategory.id, activeCategory.name)}
-                className="w-10 h-10 rounded-2xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors cursor-pointer"
-                title="კატეგორიის წაშლა"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleOpenAddL2}
+              className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>ქვეკატეგორიის დამატება (დონე 2)</span>
+            </button>
           </div>
 
-          {/* Subcategories (L2) Grid Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm text-slate-900 flex items-center gap-2">
-                <Folder className="w-4 h-4 text-blue-600" />
-                <span>ქვეკატეგორიები ({activeCategory.children?.length || 0})</span>
-              </h3>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeCategory.children && activeCategory.children.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {activeCategory.children.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4 hover:border-blue-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
-                  >
-                    
-                    {/* L2 Subcategory Header */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-600" />
-                          <h4 className="text-sm text-slate-900">{sub.name}</h4>
-                        </div>
-                        <p className="text-[11px] text-slate-400 font-mono pl-4">/{sub.slug}</p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenAddL3(sub)}
-                          className="h-8 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60 rounded-xl text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>+ L3 ელემენტი</span>
-                        </button>
-
+              activeCategory.children.map((sub) => (
+                <div
+                  key={sub.id}
+                  className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm text-slate-900">{sub.name}</h3>
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleOpenEditL2(sub)}
-                          className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-blue-600 rounded"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
-
                         <button
                           type="button"
                           onClick={() => handleDeleteL2(sub.id, sub.name)}
-                          className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-red-600 rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    {/* L3 Deep Items Tags Grid */}
-                    <div className="pt-3 border-t border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">L3 ელემენტები / ბრენდები:</span>
-                        <span className="text-slate-400 font-mono">{sub.items?.length || 0}</span>
-                      </div>
-
-                      {sub.items && sub.items.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {sub.items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl text-xs text-slate-800 flex items-center gap-2 group transition-all"
+                    {/* Level 3 Items */}
+                    <div className="space-y-1.5 pl-2 border-l-2 border-blue-200">
+                      {sub.items && sub.items.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between text-xs text-slate-600">
+                          <span>{item.name}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditL3(sub.id, item)}
+                              className="p-1 text-slate-400 hover:text-blue-600"
                             >
-                              <Tag className="w-3 h-3 text-emerald-600 shrink-0" />
-                              <span>{item.name}</span>
-                              
-                              <div className="flex items-center gap-1 pl-1 border-l border-slate-200">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditL3(sub.id, item)}
-                                  className="text-slate-400 hover:text-blue-600 cursor-pointer"
-                                >
-                                  <Edit3 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteL3(sub.id, item.id, item.name)}
-                                  className="text-slate-400 hover:text-red-600 cursor-pointer"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteL3(sub.id, item.id, item.name)}
+                              className="p-1 text-slate-400 hover:text-red-600"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-xs text-slate-400">L3 ელემენტები ჯერ არ არის დამატებული</p>
-                      )}
+                      ))}
                     </div>
-
                   </div>
-                ))}
-              </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAddL3(sub)}
+                    className="w-full py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-[11px] text-slate-600 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>ჯგუფის დამატება (დონე 3)</span>
+                  </button>
+                </div>
+              ))
             ) : (
-              <div className="p-12 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400 text-xs">
-                ამ კატეგორიას ქვეკატეგორიები ჯერ არ აქვს. გამოიყენეთ "+ L2 ქვეკატეგორიის დამატება" ღილაკი.
+              <div className="col-span-full py-12 text-center text-xs text-slate-400">
+                ქვეკატეგორიები არ არის დამატებული.
               </div>
             )}
           </div>
-
-        </div>
-      ) : (
-        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 text-slate-400 text-xs">
-          კატეგორიები ვერ მოიძებნა
         </div>
       )}
 
-      {/* Unified Hierarchical Category Modal */}
+      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white rounded-3xl max-w-md w-full p-6 border border-slate-100 shadow-2xl z-10 space-y-5 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base text-slate-900">
-                  {modalState.mode.startsWith("EDIT") ? "რედაქტირება" : "ახალი კატეგორია / ქვეკატეგორია"}
-                </h3>
-                {modalState.mode === "ADD_L2" && (
-                  <p className="text-xs text-blue-600">მშობელი: {modalState.parentL1Name}</p>
-                )}
-                {modalState.mode === "ADD_L3" && (
-                  <p className="text-xs text-indigo-600">გზა: {modalState.parentPath}</p>
-                )}
-              </div>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-900">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base text-slate-900">
+                {modalState.mode === "ADD_L1" && "ახალი მთავარი კატეგორია"}
+                {modalState.mode === "EDIT_L1" && "მთავარი კატეგორიის რედაქტირება"}
+                {modalState.mode === "ADD_L2" && "ახალი ქვეკატეგორია (დონე 2)"}
+                {modalState.mode === "EDIT_L2" && "ქვეკატეგორიის რედაქტირება"}
+                {modalState.mode === "ADD_L3" && "ახალი ჯგუფი (დონე 3)"}
+                {modalState.mode === "EDIT_L3" && "ჯგუფის რედაქტირება"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveModal} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveModal} className="space-y-4">
               <div>
-                <label className="block text-slate-700 mb-1">დასახელება *</label>
+                <label className="block text-xs text-slate-700 mb-1">დასახელება *</label>
                 <input
                   type="text"
                   value={inputName}
                   onChange={(e) => {
                     setInputName(e.target.value);
-                    if (!modalState.mode.startsWith("EDIT")) {
-                      setInputSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
-                    }
+                    if (!inputSlug) setInputSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
                   }}
-                  placeholder={
-                    modalState.mode.includes("L3")
-                      ? "მაგ: Apple, For Google..."
-                      : modalState.mode.includes("L2")
-                      ? "მაგ: ბრენდები, მობილურის ჩასადებები..."
-                      : "მაგ: მობილურები..."
-                  }
-                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                  placeholder="მაგ: სმარტფონები, Apple, iPhone 16"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">URL Slug</label>
+                <label className="block text-xs text-slate-700 mb-1">URL Slug</label>
                 <input
                   type="text"
                   value={inputSlug}
                   onChange={(e) => setInputSlug(e.target.value)}
-                  placeholder="slug"
-                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs font-mono text-slate-900 focus:border-blue-600 focus:outline-none"
+                  placeholder="smartphones"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-10 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs transition-colors"
                 >
                   გაუქმება
                 </button>
                 <button
                   type="submit"
-                  className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs transition-colors cursor-pointer shadow-xs"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  შენახვა
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>შენახვა</span>
                 </button>
               </div>
             </form>

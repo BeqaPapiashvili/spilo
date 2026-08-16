@@ -7,6 +7,7 @@ interface ProductMobileStickyBarProps {
   title: string;
   price: number;
   isAdded: boolean;
+  stock?: number;
   onOpenQuickBuy: () => void;
   onAddToCart: () => void;
 }
@@ -15,9 +16,12 @@ export function ProductMobileStickyBar({
   title,
   price,
   isAdded,
+  stock,
   onOpenQuickBuy,
   onAddToCart,
 }: ProductMobileStickyBarProps) {
+  const isOutOfStock = stock !== undefined && stock <= 0;
+
   return (
     <div className="lg:hidden fixed bottom-14 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/80 p-3 flex items-center justify-between gap-3 shadow-2xl">
       <div className="flex flex-col min-w-0">
@@ -26,17 +30,25 @@ export function ProductMobileStickyBar({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <Button onClick={onOpenQuickBuy} variant="primary" size="sm" leftIcon={<Zap className="size-3.5" />}>
-          ყიდვა
-        </Button>
-        <Button
-          onClick={onAddToCart}
-          variant="secondary"
-          size="sm"
-          leftIcon={isAdded ? <Check className="size-4 text-emerald-600" /> : <ShoppingBag className="size-4" />}
-        >
-          {isAdded ? "დაემატა" : "კალათაში"}
-        </Button>
+        {isOutOfStock ? (
+          <Button disabled variant="secondary" size="sm" className="bg-gray-100 text-gray-400 cursor-not-allowed select-none">
+            არ არის მარაგში
+          </Button>
+        ) : (
+          <>
+            <Button onClick={onOpenQuickBuy} variant="primary" size="sm" leftIcon={<Zap className="size-3.5" />}>
+              ყიდვა
+            </Button>
+            <Button
+              onClick={onAddToCart}
+              variant="secondary"
+              size="sm"
+              leftIcon={isAdded ? <Check className="size-4 text-emerald-600" /> : <ShoppingBag className="size-4" />}
+            >
+              {isAdded ? "დაემატა" : "კალათაში"}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

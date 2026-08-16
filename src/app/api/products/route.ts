@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") || searchParams.get("search") || "";
+    const idsParam = searchParams.get("ids");
     const categoryParam = searchParams.get("category");
     const brandParam = searchParams.get("brand");
     const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
@@ -15,76 +16,122 @@ export async function GET(request: Request) {
     const isFlashDeal = searchParams.get("flash") === "true";
     const sort = searchParams.get("sort") || "default";
 
-    // Build Prisma Where Clause
-    const where: any = {};
+    // Optional pagination params (only applied if limit is provided)
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? Math.max(1, Number(limitParam)) : undefined;
+    const pageParam = searchParams.get("page");
+    const page = pageParam ? Math.max(1, Number(pageParam)) : 1;
+
+    // Build Prisma Where Clause using AND composition
+    const andConditions: any[] = [];
+
+    if (idsParam) {
+      const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length > 0) {
+        andConditions.push({ id: { in: ids } });
+      }
+    }
 
     if (query.trim()) {
-      where.OR = [
-        { title: { contains: query.trim() } },
-        { description: { contains: query.trim() } },
-        { sku: { contains: query.trim() } },
-      ];
+      const q = query.trim();
+      andConditions.push({
+        OR: [
+          { title: { contains: q } },
+          { description: { contains: q } },
+          { sku: { contains: q } },
+          { brand: { name: { contains: q } } },
+          { category: { name: { contains: q } } },
+        ],
+      });
     }
 
     if (categoryParam) {
-      const categories = categoryParam.split(",").filter(Boolean);
+      const categories = categoryParam.split(",").map((c) => c.trim()).filter(Boolean);
       if (categories.length > 0) {
-        where.category = {
-          slug: { in: categories },
-        };
+        andConditions.push({
+          OR: [
+            { category: { slug: { in: categories } } },
+            { category: { name: { in: categories } } },
+            { categoryId: { in: categories } },
+          ],
+        });
       }
     }
 
     if (brandParam) {
-      const brands = brandParam.split(",").filter(Boolean);
+      const brands = brandParam.split(",").map((b) => b.trim()).filter(Boolean);
       if (brands.length > 0) {
-        where.brand = {
-          slug: { in: brands },
-        };
+        andConditions.push({
+          OR: [
+            { brand: { slug: { in: brands } } },
+            { brand: { name: { in: brands } } },
+            { brandId: { in: brands } },
+          ],
+        });
       }
     }
 
     if (minPrice !== undefined || maxPrice !== undefined) {
-      where.price = {};
-      if (minPrice !== undefined) where.price.gte = minPrice;
-      if (maxPrice !== undefined) where.price.lte = maxPrice;
+      const priceCond: any = {};
+      if (minPrice !== undefined) priceCond.gte = minPrice;
+      if (maxPrice !== undefined) priceCond.lte = maxPrice;
+      andConditions.push({ price: priceCond });
     }
 
     if (inStock) {
-      where.stock = { gt: 0 };
+      andConditions.push({ stock: { gt: 0 } });
     }
 
     if (onlyDiscounted) {
-      where.discountPrice = { not: null };
+      andConditions.push({ discountPrice: { not: null } });
     }
 
     if (isFeatured) {
-      where.isFeatured = true;
+      andConditions.push({ isFeatured: true });
     }
 
     if (isFlashDeal) {
-      where.isFlashDeal = true;
+      andConditions.push({ isFlashDeal: true });
     }
+
+    const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     // Build Sorting
     let orderBy: any = { createdAt: "desc" };
 
-    if (sort === "price_asc") {
+    if (sort === "price_asc" || sort === "price-asc") {
       orderBy = { price: "asc" };
-    } else if (sort === "price_desc") {
+    } else if (sort === "price_desc" || sort === "price-desc") {
       orderBy = { price: "desc" };
     } else if (sort === "discount") {
       orderBy = { discountPercentage: "desc" };
+    } else if (sort === "rating") {
+      orderBy = { rating: "desc" };
+    } else if (sort === "newest") {
+      orderBy = { createdAt: "desc" };
     }
 
-    const products = await prisma.product.findMany({
+    let totalCount = 0;
+    let findOptions: any = {
       where,
       orderBy,
       include: {
         category: true,
         brand: true,
       },
-    });
+    };
+
+    if (limit !== undefined) {
+      totalCount = await prisma.product.count({ where });
+      findOptions.skip = (page - 1) * limit;
+      findOptions.take = limit;
+    }
+
+    const products = await prisma.product.findMany(findOptions);
+
+    if (limit === undefined) {
+      totalCount = products.length;
+    }
 
     // Format products for frontend consumption
     const formattedProducts = products.map((p: any) => {
@@ -115,12 +162,17 @@ export async function GET(request: Request) {
         specs: p.specs || undefined,
         isFeatured: p.isFeatured,
         isFlashDeal: p.isFlashDeal,
+        rating: p.rating || 5,
+        reviewCount: p.reviewCount || 0,
       };
     });
 
     return NextResponse.json({
       success: true,
       count: formattedProducts.length,
+      total: totalCount,
+      page: limit !== undefined ? page : 1,
+      totalPages: limit !== undefined ? Math.ceil(totalCount / limit) : 1,
       data: formattedProducts,
     });
   } catch (error: any) {

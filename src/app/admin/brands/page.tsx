@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Award, Plus, Search, Edit3, Trash2, Check, X, ExternalLink } from "lucide-react";
-import { dataService } from "@/services/dataService";
+import { Award, Plus, Search, Edit3, Trash2, Check, X, ExternalLink, Loader2 } from "lucide-react";
 import { Brand } from "@/types";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 
 export default function AdminBrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
@@ -15,27 +15,104 @@ export default function AdminBrandsPage() {
   const [brandSlug, setBrandSlug] = useState("");
   const [brandLogo, setBrandLogo] = useState("");
   const [isFeatured, setIsFeatured] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadBrands = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/brands");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setBrands(json.data);
+      }
+    } catch (err) {
+      console.error("AdminBrandsPage: Failed to load brands:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setBrands(dataService.getBrands());
-    const unsub = dataService.subscribe(() => setBrands(dataService.getBrands()));
-    return () => unsub();
+    loadBrands();
   }, []);
 
   const filtered = brands.filter(b => !searchQuery || b.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const handleOpenAdd = () => { setEditingBrand(null); setBrandName(""); setBrandSlug(""); setBrandLogo(""); setIsFeatured(true); setIsModalOpen(true); };
-  const handleOpenEdit = (b: Brand) => { setEditingBrand(b); setBrandName(b.name); setBrandSlug(b.slug); setBrandLogo(b.logo); setIsFeatured(b.featured ?? true); setIsModalOpen(true); };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!brandName.trim()) return;
-    dataService.saveBrand({ id: editingBrand?.id, name: brandName.trim(), slug: brandSlug.trim() || brandName.toLowerCase().replace(/\s+/g, "-"), logo: brandLogo.trim() || "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg", featured: isFeatured });
-    setIsModalOpen(false);
+  const handleOpenAdd = () => { 
+    setEditingBrand(null); 
+    setBrandName(""); 
+    setBrandSlug(""); 
+    setBrandLogo(""); 
+    setIsFeatured(true); 
+    setIsModalOpen(true); 
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`"${name}" ბრენდის წაშლა?`)) dataService.deleteBrand(id);
+  const handleOpenEdit = (b: Brand) => { 
+    setEditingBrand(b); 
+    setBrandName(b.name); 
+    setBrandSlug(b.slug); 
+    setBrandLogo(b.logo || ""); 
+    setIsFeatured(b.featured ?? true); 
+    setIsModalOpen(true); 
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brandName.trim()) return;
+    setIsSaving(true);
+
+    try {
+      const finalSlug = brandSlug.trim() || brandName.toLowerCase().replace(/\s+/g, "-");
+      const payload = {
+        name: brandName.trim(),
+        slug: finalSlug,
+        logo: brandLogo.trim() || null,
+      };
+
+      let res;
+      if (editingBrand?.id) {
+        res = await fetch("/api/brands", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingBrand.id, ...payload }),
+        });
+      } else {
+        res = await fetch("/api/brands", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "ბრენდის შენახვა ვერ მოხერხდა");
+      }
+
+      setIsModalOpen(false);
+      loadBrands();
+    } catch (err: any) {
+      console.error("Failed to save brand:", err);
+      alert(err.message || "შეცდომა ბრენდის შენახვისას");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (confirm(`"${name}" ბრენდის წაშლა?`)) {
+      try {
+        const res = await fetch(`/api/brands?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+        const json = await res.json();
+        if (json.success) {
+          loadBrands();
+        } else {
+          alert(json.error || "ბრენდის წაშლა ვერ მოხერხდა");
+        }
+      } catch (err) {
+        console.error("Failed to delete brand:", err);
+      }
+    }
   };
 
   return (
@@ -59,102 +136,96 @@ export default function AdminBrandsPage() {
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs shrink-0"
+          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>ახალი ბრენდი</span>
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs">
+      {/* Search */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
         <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ბრენდის ძიება..."
-            className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
+            placeholder="ბრენდის ძებნა..."
+            className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-all"
           />
         </div>
       </div>
 
-      {/* Brand Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {filtered.map((brand) => (
+      {/* Brands Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {isLoading ? (
+          <div className="col-span-full py-16 text-center text-xs text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
+            <span>იტვირთება ბრენდები...</span>
+          </div>
+        ) : filtered.map((brand) => (
           <div
             key={brand.id}
-            className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 flex flex-col items-center gap-3 text-center transition-all hover:border-blue-200"
+            className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between gap-4 hover:border-slate-300 transition-all"
           >
-            <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-3">
-              <img
-                src={brand.logo}
-                alt={brand.name}
-                className="w-full h-full object-contain"
-                onError={(e) => (e.currentTarget.style.display = "none")}
-              />
-            </div>
-            
-            <div className="flex-1 space-y-0.5">
-              <p className="text-xs text-slate-900">{brand.name}</p>
-              <p className="text-[10px] text-slate-400 font-mono">/{brand.slug}</p>
-              {brand.featured && (
-                <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[9px]">
-                  Featured
-                </span>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 shrink-0">
+                {brand.logo ? (
+                  <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" />
+                ) : (
+                  <Award className="w-6 h-6 text-slate-400" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-slate-900 truncate">{brand.name}</h3>
+                <p className="text-[11px] text-slate-400 font-mono">slug: {brand.slug}</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 w-full justify-center">
-              <button
-                type="button"
-                onClick={() => handleOpenEdit(brand)}
-                className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(brand.id, brand.name)}
-                className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400 font-mono">ID: {brand.id}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(brand)}
+                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(brand.id, brand.name)}
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
-
-        {/* Add New Card */}
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="bg-slate-50 hover:bg-blue-50/50 rounded-3xl border-2 border-dashed border-slate-200 hover:border-blue-300 p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all min-h-[180px]"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-            <Plus className="w-5 h-5" />
-          </div>
-          <span className="text-xs text-blue-600">ახალი ბრენდი</span>
-        </button>
       </div>
 
-      {/* Modal */}
+      {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white rounded-3xl max-w-md w-full p-6 border border-slate-100 shadow-2xl z-10 space-y-5 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base text-slate-900">
-                {editingBrand ? "ბრენდის რედაქტირება" : "ახალი ბრენდი"}
-              </h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-900">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base text-slate-900">
+                {editingBrand ? "ბრენდის რედაქტირება" : "ახალი ბრენდის დამატება"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-slate-700 mb-1">ბრენდის სახელი</label>
+                <label className="block text-xs text-slate-700 mb-1">ბრენდის სახელი *</label>
                 <input
                   type="text"
                   value={brandName}
@@ -162,47 +233,49 @@ export default function AdminBrandsPage() {
                     setBrandName(e.target.value);
                     if (!editingBrand) setBrandSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
                   }}
-                  placeholder="მაგ: Apple, Samsung..."
-                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                  placeholder="მაგ: DJI, Apple, Sony"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">URL Slug</label>
+                <label className="block text-xs text-slate-700 mb-1">URL Slug</label>
                 <input
                   type="text"
                   value={brandSlug}
                   onChange={(e) => setBrandSlug(e.target.value)}
-                  placeholder="apple"
-                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs font-mono text-slate-900 focus:border-blue-600 focus:outline-none"
+                  placeholder="dji"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">ლოგო (URL)</label>
+                <label className="block text-xs text-slate-700 mb-1">ლოგოს URL</label>
                 <input
                   type="text"
                   value={brandLogo}
                   onChange={(e) => setBrandLogo(e.target.value)}
                   placeholder="https://..."
-                  className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-10 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs transition-colors"
                 >
                   გაუქმება
                 </button>
                 <button
                   type="submit"
-                  className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs transition-colors cursor-pointer shadow-xs"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  შენახვა
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>შენახვა</span>
                 </button>
               </div>
             </form>

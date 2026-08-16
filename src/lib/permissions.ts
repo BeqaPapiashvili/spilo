@@ -1,23 +1,37 @@
-export type UserRole = "SUPER_ADMIN" | "STORE_MANAGER" | "SUPPORT_AGENT" | "CATALOG_MANAGER" | "CUSTOMER";
+export type UserRole = "SUPER_ADMIN" | "STORE_MANAGER" | "SUPPORT_AGENT" | "CATALOG_MANAGER" | "CUSTOMER" | "ADMIN";
+
+export const ADMIN_ROLES = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"];
 
 export function isRouteAllowed(role: string = "SUPER_ADMIN", pathname: string): boolean {
-  if (!role || role === "SUPER_ADMIN") return true;
+  if (!role || role === "SUPER_ADMIN" || role === "ADMIN") return true;
 
-  // Store Manager can access everything except system settings & security
+  // Normalize API route to page route for unified permission evaluation
+  const normalizedPath = pathname.startsWith("/api/admin")
+    ? pathname.replace("/api/admin", "/admin")
+    : pathname;
+
+  // Store Manager can access everything except system settings, security, users, and audit logs
   if (role === "STORE_MANAGER") {
-    const forbidden = ["/admin/settings", "/admin/security", "/admin/audit-logs"];
-    return !forbidden.some((p) => pathname.startsWith(p));
+    const forbidden = ["/admin/settings", "/admin/security", "/admin/audit-logs", "/admin/users"];
+    return !forbidden.some((p) => normalizedPath.startsWith(p));
   }
 
   // Support Agent has access to Dashboard, Support Chat, and Orders (Read-Only)
   if (role === "SUPPORT_AGENT") {
-    if (pathname === "/admin" || pathname.startsWith("/admin/support") || pathname.startsWith("/admin/orders")) return true;
+    if (
+      normalizedPath === "/admin" ||
+      normalizedPath === "/admin/stats" ||
+      normalizedPath.startsWith("/admin/support") ||
+      normalizedPath.startsWith("/admin/orders")
+    ) {
+      return true;
+    }
     return false;
   }
 
-  // Catalog Manager has access to Dashboard, Products, Categories, Brands, Promotions, Coupons, Banners
+  // Catalog Manager has access to Dashboard, Products, Categories, Brands, Promotions, Coupons, Banners, Homepage CMS
   if (role === "CATALOG_MANAGER") {
-    if (pathname === "/admin") return true;
+    if (normalizedPath === "/admin" || normalizedPath === "/admin/stats") return true;
     const allowed = [
       "/admin/products",
       "/admin/categories",
@@ -25,8 +39,14 @@ export function isRouteAllowed(role: string = "SUPER_ADMIN", pathname: string): 
       "/admin/promotions",
       "/admin/coupons",
       "/admin/banners",
+      "/admin/homepage",
+      "/admin/cms",
+      "/admin/navigation",
+      "/admin/delivery",
+      "/admin/installments",
+      "/admin/seo",
     ];
-    return allowed.some((p) => pathname.startsWith(p));
+    return allowed.some((p) => normalizedPath.startsWith(p));
   }
 
   // Customers have zero admin access

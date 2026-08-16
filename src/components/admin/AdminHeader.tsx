@@ -15,7 +15,6 @@ import {
   ExternalLink,
   ShieldCheck
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
 import { useStore } from "@/store/useStore";
 import { AdminSearchModal } from "./AdminSearchModal";
 
@@ -27,7 +26,7 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const auditLogs = dataService.getAuditLogs().slice(0, 5);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   useEffect(() => {
     const handleGlobalShortcut = (e: KeyboardEvent) => {
@@ -40,8 +39,14 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
     return () => window.removeEventListener("keydown", handleGlobalShortcut);
   }, []);
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.warn("Logout error:", e);
+    }
     logoutAdmin();
+    useStore.getState().setUser(null);
     setIsProfileOpen(false);
     addToast({
       title: "სესიის დასრულება",

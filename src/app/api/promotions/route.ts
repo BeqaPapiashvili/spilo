@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+
+    const where: any = {};
+    if (status && status !== "ALL") {
+      where.status = status;
+    }
+
     const promotions = await prisma.promotion.findMany({
+      where,
       orderBy: { createdAt: "desc" },
     });
 
@@ -20,8 +30,8 @@ export async function GET() {
       startDate: p.startDate || "2026-08-01",
       endDate: p.endDate || "2026-09-01",
       status: (p.status as "ACTIVE" | "SCHEDULED" | "EXPIRED") || "ACTIVE",
-      image: p.image || p.bannerImage || "/placeholder.png",
-      bannerImage: p.bannerImage || p.image || "/placeholder.png",
+      image: p.image || p.bannerImage || "",
+      bannerImage: p.bannerImage || p.image || "",
       link: p.link || null,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
@@ -50,8 +60,8 @@ export async function POST(request: Request) {
     const slug = body.slug || name.toLowerCase().replace(/\s+/g, "-");
     const description = body.description || body.subtitle || null;
     const subtitle = body.subtitle || body.description || null;
-    const image = body.image || body.bannerImage || "/placeholder.png";
-    const bannerImage = body.bannerImage || body.image || "/placeholder.png";
+    const image = body.image || body.bannerImage || "";
+    const bannerImage = body.bannerImage || body.image || "";
     const link = body.link || null;
     const discountType = body.discountType || "percentage";
     const discountVal = body.discountValue !== undefined ? Number(body.discountValue) : (body.discountPercentage ? Number(body.discountPercentage) : 0);
@@ -99,6 +109,13 @@ export async function POST(request: Request) {
           status,
         },
       });
+
+      await recordAuditLog({
+        action: "PROMOTION_UPDATE",
+        entity: "Promotion",
+        target: `${promotion.title} (${promotion.id})`,
+        details: `განახლდა აქცია: ${discountType === "percentage" ? `${discountVal}%` : `${discountVal} ₾`}, სტატუსი: ${status}`,
+      });
     } else {
       promotion = await prisma.promotion.create({
         data: {
@@ -118,6 +135,13 @@ export async function POST(request: Request) {
           status,
         },
       });
+
+      await recordAuditLog({
+        action: "PROMOTION_CREATE",
+        entity: "Promotion",
+        target: `${promotion.title} (${promotion.id})`,
+        details: `შეიქმნა ახალი აქცია: ${discountType === "percentage" ? `${discountVal}%` : `${discountVal} ₾`}`,
+      });
     }
 
     return NextResponse.json({
@@ -135,7 +159,7 @@ export async function POST(request: Request) {
         status: promotion.status,
         bannerImage: promotion.bannerImage || promotion.image,
       },
-      message: "აქცია შეიქმნა / განახლდა MySQL ბაზაში",
+      message: "აქცია წარმატებით შეინახა",
     });
   } catch (error: any) {
     console.error("POST /api/promotions error:", error);
@@ -144,6 +168,10 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function PUT(request: Request) {
+  return POST(request);
 }
 
 export async function DELETE(request: Request) {
@@ -158,9 +186,20 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const existing = await prisma.promotion.findUnique({ where: { id } });
+
     await prisma.promotion.delete({
       where: { id },
     });
+
+    if (existing) {
+      await recordAuditLog({
+        action: "PROMOTION_DELETE",
+        entity: "Promotion",
+        target: `${existing.title} (${existing.id})`,
+        details: "აქცია წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
 
     return NextResponse.json({
       success: true,

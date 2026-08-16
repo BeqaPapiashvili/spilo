@@ -9,6 +9,7 @@ export interface CartItem {
   discountPrice?: number;
   image: string;
   quantity: number;
+  stock?: number;
   color?: string;
   storage?: string;
   warrantyMonths?: number;
@@ -23,6 +24,7 @@ export interface WishlistItem {
   monthlyInstallment?: number;
   image: string;
   discountPercentage?: number;
+  stock?: number;
 }
 
 export interface OrderRecord {
@@ -228,10 +230,24 @@ export const useStore = create<StoreState>()(
             user: updatedUser,
           };
         }),
-      logoutAdmin: () => set({ adminUser: null, adminToken: null }),
+      logoutAdmin: () => {
+        if (typeof window !== "undefined") {
+          fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+        }
+        set({ adminUser: null, adminToken: null, user: null });
+      },
 
       // Cart
       addToCart: (item, openCart = false) => {
+        if (item.stock !== undefined && item.stock <= 0) {
+          get().addToast({
+            title: "არ არის მარაგში",
+            message: `პროდუქტი "${item.title}" ამჟამად ამოწურულია`,
+            type: "error",
+          });
+          return;
+        }
+
         set((state) => {
           const existing = state.cart.find((i) => i.id === item.id && i.color === item.color && i.storage === item.storage);
           const newCart = existing

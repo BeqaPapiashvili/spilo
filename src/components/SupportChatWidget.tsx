@@ -21,9 +21,15 @@ import {
   Paperclip
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { dataService, ChatAttachment } from "@/services/dataService";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+
+export interface ChatAttachment {
+  type: "image" | "video" | "file";
+  url: string;
+  name: string;
+  size?: string;
+}
 
 interface Message {
   id: string;
@@ -67,13 +73,14 @@ export default function SupportChatWidget() {
     },
   ]);
 
-  // Customer ID Initialization: Ensure every browser session has a unique private customerId
+  // Customer ID Initialization: 30-day persistent cookie & localStorage
   useEffect(() => {
     try {
       let cid = localStorage.getItem("spilo_chat_customer_id");
       if (!cid) {
         cid = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `cust_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         localStorage.setItem("spilo_chat_customer_id", cid);
+        document.cookie = `spilo_chat_customer_id=${encodeURIComponent(cid)}; max-age=${30 * 24 * 60 * 60}; path=/; SameSite=Lax`;
       }
       setCustomerId(cid);
     } catch (e) {}
@@ -148,111 +155,87 @@ export default function SupportChatWidget() {
     prevMessageCountRef.current = messages.length;
   }, [messages]);
 
-  // Real-time synchronization & short polling for support operator messages
+  // Real-time synchronization: Polls /api/support ONLY when chat is OPEN and active
   useEffect(() => {
-    const loadMessages = () => {
-      const tickets = dataService.getSupportTickets();
-      const formattedPhone = guestPhone ? (guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`) : "";
+    if (!isOpen || chatStep !== "chat" || !customerId) return;
 
-      // 1. Strictly find active ticket matching customer ticketId or private customerId
-      const current = ticketId
-        ? tickets.find((t) => t.id === ticketId)
-        : customerId
-        ? tickets.find((t) => t.customerId === customerId && t.status === "OPEN")
-        : formattedPhone && formattedPhone !== "+995 " && formattedPhone !== "+995 5XX XX XX XX"
-        ? tickets.find((t) => t.customerPhone === formattedPhone && t.status === "OPEN")
-        : null;
+    let isMounted = true;
 
-      if (current) {
-        setIsAdminTyping(Boolean(current.isAdminTyping));
+    const fetchTicket = async () => {
+      try {
+        const res = await fetch(`/api/support?customerId=${encodeURIComponent(customerId)}`);
+        const json = await res.json();
+        if (json.success && json.data && isMounted) {
+          const current = json.data;
+          setIsAdminTyping(Boolean(current.isAdminTyping));
 
-        if (isOpen && current.id) {
-          dataService.markMessagesAsRead(current.id, "user");
-        }
+          if (current.status === "CLOSED" || current.status === "RESOLVED") {
+            setTicketId(null);
+            try {
+              localStorage.removeItem("spilo_chat_session");
+            } catch (e) {}
+            setChatStep("auth");
+            return;
+          }
 
-        // If the ticket was CLOSED or RESOLVED by admin operator:
-        if (current.status === "CLOSED" || current.status === "RESOLVED") {
-          setTicketId(null);
-          try {
-            localStorage.removeItem("spilo_chat_session");
-          } catch (e) {}
-          setChatStep("auth");
-          setMessages([
-            {
-              id: "1",
-              sender: "bot",
-              text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
-              time: "ახლახანს",
-            },
-          ]);
-          return;
-        }
+          if (!ticketId && current.id) {
+            setTicketId(current.id);
+            saveSessionToStorage(guestName, guestPhone, current.id);
+          }
 
-        if (!ticketId) {
-          setTicketId(current.id);
-          saveSessionToStorage(guestName, guestPhone, current.id);
-        }
-        if (current.messages.length > 0) {
-          const newMsgList: Message[] = [
-            {
-              id: "1",
-              sender: "bot",
-              text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
-              time: "ახლახანს",
-            },
-            ...current.messages.map((m, idx) => ({
-              id: m.id || `msg-${idx}`,
-              sender: m.sender,
-              text: m.text,
-              time: m.time,
-              adminName: m.adminName,
-              adminAvatar: m.adminAvatar,
-              read: m.read,
-              liked: m.liked,
-              attachment: m.attachment,
-            })),
-          ];
+          if (Array.isArray(current.messages) && current.messages.length > 0) {
+            const newMsgList: Message[] = [
+              {
+                id: "1",
+                sender: "bot",
+                text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
+                time: "ახლახანს",
+              },
+              ...current.messages.map((m: any, idx: number) => ({
+                id: m.id || `msg-${idx}`,
+                sender: m.sender,
+                text: m.text,
+                time: m.time,
+                adminName: m.adminName,
+                adminAvatar: m.adminAvatar,
+                read: m.read,
+                liked: m.liked,
+                attachment: m.attachment,
+              })),
+            ];
 
-          setMessages((prev) => {
-            if (prev.length === newMsgList.length) {
-              const lastOld = prev[prev.length - 1];
-              const lastNew = newMsgList[newMsgList.length - 1];
-              if (
-                lastOld &&
-                lastNew &&
-                lastOld.text === lastNew.text &&
-                lastOld.read === lastNew.read &&
-                lastOld.liked === lastNew.liked &&
-                lastOld.adminName === lastNew.adminName
-              ) {
-                return prev;
+            setMessages((prev) => {
+              if (prev.length === newMsgList.length) {
+                const lastOld = prev[prev.length - 1];
+                const lastNew = newMsgList[newMsgList.length - 1];
+                if (
+                  lastOld &&
+                  lastNew &&
+                  lastOld.text === lastNew.text &&
+                  lastOld.read === lastNew.read &&
+                  lastOld.liked === lastNew.liked &&
+                  lastOld.adminName === lastNew.adminName
+                ) {
+                  return prev;
+                }
               }
-            }
-            return newMsgList;
-          });
+              return newMsgList;
+            });
+          }
         }
+      } catch (err) {
+        console.warn("fetchTicket error:", err);
       }
     };
 
-    loadMessages();
-
-    // Lightweight polling only when chat widget is open or active ticket exists
-    let pollInterval: NodeJS.Timeout | null = null;
-    if (isOpen || ticketId) {
-      pollInterval = setInterval(() => {
-        dataService.syncSupportOnly();
-      }, 3000);
-    }
-
-    const unsub = dataService.subscribe(() => {
-      loadMessages();
-    });
+    fetchTicket();
+    const pollInterval = setInterval(fetchTicket, 2500);
 
     return () => {
-      if (pollInterval) clearInterval(pollInterval);
-      unsub();
+      isMounted = false;
+      clearInterval(pollInterval);
     };
-  }, [ticketId, guestPhone, guestName, customerId, isOpen]);
+  }, [isOpen, chatStep, customerId, ticketId, guestName, guestPhone]);
 
   const saveSessionToStorage = (name: string, phone: string, activeId: string | null) => {
     try {
@@ -282,19 +265,29 @@ export default function SupportChatWidget() {
     setChatStep("consent");
   };
 
-  const handleAcceptConsent = () => {
+  const handleAcceptConsent = async () => {
     const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
-    const id = dataService.addUserSupportMessage(
-      guestName.trim() || "მომხმარებელი",
-      formattedPhone,
-      "მოგესალმებით, მზად ვარ კონსულტაციისთვის",
-      "ონლაინ კონსულტაცია",
-      `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`,
-      customerId
-    );
-    setTicketId(id);
-    saveSessionToStorage(guestName, guestPhone, id);
     setChatStep("chat");
+
+    try {
+      const res = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId,
+          userName: guestName.trim() || "მომხმარებელი",
+          userPhone: formattedPhone,
+          messageText: "მოგესალმებით, მზად ვარ კონსულტაციისთვის",
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTicketId(json.data.id);
+        saveSessionToStorage(guestName, guestPhone, json.data.id);
+      }
+    } catch (err) {
+      console.error("handleAcceptConsent error:", err);
+    }
   };
 
   const handleRejectConsent = () => {
@@ -304,15 +297,24 @@ export default function SupportChatWidget() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputMsg(e.target.value);
     if (ticketId) {
-      dataService.setTypingStatus(ticketId, "user", true);
+      fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ticketId, customerId, isUserTyping: true }),
+      }).catch(() => {});
+
       if (userTypingTimeoutRef.current) clearTimeout(userTypingTimeoutRef.current);
       userTypingTimeoutRef.current = setTimeout(() => {
-        dataService.setTypingStatus(ticketId, "user", false);
+        fetch("/api/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: ticketId, customerId, isUserTyping: false }),
+        }).catch(() => {});
       }, 2500);
     }
   };
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const text = textToSend || inputMsg;
     if (!text.trim()) return;
 
@@ -327,19 +329,27 @@ export default function SupportChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg("");
 
-    // Send to dataService for Live Admin sync with Customer Name, Customer Phone and private customerId!
     const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
-    const id = dataService.addUserSupportMessage(
-      guestName.trim() || "მომხმარებელი",
-      formattedPhone,
-      text,
-      "ონლაინ კონსულტაცია",
-      `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`,
-      customerId
-    );
-
-    setTicketId(id);
-    saveSessionToStorage(guestName, guestPhone, id);
+    try {
+      const res = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ticketId || undefined,
+          customerId,
+          userName: guestName.trim() || "მომხმარებელი",
+          userPhone: formattedPhone,
+          messageText: text,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (!ticketId) setTicketId(json.data.id);
+        saveSessionToStorage(guestName, guestPhone, json.data.id);
+      }
+    } catch (err) {
+      console.error("handleSend error:", err);
+    }
   };
 
   const handleTriggerFileUpload = (type: "image" | "video" | "file") => {
@@ -407,18 +417,23 @@ export default function SupportChatWidget() {
       setMessages((prev) => [...prev, userMessage]);
 
       const formattedPhone = guestPhone.startsWith("+995") ? guestPhone : `+995 ${guestPhone}`;
-      const id = dataService.addUserSupportMessage(
-        guestName.trim() || "მომხმარებელი",
-        formattedPhone,
-        userMessage.text,
-        "ონლაინ კონსულტაცია",
-        `${guestPhone.replace(/[^0-9]/g, "")}@spilo.ge`,
-        customerId,
-        attachment
-      );
-
-      setTicketId(id);
-      saveSessionToStorage(guestName, guestPhone, id);
+      const res = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ticketId || undefined,
+          customerId,
+          userName: guestName.trim() || "მომხმარებელი",
+          userPhone: formattedPhone,
+          messageText: userMessage.text,
+          attachment,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (!ticketId) setTicketId(json.data.id);
+        saveSessionToStorage(guestName, guestPhone, json.data.id);
+      }
     } catch (err) {
       console.error("File upload error:", err);
     } finally {
@@ -428,7 +443,7 @@ export default function SupportChatWidget() {
   };
 
   const handleFeedback = (msgId: string, liked: boolean) => {
-    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, liked } : m));
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, liked } : m)));
   };
 
   return (

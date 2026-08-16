@@ -209,6 +209,17 @@ export function useCatalogFilters() {
     );
   }, [filters]);
 
+  const setPage = useCallback(
+    (pageNumber: number) => {
+      setFilters((prev) => {
+        const updated = { ...prev, page: Math.max(1, pageNumber) };
+        scheduleUrlPush(updated, 0);
+        return updated;
+      });
+    },
+    [scheduleUrlPush]
+  );
+
   return {
     filters,
     activeFiltersCount,
@@ -216,6 +227,7 @@ export function useCatalogFilters() {
     toggleCategory,
     setPriceRange,
     setSort,
+    setPage,
     toggleDiscountedOnly,
     toggleInStockOnly,
     setSearchQuery,

@@ -1,35 +1,86 @@
 import { NextResponse } from "next/server";
-import { getPrismaClient } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const prisma = getPrismaClient();
+    const { searchParams } = new URL(request.url);
+    const limit = searchParams.get("limit") ? Number(searchParams.get("limit")) : 100;
+    const action = searchParams.get("action");
+
+    const where: any = {};
+    if (action && action !== "ALL") {
+      where.action = action;
+    }
+
     const logs = await prisma.auditLog.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: limit,
     });
-    return NextResponse.json({ success: true, data: logs });
+
+    const mapped = logs.map((log) => ({
+      id: log.id,
+      userId: log.userId,
+      adminEmail: log.adminEmail,
+      adminName: log.adminName || log.adminEmail.split("@")[0],
+      userEmail: log.adminEmail,
+      userName: log.adminName || log.adminEmail.split("@")[0],
+      action: log.action,
+      entity: log.entity,
+      target: log.target,
+      details: log.details,
+      ipAddress: log.ipAddress,
+      userAgent: log.userAgent,
+      timestamp: log.createdAt.toISOString(),
+      createdAt: log.createdAt,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      count: mapped.length,
+      data: mapped,
+    });
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    console.error("GET /api/admin/audit-logs error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to fetch audit logs" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const body = await request.json();
-    const { adminEmail = "admin@spilo.ge", action, target } = body;
+    const { action, entity, target, details, adminEmail, adminName, userId } = body;
 
-    if (!action || !target) {
-      return NextResponse.json({ success: false, message: "Action and target required" }, { status: 400 });
+    if (!action) {
+      return NextResponse.json(
+        { success: false, error: "Action is required" },
+        { status: 400 }
+      );
     }
 
-    const created = await prisma.auditLog.create({
-      data: { adminEmail, action, target },
+    const created = await recordAuditLog({
+      action,
+      entity,
+      target,
+      details,
+      adminEmail,
+      adminName,
+      userId,
     });
 
-    return NextResponse.json({ success: true, data: created });
+    return NextResponse.json({
+      success: true,
+      data: created,
+    });
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    console.error("POST /api/admin/audit-logs error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to record audit log" },
+      { status: 500 }
+    );
   }
 }

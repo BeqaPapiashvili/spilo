@@ -1,56 +1,76 @@
 import { NextResponse } from "next/server";
-import { getPrismaClient } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const prisma = getPrismaClient();
     const tickets = await prisma.supportTicket.findMany({
+      include: {
+        messages: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
       orderBy: { updatedAt: "desc" },
     });
 
-    // Map fields so both customerName/customerPhone and userName/userPhone exist along with customerId & typing status
-    const mapped = tickets.map((t) => ({
-      id: t.id,
-      customerId: t.customerId || "",
-      customerName: t.userName,
-      customerPhone: t.userPhone,
-      customerEmail: t.userEmail || "",
-      userName: t.userName,
-      userPhone: t.userPhone,
-      userEmail: t.userEmail || "",
-      topic: "ონლაინ კონსულტაცია",
-      status: t.status as "OPEN" | "CLOSED" | "RESOLVED",
-      isUserTyping: Boolean(t.isUserTyping),
-      isAdminTyping: Boolean(t.isAdminTyping),
-      typingAdminName: t.typingAdminName || "",
-      assignedToName: t.assignedToName || "",
-      time: new Date(t.updatedAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
-      messages: Array.isArray(t.messages) ? t.messages : [],
-    }));
+    const mapped = tickets.map((t) => {
+      const mappedMessages = t.messages.map((m) => ({
+        id: m.id,
+        sender: m.senderRole as "user" | "admin" | "bot",
+        text: m.text,
+        time: new Date(m.createdAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+        adminName: m.senderName || undefined,
+        read: m.isRead,
+        attachment: m.attachment as any,
+        createdAt: m.createdAt,
+      }));
+
+      return {
+        id: t.id,
+        customerId: t.customerId || "",
+        customerName: t.userName,
+        customerPhone: t.userPhone,
+        customerEmail: t.userEmail || "",
+        userName: t.userName,
+        userPhone: t.userPhone,
+        userEmail: t.userEmail || "",
+        topic: t.topic || "ონლაინ კონსულტაცია",
+        status: t.status as "OPEN" | "CLOSED" | "RESOLVED",
+        isUserTyping: Boolean(t.isUserTyping),
+        isAdminTyping: Boolean(t.isAdminTyping),
+        typingAdminName: t.typingAdminName || "",
+        assignedToName: t.assignedToName || "",
+        time: new Date(t.updatedAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+        messages: mappedMessages,
+        updatedAt: t.updatedAt,
+        createdAt: t.createdAt,
+      };
+    });
 
     return NextResponse.json({ success: true, data: mapped });
   } catch (error: any) {
+    console.error("GET /api/admin/support error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const body = await request.json();
 
-    // Accept both field naming conventions: { userName, userPhone } and { customerName, customerPhone }
     const id = body.id;
     const customerId = body.customerId || "";
     const userName = body.userName || body.customerName;
     const userPhone = body.userPhone || body.customerPhone;
     const userEmail = body.userEmail || body.customerEmail || "";
-    const { status, messages, isUserTyping, isAdminTyping, typingAdminName, assignedToName } = body;
+    const { status, isUserTyping, isAdminTyping, typingAdminName, assignedToName, replyText, adminName } = body;
 
-    let result;
+    let targetTicketId = id;
 
     if (id) {
-      const updateData: any = {};
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
       if (customerId) updateData.customerId = customerId;
       if (userName) updateData.userName = userName;
       if (userPhone) updateData.userPhone = userPhone;
@@ -60,15 +80,30 @@ export async function POST(request: Request) {
       if (typeof isAdminTyping === "boolean") updateData.isAdminTyping = isAdminTyping;
       if (typingAdminName !== undefined) updateData.typingAdminName = typingAdminName || "";
       if (assignedToName !== undefined) updateData.assignedToName = assignedToName || "";
-      if (messages !== undefined && Array.isArray(messages)) updateData.messages = messages;
 
-      try {
-        result = await prisma.supportTicket.upsert({
+      await prisma.$transaction(async (tx) => {
+        if (replyText) {
+          await tx.supportMessage.create({
+            data: {
+              ticketId: id,
+              senderRole: "admin",
+              senderName: adminName || typingAdminName || "ოპერატორი",
+              text: replyText,
+              isRead: true,
+            },
+          });
+        }
+
+        await tx.supportTicket.update({
           where: { id },
-          update: updateData,
-          create: {
-            id, // Preserves client-generated id (e.g. tkt-178680...)
-            customerId: customerId || "",
+          data: updateData,
+        });
+      });
+    } else {
+      const newTicket = await prisma.$transaction(async (tx) => {
+        const created = await tx.supportTicket.create({
+          data: {
+            customerId: customerId || `guest-${Date.now()}`,
             userName: userName || "სტუმარი",
             userPhone: userPhone || "+995 5XX XX XX XX",
             userEmail: userEmail || "",
@@ -77,89 +112,68 @@ export async function POST(request: Request) {
             isAdminTyping: Boolean(isAdminTyping),
             typingAdminName: typingAdminName || "",
             assignedToName: assignedToName || "",
-            messages: Array.isArray(messages) ? messages : [],
           },
         });
-      } catch (err: any) {
-        if (err?.message?.includes("Unknown argument")) {
-          delete updateData.typingAdminName;
-          delete updateData.assignedToName;
-          result = await prisma.supportTicket.upsert({
-            where: { id },
-            update: updateData,
-            create: {
-              id,
-              customerId: customerId || "",
-              userName: userName || "სტუმარი",
-              userPhone: userPhone || "+995 5XX XX XX XX",
-              userEmail: userEmail || "",
-              status: status || "OPEN",
-              isUserTyping: Boolean(isUserTyping),
-              isAdminTyping: Boolean(isAdminTyping),
-              messages: Array.isArray(messages) ? messages : [],
-            },
-          });
-        } else {
-          throw err;
-        }
-      }
-    } else {
-      if (!userName || !userPhone) {
-        return NextResponse.json({ success: false, message: "Name and phone required" }, { status: 400 });
-      }
 
-      try {
-        result = await prisma.supportTicket.create({
-          data: {
-            customerId: customerId || "",
-            userName,
-            userPhone,
-            userEmail: userEmail || "",
-            status: status || "OPEN",
-            isUserTyping: Boolean(isUserTyping),
-            isAdminTyping: Boolean(isAdminTyping),
-            typingAdminName: typingAdminName || "",
-            assignedToName: assignedToName || "",
-            messages: Array.isArray(messages) ? messages : [],
-          },
-        });
-      } catch (err: any) {
-        if (err?.message?.includes("Unknown argument")) {
-          result = await prisma.supportTicket.create({
+        if (replyText) {
+          await tx.supportMessage.create({
             data: {
-              customerId: customerId || "",
-              userName,
-              userPhone,
-              userEmail: userEmail || "",
-              status: status || "OPEN",
-              isUserTyping: Boolean(isUserTyping),
-              isAdminTyping: Boolean(isAdminTyping),
-              messages: Array.isArray(messages) ? messages : [],
+              ticketId: created.id,
+              senderRole: "admin",
+              senderName: adminName || typingAdminName || "ოპერატორი",
+              text: replyText,
+              isRead: true,
             },
           });
-        } else {
-          throw err;
         }
-      }
+
+        return created;
+      });
+
+      targetTicketId = newTicket.id;
     }
 
+    const fullTicket = await prisma.supportTicket.findUnique({
+      where: { id: targetTicketId },
+      include: {
+        messages: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!fullTicket) {
+      return NextResponse.json({ success: false, message: "Ticket not found" }, { status: 404 });
+    }
+
+    const mappedMessages = fullTicket.messages.map((m) => ({
+      id: m.id,
+      sender: m.senderRole as "user" | "admin" | "bot",
+      text: m.text,
+      time: new Date(m.createdAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+      adminName: m.senderName || undefined,
+      read: m.isRead,
+      attachment: m.attachment as any,
+      createdAt: m.createdAt,
+    }));
+
     const mappedResult = {
-      id: result.id,
-      customerId: result.customerId || "",
-      customerName: result.userName,
-      customerPhone: result.userPhone,
-      customerEmail: result.userEmail || "",
-      userName: result.userName,
-      userPhone: result.userPhone,
-      userEmail: result.userEmail || "",
-      topic: "ონლაინ კონსულტაცია",
-      status: result.status,
-      isUserTyping: Boolean(result.isUserTyping),
-      isAdminTyping: Boolean(result.isAdminTyping),
-      typingAdminName: result.typingAdminName || "",
-      assignedToName: result.assignedToName || "",
-      time: new Date(result.updatedAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
-      messages: Array.isArray(result.messages) ? result.messages : [],
+      id: fullTicket.id,
+      customerId: fullTicket.customerId || "",
+      customerName: fullTicket.userName,
+      customerPhone: fullTicket.userPhone,
+      customerEmail: fullTicket.userEmail || "",
+      userName: fullTicket.userName,
+      userPhone: fullTicket.userPhone,
+      userEmail: fullTicket.userEmail || "",
+      topic: fullTicket.topic || "ონლაინ კონსულტაცია",
+      status: fullTicket.status,
+      isUserTyping: Boolean(fullTicket.isUserTyping),
+      isAdminTyping: Boolean(fullTicket.isAdminTyping),
+      typingAdminName: fullTicket.typingAdminName || "",
+      assignedToName: fullTicket.assignedToName || "",
+      time: new Date(fullTicket.updatedAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+      messages: mappedMessages,
     };
 
     return NextResponse.json({ success: true, data: mappedResult });
@@ -171,7 +185,6 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

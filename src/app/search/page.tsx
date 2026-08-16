@@ -1,56 +1,58 @@
 "use client";
 
-import { Suspense, useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, ArrowUpDown, Check } from "lucide-react";
+import { Search, ChevronRight, ArrowUpDown } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
-import { useEffect } from "react";
 import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
-
-type SortOption = "default" | "price-desc" | "price-asc" | "rating";
-
 import { useCatalogFilters } from "@/hooks/useCatalogFilters";
 
 function SearchContent() {
   const { filters, setSort } = useCatalogFilters();
   const query = filters.searchQuery;
-  const cleanQuery = query.trim().toLowerCase();
 
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setProductsList(dataService.getProducts());
-    setIsLoading(false);
-    const unsub = dataService.subscribe(() => {
-      setProductsList(dataService.getProducts());
-    });
-    return () => unsub();
-  }, []);
+    let isMounted = true;
+    setIsLoading(true);
 
-  // Search Results Matching Logic
-  const filteredProducts = useMemo(() => {
-    return productsList.filter((product) => {
-      if (!cleanQuery) return true;
+    const fetchSearchResults = async () => {
+      try {
+        const queryParams = new URLSearchParams();
+        if (query.trim()) {
+          queryParams.set("q", query.trim());
+        }
+        if (filters.sort && filters.sort !== "default") {
+          queryParams.set("sort", filters.sort);
+        }
 
-      return (
-        product.title.toLowerCase().includes(cleanQuery) ||
-        product.sku.toLowerCase().includes(cleanQuery) ||
-        (product.categoryName && product.categoryName.toLowerCase().includes(cleanQuery)) ||
-        (product.brandName && product.brandName.toLowerCase().includes(cleanQuery))
-      );
-    }).sort((a, b) => {
-      const priceA = a.discountPrice || a.price;
-      const priceB = b.discountPrice || b.price;
-      if (filters.sort === "price-asc") return priceA - priceB;
-      if (filters.sort === "price-desc") return priceB - priceA;
-      if (filters.sort === "rating") return (b.rating || 5) - (a.rating || 5);
-      return 0;
-    });
-  }, [cleanQuery, filters.sort, productsList]);
+        const res = await fetch(`/api/products?${queryParams.toString()}`);
+        const json = await res.json();
+
+        if (isMounted) {
+          if (json.success && Array.isArray(json.data)) {
+            setProductsList(json.data);
+          } else {
+            setProductsList([]);
+          }
+        }
+      } catch (err) {
+        console.error("SearchContent: fetch error:", err);
+        if (isMounted) setProductsList([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchSearchResults();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [query, filters.sort]);
 
   return (
     <div className="container mx-auto px-4 lg:px-8 max-w-7xl space-y-8">
@@ -61,7 +63,7 @@ function SearchContent() {
             <span>{query ? `ძიების შედეგები: "${query}"` : "ძიება"}</span>
           </h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">
-            სულ მოიძებნა <span className="text-gray-900">{filteredProducts.length}</span> პროდუქტი
+            სულ მოიძებნა <span className="text-gray-900">{productsList.length}</span> პროდუქტი
           </p>
         </div>
 
@@ -77,27 +79,36 @@ function SearchContent() {
             <option value="price-asc">ფასით: ზრდადი</option>
             <option value="price-desc">ფასით: კლებადი</option>
             <option value="rating">რეიტინგით</option>
+            <option value="discount">ფასდაკლებით</option>
           </select>
         </div>
       </div>
 
-      {/* Search Results Grid */}
-      {filteredProducts.length > 0 ? (
+      {/* Loading Skeleton */}
+      {isLoading ? (
+        <ProductGridSkeleton count={8} />
+      ) : productsList.length > 0 ? (
+        /* Search Results Grid */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              id={product.id}
-              title={product.title}
-              price={product.price}
-              discountPrice={product.discountPrice}
-              monthlyInstallment={product.monthlyInstallment}
-              image={product.images[0]}
-              discountPercentage={product.discountPercentage}
-            />
-          ))}
+          {productsList.map((product) => {
+            const prodImg = product.images?.[0] || product.image || "";
+            return (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                title={product.title}
+                price={product.price}
+                discountPrice={product.discountPrice}
+                monthlyInstallment={product.monthlyInstallment}
+                image={prodImg}
+                discountPercentage={product.discountPercentage}
+                stock={product.stock}
+              />
+            );
+          })}
         </div>
       ) : (
+        /* Empty Search Result */
         <div className="bg-white rounded-2xl p-12 text-center space-y-4 max-w-lg mx-auto shadow-2xs my-8 border border-gray-100">
           <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
             <Search className="w-8 h-8" />

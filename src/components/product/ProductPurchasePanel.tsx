@@ -372,68 +372,81 @@ export function ProductPurchasePanel({
 
       {/* Quantity Stepper & Standard Button Components */}
       <div className="flex flex-col gap-3 pt-2">
-        <div className="flex items-center gap-3">
-          {/* Quantity Stepper */}
-          <div className="flex items-center gap-1 bg-gray-100/70 rounded-xl p-1 border border-gray-200/60">
-            <button
-              type="button"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="size-9 rounded-lg bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50 cursor-pointer shadow-2xs"
-            >
-              <Minus className="size-3.5" />
-            </button>
-            <span className="w-8 text-center text-xs text-gray-900">{quantity}</span>
-            <button
-              type="button"
-              onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
-              className="size-9 rounded-lg bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50 cursor-pointer shadow-2xs"
-            >
-              <Plus className="size-3.5" />
-            </button>
-          </div>
-
-          {/* 1-Click Buy Primary Button using Button UI component */}
+        {product.stock <= 0 ? (
           <Button
-            type="button"
-            onClick={() => {
-              const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
-              const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
-              onOpenQuickBuy(quantity, {
-                color: colorVal,
-                storage: storageVal,
-                hasExtraProtection,
-                unitPrice,
-              });
-            }}
-            variant="primary"
+            disabled
+            variant="secondary"
             size="lg"
-            leftIcon={<Zap className="size-4" />}
-            className="flex-1 shadow-xs"
+            className="w-full bg-gray-100 text-gray-400 cursor-not-allowed select-none border-gray-200"
           >
-            1-დაწკაპუნებით ყიდვა
+            არ არის მარაგში
           </Button>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              {/* Quantity Stepper */}
+              <div className="flex items-center gap-1 bg-gray-100/70 rounded-xl p-1 border border-gray-200/60">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="size-9 rounded-lg bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50 cursor-pointer shadow-2xs"
+                >
+                  <Minus className="size-3.5" />
+                </button>
+                <span className="w-8 text-center text-xs text-gray-900">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
+                  className="size-9 rounded-lg bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50 cursor-pointer shadow-2xs"
+                >
+                  <Plus className="size-3.5" />
+                </button>
+              </div>
 
-        {/* Add to Cart Secondary Button using Button UI component */}
-        <Button
-          type="button"
-          onClick={() => {
-            const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
-            const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
-            onAddToCart(quantity, {
-              color: colorVal,
-              storage: storageVal,
-              hasExtraProtection,
-              unitPrice,
-            });
-          }}
-          variant="secondary"
-          size="lg"
-          leftIcon={isAdded ? <Check className="size-5 text-emerald-600" /> : <ShoppingBag className="size-5" />}
-          className="w-full shadow-xs"
-        >
-          {isAdded ? "დაემატა კალათაში" : "კალათაში დამატება"}
-        </Button>
+              {/* 1-Click Buy Primary Button using Button UI component */}
+              <Button
+                type="button"
+                onClick={() => {
+                  const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
+                  const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
+                  onOpenQuickBuy(quantity, {
+                    color: colorVal,
+                    storage: storageVal,
+                    hasExtraProtection,
+                    unitPrice,
+                  });
+                }}
+                variant="primary"
+                size="lg"
+                leftIcon={<Zap className="size-4" />}
+                className="flex-1 shadow-xs"
+              >
+                1-დაწკაპუნებით ყიდვა
+              </Button>
+            </div>
+
+            {/* Add to Cart Secondary Button using Button UI component */}
+            <Button
+              type="button"
+              onClick={() => {
+                const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
+                const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
+                onAddToCart(quantity, {
+                  color: colorVal,
+                  storage: storageVal,
+                  hasExtraProtection,
+                  unitPrice,
+                });
+              }}
+              variant="secondary"
+              size="lg"
+              leftIcon={isAdded ? <Check className="size-5 text-emerald-600" /> : <ShoppingBag className="size-5" />}
+              className="w-full shadow-xs"
+            >
+              {isAdded ? "დაემატა კალათაში" : "კალათაში დამატება"}
+            </Button>
+          </>
+        )}
       </div>
 
     </div>

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import ProductCarousel from "@/components/ProductCarousel";
-import { dataService } from "@/services/dataService";
 import { Product } from "@/types";
 import { ProductGridSkeleton } from "@/components/skeletons/ProductGridSkeleton";
 
@@ -26,14 +25,39 @@ export default function FeaturedProductsSection({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const list = dataService.getProducts();
-    setProducts(list);
-    setIsLoading(false);
-    const unsub = dataService.subscribe(() => {
-      setProducts(dataService.getProducts());
-    });
-    return () => unsub();
-  }, []);
+    let isMounted = true;
+    const fetchFeaturedProducts = async () => {
+      try {
+        const queryParams = new URLSearchParams();
+        if (config?.categoryId) {
+          queryParams.set("category", config.categoryId);
+        } else {
+          queryParams.set("featured", "true");
+        }
+
+        const res = await fetch(`/api/products?${queryParams.toString()}`);
+        const json = await res.json();
+
+        if (isMounted) {
+          if (json.success && Array.isArray(json.data)) {
+            setProducts(json.data);
+          } else {
+            setProducts([]);
+          }
+        }
+      } catch (err) {
+        console.error("FeaturedProductsSection: fetch error:", err);
+        if (isMounted) setProducts([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, [config?.categoryId]);
 
   const formatForCarousel = (items: Product[]) =>
     items.map((p) => ({
@@ -42,13 +66,7 @@ export default function FeaturedProductsSection({
     }));
 
   const limit = config?.limit || 8;
-  const filteredProducts = config?.categoryId
-    ? products.filter((p) => p.categoryId === config.categoryId)
-    : products.filter((p) => p.isFeatured || p.isHot || (p.discountPrice && p.discountPrice < p.price) || p.price > 500);
-
-  const displayList = formatForCarousel(
-    filteredProducts.length > 0 ? filteredProducts.slice(0, limit) : products.slice(0, limit)
-  );
+  const displayList = formatForCarousel(products.slice(0, limit));
 
   if (isLoading && products.length === 0) {
     return (
@@ -58,6 +76,7 @@ export default function FeaturedProductsSection({
     );
   }
 
+  // If no products match the featured criteria, cleanly hide the section
   if (displayList.length === 0) return null;
 
   return (

@@ -25,6 +25,8 @@ model User {
   addresses         Address[]
   reviews           Review[]
   priceAlerts       PriceAlert[]
+  auditLogs         AuditLog[]
+  supportTickets    SupportTicket[]
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 }
@@ -219,10 +221,22 @@ model AdminUser {
 
 model AuditLog {
   id         String   @id @default(cuid())
+  userId     String?
   adminEmail String
-  action     String
-  target     String
+  adminName  String?
+  action     String   // e.g. "PRODUCT_CREATE", "STOCK_UPDATE", "ORDER_STATUS_UPDATE", "COUPON_CREATE", "LOGIN"
+  entity     String?  // e.g. "Product", "Order", "Category", "Coupon", "User"
+  target     String?  // Target description or ID
+  details    String?  @db.Text
+  ipAddress  String?  @db.VarChar(64)
+  userAgent  String?  @db.Text
   createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Promotion {
@@ -232,7 +246,7 @@ model Promotion {
   slug               String?
   description        String?  @db.Text
   subtitle           String?
-  image              String   @db.Text
+  image              String?  @db.Text
   bannerImage        String?  @db.Text
   link               String?
   discountType       String?  @default("percentage")
@@ -255,6 +269,7 @@ model Coupon {
   startDate      String?
   endDate        String?
   usedCount      Int       @default(0)
+  usageLimit     Int?
   status         String    @default("ACTIVE")
   validUntil     DateTime?
   isActive       Boolean   @default(true)
@@ -268,7 +283,7 @@ model Banner {
   subtitle     String?
   ctaText      String?  @default("ნახვა")
   ctaLink      String?
-  image        String   @db.Text
+  image        String?  @db.Text
   imageDesktop String?  @db.Text
   position     String   @default("HERO")
   priority     Int      @default(1)
@@ -279,21 +294,44 @@ model Banner {
 }
 
 model SupportTicket {
-  id              String   @id @default(cuid())
-  customerId      String?  @default("")
-  userName        String
-  userPhone       String
-  userEmail       String?
-  status          String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED
-  isUserTyping    Boolean  @default(false)
-  isAdminTyping   Boolean  @default(false)
-  typingAdminName String?  @default("")
-  assignedToName  String?  @default("")
-  messages        Json     // Array of message objects
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              String           @id @default(cuid())
+  userId          String?
+  customerId      String?          @default("") // Persistent guest/client session identifier
+  userName        String           @default("სტუმარი")
+  userPhone       String?          @default("+995 5XX XX XX XX")
+  userEmail       String?          @default("")
+  topic           String?          @default("ონლაინ კონსულტაცია")
+  status          String           @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  isUserTyping    Boolean          @default(false)
+  isAdminTyping   Boolean          @default(false)
+  typingAdminName String?          @default("")
+  assignedToName  String?          @default("")
+  messages        SupportMessage[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
   @@index([customerId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model SupportMessage {
+  id          String        @id @default(cuid())
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderRole  String        // "user" | "admin" | "bot"
+  senderName  String?
+  senderEmail String?
+  text        String        @db.Text
+  attachment  Json?         // { type: "image"|"file", url: string, name: string }
+  isRead      Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
 }
 
 model WishlistItem {
@@ -336,6 +374,7 @@ model NavigationItem {
   label     String
   url       String
   order     Int      @default(0)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -399,3 +438,18 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
 }
+
+model OtpVerification {
+  id          String   @id @default(cuid())
+  phone       String   @db.VarChar(30)
+  hashedCode  String   @db.VarChar(255)
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  used        Boolean  @default(false)
+  ipAddress   String?  @db.VarChar(64)
+  createdAt   DateTime @default(now())
+
+  @@index([phone, createdAt])
+  @@index([phone, used, expiresAt])
+}
+

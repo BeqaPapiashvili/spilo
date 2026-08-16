@@ -14,6 +14,7 @@ export interface ProductCardProps {
   monthlyInstallment?: number;
   image: string;
   discountPercentage?: number;
+  stock?: number;
 }
 
 export default function ProductCard({
@@ -24,17 +25,21 @@ export default function ProductCard({
   monthlyInstallment,
   image,
   discountPercentage,
+  stock,
 }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
   const [isAdded, setIsAdded] = useState(false);
 
+  const isOutOfStock = stock !== undefined && stock <= 0;
   const isLiked = isInWishlist(id);
   const isCompared = compareList.includes(id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
+
     addToCart(
       {
         id,
@@ -42,6 +47,7 @@ export default function ProductCard({
         price,
         discountPrice,
         image,
+        stock,
       },
       false
     );
@@ -53,6 +59,8 @@ export default function ProductCard({
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
+
     addToCart(
       {
         id,
@@ -60,6 +68,7 @@ export default function ProductCard({
         price,
         discountPrice,
         image,
+        stock,
       },
       false
     );
@@ -95,12 +104,16 @@ export default function ProductCard({
         href={`/product/${id}`}
         className="relative w-full h-[180px] rounded-xl overflow-hidden bg-transparent flex items-center justify-center p-2 block shrink-0"
       >
-        {/* Discount Badge */}
-        {discountPercentage && (
+        {/* Discount Badge or Out of Stock Badge */}
+        {isOutOfStock ? (
+          <div className="absolute top-2 left-2 z-10 bg-gray-800/90 text-white text-[11px] px-2 py-0.5 rounded-md flex items-center gap-1">
+            <span>ამოიწურა</span>
+          </div>
+        ) : discountPercentage ? (
           <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-xs px-2 py-0.5 rounded-md flex items-center gap-1">
             <span>-{discountPercentage}%</span>
           </div>
-        )}
+        ) : null}
 
         {/* Action icons top right (Wishlist + Compare) */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
@@ -132,7 +145,9 @@ export default function ProductCard({
         <img
           src={image}
           alt={title}
-          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
+          className={`w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 ${
+            isOutOfStock ? "opacity-60 grayscale-[40%]" : ""
+          }`}
         />
       </Link>
 
@@ -163,30 +178,39 @@ export default function ProductCard({
           </div>
 
           {/* Buttons */}
-          <div className="flex items-center gap-2">
+          {isOutOfStock ? (
             <button
-              onClick={handleBuyNow}
-              className="flex-1 h-9 bg-[#111111] hover:bg-black text-white rounded-xl text-xs md:text-sm flex items-center justify-center cursor-pointer transition-colors"
+              disabled
+              className="w-full h-9 bg-gray-100 text-gray-400 rounded-xl text-xs flex items-center justify-center cursor-not-allowed select-none"
             >
-              <span>ყიდვა</span>
+              <span>არ არის მარაგში</span>
             </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 h-9 bg-[#111111] hover:bg-black text-white rounded-xl text-xs md:text-sm flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <span>ყიდვა</span>
+              </button>
 
-            <button
-              onClick={handleAddToCart}
-              title="კალათაში დამატება"
-              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
-                isAdded
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-[#F1F5F9] hover:bg-[#E2E8F0] text-gray-800"
-              }`}
-            >
-              {isAdded ? (
-                <Check className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <ShoppingBag className="w-4 h-4" />
-              )}
-            </button>
-          </div>
+              <button
+                onClick={handleAddToCart}
+                title="კალათაში დამატება"
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+                  isAdded
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-[#F1F5F9] hover:bg-[#E2E8F0] text-gray-800"
+                }`}
+              >
+                {isAdded ? (
+                  <Check className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <ShoppingBag className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

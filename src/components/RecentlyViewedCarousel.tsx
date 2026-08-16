@@ -24,6 +24,7 @@ export const RecentlyViewedCarousel: React.FC = () => {
               monthlyInstallment={item.monthlyInstallment}
               image={item.image}
               discountPercentage={item.discountPercentage}
+              stock={item.stock}
             />
           ))}
         </div>

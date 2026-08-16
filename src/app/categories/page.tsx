@@ -14,9 +14,9 @@ import {
   Gamepad2,
   Watch,
   Camera,
-  Tablet
+  Tablet,
+  Loader2
 } from "lucide-react";
-import { dataService } from "@/services/dataService";
 import { Category } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -34,13 +34,28 @@ const iconMap: Record<string, React.ReactNode> = {
 export default function MainCategoriesPage() {
   const [filterQuery, setFilterQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setCategories(dataService.getCategories());
-    const unsub = dataService.subscribe(() => {
-      setCategories(dataService.getCategories());
-    });
-    return () => unsub();
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && isMounted) {
+          setCategories(json.data);
+        }
+      } catch (err) {
+        console.error("MainCategoriesPage: Failed to load categories:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const cleanQuery = filterQuery.trim().toLowerCase();
@@ -58,62 +73,74 @@ export default function MainCategoriesPage() {
       
       {/* 1. Header Banner */}
       <section className="bg-[#F8FAFC] border-b border-gray-100 py-8 md:py-10">
-        <div className="container mx-auto px-4 lg:px-8 space-y-3">
-          
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Link href="/" className="hover:text-blue-600 transition-colors">მთავარი</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-gray-900">ყველა კატეგორია</span>
-          </div>
+        <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          <nav className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+            <Link href="/" className="hover:text-blue-600 transition-colors">
+              მთავარი
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+            <span className="text-gray-900">კატეგორიები</span>
+          </nav>
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
-                ყველა კატეგორია
+              <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight flex items-center gap-2">
+                <span>პროდუქციის კატალოგი</span>
               </h1>
+              <p className="text-xs md:text-sm text-gray-500 mt-1">
+                აირჩიეთ სასურველი კატეგორია და აღმოაჩინეთ უახლესი ტექნოლოგიები
+              </p>
             </div>
 
-            {/* Search filter */}
-            <div className="w-full md:w-80 relative">
+            <div className="relative max-w-xs w-full">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                placeholder="ძიება კატეგორიებში..."
-                className="w-full h-10 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
+                placeholder="კატეგორიის ძებნა..."
+                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-2xs"
               />
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* 2. Main Category Cards Grid (Clean design without hover scale animations) */}
-      <section className="pt-8">
-        <div className="container mx-auto px-4 lg:px-8">
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+      {/* 2. Categories Grid */}
+      <div className="container mx-auto px-4 lg:px-8 max-w-7xl pt-10">
+        {isLoading ? (
+          <div className="py-20 text-center text-xs text-gray-400">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
+            <span>იტვირთება კატეგორიები...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredCategories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/categories/${cat.slug}`}
-                className="w-full h-[160px] bg-[#EAECEF] hover:bg-[#E2E5EA] rounded-xl p-3.5 flex flex-col justify-between items-start cursor-pointer relative overflow-hidden select-none group block text-left"
+                className="group p-6 rounded-2xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-lg transition-all flex flex-col justify-between h-48"
               >
-                <h4 className="text-xs sm:text-sm text-[#111111] leading-tight pt-0.5 z-10 text-left">
-                  {cat.name}
-                </h4>
+                <div className="flex items-start justify-between">
+                  <div className="text-gray-600 group-hover:text-blue-600 transition-colors">
+                    {cat.icon && iconMap[cat.icon] ? iconMap[cat.icon] : <Sparkles className="w-10 h-10" />}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                </div>
 
-                <div className="absolute bottom-1.5 right-1.5 w-14 h-14 flex items-end justify-end pointer-events-none opacity-40 text-black">
-                  {cat.icon && iconMap[cat.icon] ? iconMap[cat.icon] : <Sparkles className="w-12 h-12 stroke-[1.6]" />}
+                <div>
+                  <h3 className="text-base text-gray-900 group-hover:text-blue-600 transition-colors">
+                    {cat.name}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {cat.children?.length ? `${cat.children.length} ქვეკატეგორია` : "დათვალიერება"}
+                  </p>
                 </div>
               </Link>
             ))}
           </div>
-
-        </div>
-      </section>
+        )}
+      </div>
 
     </div>
   );

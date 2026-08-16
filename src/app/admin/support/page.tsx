@@ -2,9 +2,47 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X, Phone, Archive, User, Edit3, AlertTriangle, Lock, Folder, FolderOpen, FileText, Download } from "lucide-react";
-import { dataService, SupportTicket } from "@/services/dataService";
-
 import { useStore } from "@/store/useStore";
+
+export interface ChatAttachment {
+  type: "image" | "video" | "file";
+  url: string;
+  name: string;
+  size?: string;
+}
+
+export interface ChatMessage {
+  id?: string;
+  sender: "user" | "bot" | "admin";
+  text: string;
+  time: string;
+  adminName?: string;
+  adminAvatar?: string;
+  read?: boolean;
+  liked?: boolean | null;
+  attachment?: ChatAttachment;
+}
+
+export interface SupportTicket {
+  id: string;
+  customerId?: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  userName: string;
+  userPhone?: string;
+  userEmail?: string;
+  topic?: string;
+  status: "OPEN" | "CLOSED" | "RESOLVED";
+  isUserTyping?: boolean;
+  isAdminTyping?: boolean;
+  typingAdminName?: string;
+  assignedToName?: string;
+  time: string;
+  messages: ChatMessage[];
+  updatedAt?: string;
+  createdAt?: string;
+}
 
 export default function AdminSupportPage() {
   const { adminUser, user } = useStore();
@@ -17,29 +55,27 @@ export default function AdminSupportPage() {
   const prevMsgCountRef = useRef<number>(0);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const fetchTickets = async () => {
+    try {
+      const res = await fetch("/api/admin/support");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setTickets(json.data);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch tickets:", err);
+    }
+  };
+
   useEffect(() => {
-    setTickets(dataService.getSupportTickets());
-
-    // Lightweight 1s polling — only fetches /api/admin/support (1 call, not 11)
-    const pollInterval = setInterval(() => {
-      dataService.syncSupportOnly();
-    }, 1000);
-
-    const unsub = dataService.subscribe(() => {
-      const currentTickets = dataService.getSupportTickets();
-      setTickets(currentTickets);
-    });
-
-    return () => {
-      clearInterval(pollInterval);
-      unsub();
-    };
+    fetchTickets();
+    const pollInterval = setInterval(fetchTickets, 2000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   // Smart auto-scroll: Only when activeTicketId changes or new message arrives while user is near bottom
   useEffect(() => {
     if (activeTicketId) {
-      dataService.markMessagesAsRead(activeTicketId, "admin");
       setTimeout(() => {
         if (chatFeedRef.current) {
           chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
@@ -84,13 +120,31 @@ export default function AdminSupportPage() {
     return true;
   });
 
-  const handleSendReply = (e: React.FormEvent) => {
+  const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLockedForOtherOperator || !activeTicketId || !replyText.trim()) return;
 
-    dataService.addSupportReply(activeTicketId, replyText.trim(), currentOperatorName);
-    dataService.setTypingStatus(activeTicketId, "admin", false, currentOperatorName);
+    const text = replyText.trim();
     setReplyText("");
+
+    try {
+      const res = await fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: activeTicketId,
+          replyText: text,
+          adminName: currentOperatorName,
+          isAdminTyping: false,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTickets((prev) => prev.map((t) => (t.id === activeTicketId ? json.data : t)));
+      }
+    } catch (err) {
+      console.error("handleSendReply error:", err);
+    }
 
     setTimeout(() => {
       if (chatFeedRef.current) {
@@ -102,21 +156,52 @@ export default function AdminSupportPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setReplyText(e.target.value);
     if (activeTicketId) {
-      dataService.setTypingStatus(activeTicketId, "admin", true, currentOperatorName);
+      fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: activeTicketId,
+          isAdminTyping: true,
+          typingAdminName: currentOperatorName,
+        }),
+      }).catch(() => {});
+
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
-        dataService.setTypingStatus(activeTicketId, "admin", false, currentOperatorName);
+        fetch("/api/admin/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: activeTicketId,
+            isAdminTyping: false,
+            typingAdminName: "",
+          }),
+        }).catch(() => {});
       }, 2500);
     }
   };
 
-  const handleClaimTicket = (id: string) => {
-    dataService.assignTicket(id, currentOperatorName);
+  const handleClaimTicket = async (id: string) => {
+    try {
+      const res = await fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          assignedToName: currentOperatorName,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTickets((prev) => prev.map((t) => (t.id === id ? json.data : t)));
+      }
+    } catch (err) {
+      console.error("handleClaimTicket error:", err);
+    }
   };
 
   const handleFilterChange = (filter: "OPEN" | "RESOLVED" | "ALL") => {
     setSelectedFilter(filter);
-    // If active ticket is not in the newly selected filter, unselect it
     if (activeTicketId) {
       const activeInNewFilter = tickets.some((t) => {
         if (t.id !== activeTicketId) return false;
@@ -130,24 +215,60 @@ export default function AdminSupportPage() {
     }
   };
 
-  const handleCloseTicket = (ticketId: string) => {
-    dataService.updateSupportTicketStatus(ticketId, "RESOLVED");
+  const handleCloseTicket = async (ticketId: string) => {
+    try {
+      const res = await fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ticketId,
+          status: "RESOLVED",
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTickets((prev) => prev.map((t) => (t.id === ticketId ? json.data : t)));
+      }
+    } catch (err) {
+      console.error("handleCloseTicket error:", err);
+    }
+
     if (selectedFilter === "OPEN" && activeTicketId === ticketId) {
       setActiveTicketId(null);
     }
   };
 
-  const handleReopenTicket = (ticketId: string) => {
-    dataService.updateSupportTicketStatus(ticketId, "OPEN");
+  const handleReopenTicket = async (ticketId: string) => {
+    try {
+      const res = await fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ticketId,
+          status: "OPEN",
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTickets((prev) => prev.map((t) => (t.id === ticketId ? json.data : t)));
+      }
+    } catch (err) {
+      console.error("handleReopenTicket error:", err);
+    }
+
     if (selectedFilter === "RESOLVED" && activeTicketId === ticketId) {
       setActiveTicketId(null);
     }
   };
 
-  const handleDeleteTicket = (ticketId: string) => {
+  const handleDeleteTicket = async (ticketId: string) => {
     if (confirm("დარწმუნებული ხართ, რომ გსურთ ამ ჩათის წაშლა?")) {
-      dataService.deleteSupportTicket(ticketId);
-      dataService.syncFromBackend(true);
+      try {
+        await fetch(`/api/admin/support?id=${encodeURIComponent(ticketId)}`, { method: "DELETE" });
+        setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+      } catch (err) {
+        console.error("handleDeleteTicket error:", err);
+      }
       if (activeTicketId === ticketId) {
         setActiveTicketId(null);
       }
@@ -543,11 +664,6 @@ export default function AdminSupportPage() {
                   value={replyText}
                   disabled={isLockedForOtherOperator}
                   onChange={handleInputChange}
-                  onFocus={() => {
-                    if (activeTicketId && !isLockedForOtherOperator) {
-                      dataService.markMessagesAsRead(activeTicketId, "admin");
-                    }
-                  }}
                   placeholder={
                     isLockedForOtherOperator
                       ? `ჩატი დაკავებულია (${lockOwnerName}-ს მიერ)...`

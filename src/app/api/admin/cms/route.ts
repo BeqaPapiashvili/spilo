@@ -1,21 +1,35 @@
 import { NextResponse } from "next/server";
-import { getPrismaClient } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const prisma = getPrismaClient();
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get("slug");
+    const id = searchParams.get("id");
+
+    if (id) {
+      const page = await prisma.cMSPage.findUnique({ where: { id } });
+      return NextResponse.json({ success: true, data: page });
+    }
+
+    if (slug) {
+      const page = await prisma.cMSPage.findUnique({ where: { slug } });
+      return NextResponse.json({ success: true, data: page });
+    }
+
     const pages = await prisma.cMSPage.findMany({
       orderBy: { title: "asc" },
     });
-    return NextResponse.json({ success: true, data: pages });
+    return NextResponse.json({ success: true, count: pages.length, data: pages });
   } catch (error: any) {
+    console.error("GET /api/admin/cms error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const body = await request.json();
     const { id, title, slug, content } = body;
 
@@ -23,26 +37,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Title and slug are required" }, { status: 400 });
     }
 
+    let result;
+
     if (id) {
-      const updated = await prisma.cMSPage.update({
+      result = await prisma.cMSPage.update({
         where: { id },
-        data: { title, slug, content, lastUpdated: new Date() },
+        data: {
+          title: title.trim(),
+          slug: slug.trim().toLowerCase(),
+          content: (content || "").trim(),
+          lastUpdated: new Date(),
+        },
       });
-      return NextResponse.json({ success: true, data: updated });
+
+      await recordAuditLog({
+        action: "CMS_PAGE_UPDATE",
+        entity: "CMSPage",
+        target: `${result.title} (${result.slug})`,
+        details: "განახლდა სტატიკური გვერდის შიგთავსი",
+      });
     } else {
-      const created = await prisma.cMSPage.create({
-        data: { title, slug, content: content || "" },
+      result = await prisma.cMSPage.create({
+        data: {
+          title: title.trim(),
+          slug: slug.trim().toLowerCase(),
+          content: (content || "").trim(),
+          lastUpdated: new Date(),
+        },
       });
-      return NextResponse.json({ success: true, data: created });
+
+      await recordAuditLog({
+        action: "CMS_PAGE_CREATE",
+        entity: "CMSPage",
+        target: `${result.title} (${result.slug})`,
+        details: "შეიქმნა ახალი CMS გვერდი",
+      });
     }
+
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
+    console.error("POST /api/admin/cms error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
+export async function PUT(request: Request) {
+  return POST(request);
+}
+
 export async function DELETE(request: Request) {
   try {
-    const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -50,9 +94,22 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: "ID is required" }, { status: 400 });
     }
 
+    const existing = await prisma.cMSPage.findUnique({ where: { id } });
+
     await prisma.cMSPage.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+
+    if (existing) {
+      await recordAuditLog({
+        action: "CMS_PAGE_DELETE",
+        entity: "CMSPage",
+        target: `${existing.title} (${existing.slug})`,
+        details: "CMS გვერდი წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
+
+    return NextResponse.json({ success: true, message: "გვერდი წაიშალა" });
   } catch (error: any) {
+    console.error("DELETE /api/admin/cms error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
