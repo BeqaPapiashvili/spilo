@@ -71,6 +71,16 @@ export async function PUT(
       },
     });
 
+    try {
+      const { recordAuditLog } = await import("@/lib/audit");
+      await recordAuditLog({
+        action: "ORDER_STATUS_UPDATE",
+        entity: "Order",
+        target: `#${updatedOrder.orderNumber}`,
+        details: `შეკვეთის სტატუსი შეიცვალა: ${status || paymentStatus}`,
+      });
+    } catch {}
+
     return NextResponse.json({
       success: true,
       data: updatedOrder,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { History, Search, Shield, Package, ShoppingBag, Tag, Settings, Globe, User, Loader2 } from "lucide-react";
+import { History, Search, Shield, Package, ShoppingBag, Tag, Settings, Globe, User, Loader2, RefreshCw } from "lucide-react";
 
 interface AuditLogItem {
   id: string;
@@ -130,32 +130,75 @@ export default function AdminAuditLogsPage() {
 
       {/* Logs Table */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 text-center text-xs text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
-            <span>იტვირთება Audit ლოგები...</span>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center space-y-3">
-            <Shield className="w-10 h-10 text-slate-300 mx-auto" />
-            <h3 className="text-sm text-slate-700">Audit ჩანაწერები ვერ მოიძებნა</h3>
-            <p className="text-xs text-slate-400">მონაცემთა ბაზაში ახალი ლოგები არ არის</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">დრო</th>
-                  <th className="py-3.5 px-4">ადმინისტრატორი</th>
-                  <th className="py-3.5 px-4">მოქმედება</th>
-                  <th className="py-3.5 px-4">ობიექტი / სამიზნე</th>
-                  <th className="py-3.5 px-4">დეტალები</th>
-                  <th className="py-3.5 px-4">IP მისამართი</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4">დრო</th>
+                <th className="py-3.5 px-4">ადმინისტრატორი</th>
+                <th className="py-3.5 px-4">მოქმედება</th>
+                <th className="py-3.5 px-4">ობიექტი / სამიზნე</th>
+                <th className="py-3.5 px-4">დეტალები</th>
+                <th className="py-3.5 px-4">IP მისამართი</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-28" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-slate-200 rounded-full shrink-0" />
+                        <div className="space-y-1">
+                          <div className="h-3 bg-slate-200 rounded-md w-24" />
+                          <div className="h-2.5 bg-slate-100 rounded-md w-28" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-6 bg-slate-100 rounded-lg w-28" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-28" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-40" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-20" />
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-16 text-center text-slate-400 text-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm text-slate-700">Audit ჩანაწერები ვერ მოიძებნა</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                      არჩეული ფილტრის ან საძიებო სიტყვის მიხედვით ლოგები არ არის.
+                    </p>
+                    {(searchQuery.trim() !== "" || selectedAction !== "ALL") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSelectedAction("ALL");
+                        }}
+                        className="mt-3.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>ფილტრების გასუფთავება</span>
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filtered.map((log) => {
+              ) : (
+                filtered.map((log) => {
                   const cfg = ACTION_ICON[log.action] || ACTION_ICON.DEFAULT;
                   return (
                     <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
@@ -198,11 +241,11 @@ export default function AdminAuditLogsPage() {
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

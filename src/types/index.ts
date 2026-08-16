@@ -183,6 +183,8 @@ export interface UserProfile {
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
+export type Role = "SUPER_ADMIN" | "STORE_MANAGER" | "SUPPORT_AGENT" | "CATALOG_MANAGER" | "CUSTOMER";
+
 export interface ToastMessage {
   id: string;
   type: ToastType;

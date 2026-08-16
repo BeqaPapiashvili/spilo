@@ -132,26 +132,75 @@ export default function AdminInventoryPage() {
 
       {/* Table */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 text-center text-xs text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
-            <span>იტვირთება მარაგები...</span>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">პროდუქტი</th>
-                  <th className="py-3.5 px-4">SKU</th>
-                  <th className="py-3.5 px-4">კატეგორია</th>
-                  <th className="py-3.5 px-4">ფასი</th>
-                  <th className="py-3.5 px-4">მიმდინარე მარაგი</th>
-                  <th className="py-3.5 px-4 text-right">მარაგის სწრაფი კორექტირება</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4">პროდუქტი</th>
+                <th className="py-3.5 px-4">SKU</th>
+                <th className="py-3.5 px-4">კატეგორია</th>
+                <th className="py-3.5 px-4">ფასი</th>
+                <th className="py-3.5 px-4">მიმდინარე მარაგი</th>
+                <th className="py-3.5 px-4 text-right">მარაგის სწრაფი კორექტირება</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-200 rounded-xl shrink-0" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-3.5 bg-slate-200 rounded-md w-36" />
+                          <div className="h-2.5 bg-slate-100 rounded-md w-20" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-20" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-5 bg-slate-100 rounded-lg w-24" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-16" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-6 bg-slate-200 rounded-full w-20" />
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                        <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                        <div className="w-10 h-8 bg-slate-200 rounded-xl" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-16 text-center text-slate-400 text-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                      <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm text-slate-700">პროდუქტები ვერ მოიძებნა</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                      საძიებო პარამეტრებით პროდუქტები არ მოიძებნა.
+                    </p>
+                    {searchQuery.trim() !== "" && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="mt-3.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <span>ძიების გასუფთავება</span>
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filtered.map((p) => {
+              ) : (
+                filtered.map((p) => {
                   const isUpdating = updatingId === p.id;
                   const prodImg = p.images?.[0] || p.image || "/placeholder.png";
 
@@ -221,11 +270,11 @@ export default function AdminInventoryPage() {
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

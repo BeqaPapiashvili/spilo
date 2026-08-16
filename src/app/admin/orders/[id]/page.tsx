@@ -150,7 +150,7 @@ export default function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
         {!canManageOrders ? (
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 inline-flex items-center gap-3">
             <span className="text-xs text-slate-500">სტატუსი:</span>
-            <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-mono font-medium">
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-mono">
               {currentStatus}
             </span>
             <span className="text-xs text-slate-400 font-mono">

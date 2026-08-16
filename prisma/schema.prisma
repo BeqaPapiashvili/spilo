@@ -380,14 +380,19 @@ model NavigationItem {
 }
 
 model InstallmentOption {
-  id          String   @id @default(cuid())
-  bankName    String
-  bankCode    String   @unique
-  months      Int
-  ratePercent Float    @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  bankName        String
+  bankCode        String   @unique
+  name            String?  @default("")
+  months          Int      @default(12)
+  availableMonths Json?
+  minAmount       Float?   @default(50)
+  maxAmount       Float?   @default(15000)
+  ratePercent     Float    @default(0)
+  merchantCode    String?  @default("")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model DeliveryZone {

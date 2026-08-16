@@ -315,9 +315,10 @@ export default function AdminCategoriesPage() {
         </div>
 
         {isLoading ? (
-          <div className="py-6 text-center text-xs text-slate-400">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-600 mx-auto mb-1" />
-            <span>იტვირთება კატეგორიები...</span>
+          <div className="flex items-center gap-3 py-1 overflow-x-auto animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-9 w-32 bg-slate-100 rounded-xl shrink-0" />
+            ))}
           </div>
         ) : (
           <Swiper

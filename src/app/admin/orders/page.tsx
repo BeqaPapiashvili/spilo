@@ -137,7 +137,7 @@ export default function AdminOrdersPage() {
     fetchDbOrders();
   }, []);
 
-  const displayOrders = dbOrders.length > 0 ? dbOrders : storeOrders;
+  const displayOrders = dbOrders;
 
   // KPIs Metrics calculations
   const totalCount = displayOrders.length;
@@ -355,7 +355,39 @@ export default function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredOrders.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-slate-200 rounded-md w-20" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-slate-200 rounded-md w-24" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="space-y-1.5">
+                        <div className="h-4 bg-slate-200 rounded-md w-36" />
+                        <div className="h-3 bg-slate-100 rounded-md w-48" />
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-slate-200 rounded-md w-24" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-slate-200 rounded-md w-16" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-8 bg-slate-200 rounded-full w-28" />
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-9 h-9 bg-slate-200 rounded-2xl" />
+                        <div className="w-9 h-9 bg-slate-200 rounded-2xl" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => {
                   const cfg = STATUS_CONFIGS[order.status] || STATUS_CONFIGS["მუშავდება"];
 
@@ -442,8 +474,26 @@ export default function AdminOrdersPage() {
               ) : (
                 <tr>
                   <td colSpan={7} className="py-16 text-center text-slate-400 text-xs">
-                    <ShoppingBag className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                    <span>შეკვეთები ვერ მოიძებნა</span>
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                      <ShoppingBag className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm text-slate-700">შეკვეთები ვერ მოიძებნა</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                      მითითებული საძიებო პარამეტრებით ან არჩეული სტატუსის ფილტრით შეკვეთები არ არსებობს.
+                    </p>
+                    {(selectedStatusFilter !== "ALL" || searchQuery.trim() !== "") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatusFilter("ALL");
+                          setSearchQuery("");
+                        }}
+                        className="mt-3.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>ფილტრების გასუფთავება</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               )}

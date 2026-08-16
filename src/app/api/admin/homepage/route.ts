@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPrismaClient } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { recordAuditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -161,6 +162,15 @@ export async function POST(request: Request) {
       orderBy: { sortOrder: "asc" },
     });
 
+    try {
+      await recordAuditLog({
+        action: "HOMEPAGE_SECTIONS_UPDATE",
+        entity: "StorefrontSection",
+        target: "მთავარი გვერდის სექციები",
+        details: `განახლდა ${allSections.length} სექციის კონფიგურაცია და პოზიციები`,
+      });
+    } catch {}
+
     return NextResponse.json({
       success: true,
       data: allSections,
@@ -195,13 +205,22 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.storefrontSection.delete({
+    const deletedSec = await prisma.storefrontSection.delete({
       where: { id },
-    });
+    }).catch(() => null);
 
     try {
       revalidatePath("/");
       revalidatePath("/api/storefront/sections");
+    } catch {}
+
+    try {
+      await recordAuditLog({
+        action: "HOMEPAGE_SECTION_DELETE",
+        entity: "StorefrontSection",
+        target: deletedSec?.title || id,
+        details: `სექცია წაიშალა მთავარი გვერდიდან (ID: ${id})`,
+      });
     } catch {}
 
     const allSections = await prisma.storefrontSection.findMany({

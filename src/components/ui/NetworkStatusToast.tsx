@@ -20,7 +20,7 @@ export const NetworkStatusToast: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -24, scale: 0.95 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className={`pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md border text-xs md:text-sm font-medium ${
+            className={`pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md border text-xs md:text-sm ${
               !isOnline
                 ? "bg-red-600/90 border-red-500/40 text-white"
                 : "bg-emerald-600/90 border-emerald-500/40 text-white"

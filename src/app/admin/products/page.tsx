@@ -14,7 +14,8 @@ import {
   Package, 
   Download, 
   UploadCloud,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { Product } from "@/types";
 import { exportProductsToCSV } from "@/utils/exportImport";
@@ -273,42 +274,97 @@ export default function AdminProductsPage() {
 
       {/* Table */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 text-center space-y-3">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
-            <p className="text-xs text-slate-400">იტვირთება მონაცემები...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center space-y-3">
-            <Package className="w-10 h-10 text-slate-300 mx-auto" />
-            <h3 className="text-sm text-slate-700">პროდუქტი ვერ მოიძებნა</h3>
-            <p className="text-xs text-slate-400">სცადეთ სხვა საძიებო პარამეტრები</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4 w-10">
-                    <button type="button" onClick={toggleAll} className="cursor-pointer text-slate-400 hover:text-slate-700">
-                      {selectedIds.length === filtered.length && filtered.length > 0 ? (
-                        <CheckSquare className="w-4 h-4 text-blue-600" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="py-3.5 px-4">პროდუქტი</th>
-                  <th className="py-3.5 px-4">SKU</th>
-                  <th className="py-3.5 px-4">კატეგორია</th>
-                  <th className="py-3.5 px-4">ბრენდი</th>
-                  <th className="py-3.5 px-4">ფასი</th>
-                  <th className="py-3.5 px-4">მარაგი</th>
-                  <th className="py-3.5 px-4 text-right">მოქმედება</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 w-10">
+                  <button type="button" onClick={toggleAll} className="cursor-pointer text-slate-400 hover:text-slate-700">
+                    {selectedIds.length === filtered.length && filtered.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3.5 px-4">პროდუქტი</th>
+                <th className="py-3.5 px-4">SKU</th>
+                <th className="py-3.5 px-4">კატეგორია</th>
+                <th className="py-3.5 px-4">ბრენდი</th>
+                <th className="py-3.5 px-4">ფასი</th>
+                <th className="py-3.5 px-4">მარაგი</th>
+                <th className="py-3.5 px-4 text-right">მოქმედება</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-3.5 px-4">
+                      <div className="w-4 h-4 bg-slate-200 rounded" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-200 rounded-xl shrink-0" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-3.5 bg-slate-200 rounded-md w-36" />
+                          <div className="h-2.5 bg-slate-100 rounded-md w-20" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-20" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-5 bg-slate-100 rounded-lg w-24" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-5 bg-slate-100 rounded-lg w-20" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-16" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-5 bg-slate-200 rounded-full w-20" />
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                        <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                        <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                        <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-16 text-center text-slate-400 text-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                      <Package className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm text-slate-700">პროდუქტი ვერ მოიძებნა</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                      სცადეთ შეცვალოთ საძიებო სიტყვა ან კატეგორიის/ბრენდის ფილტრი.
+                    </p>
+                    {(searchQuery || selectedCategory !== "ALL" || selectedBrand !== "ALL") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSelectedCategory("ALL");
+                          setSelectedBrand("ALL");
+                        }}
+                        className="mt-3.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>ფილტრების გასუფთავება</span>
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filtered.map((p) => {
+              ) : (
+                filtered.map((p) => {
                   const isSelected = selectedIds.includes(p.id);
                   const prodImg = p.images?.[0] || p.image || "/placeholder.png";
 
@@ -393,11 +449,11 @@ export default function AdminProductsPage() {
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Import Modal */}

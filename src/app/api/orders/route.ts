@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/lib/jwt";
 import { ADMIN_ROLES } from "@/lib/permissions";
 import { OrderStatus } from "@prisma/client";
+import { recordAuditLog } from "@/lib/audit";
 
 /**
  * GET /api/orders
@@ -324,6 +325,16 @@ export async function PUT(request: Request) {
         data: { status: targetStatus },
         include: { items: true },
       });
+    });
+
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "ORDER_STATUS_UPDATE",
+      entity: "Order",
+      target: `#${updatedOrder.orderNumber}`,
+      details: `შეკვეთის სტატუსი შეიცვალა: ${previousStatus} → ${targetStatus}`,
     });
 
     return NextResponse.json({

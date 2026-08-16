@@ -238,9 +238,27 @@ export default function AdminNavigationBuilderPage() {
 
       {/* Items List */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200/80">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mx-auto mb-2" />
-          <span>იტვირთება ნავიგაციის მენიუ...</span>
+        <div className="space-y-3 animate-pulse">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 md:p-5 flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-7 h-14 bg-slate-100 rounded-lg" />
+                <div className="w-10 h-10 bg-slate-200 rounded-2xl shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-slate-200 rounded-md w-40" />
+                  <div className="h-3 bg-slate-100 rounded-md w-28" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-16 h-8 bg-slate-100 rounded-full" />
+                <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+                <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : items.length === 0 ? (
         <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-slate-200/80">

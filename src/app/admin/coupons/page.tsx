@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Ticket, Plus, Trash2, X, Check, Copy, Loader2 } from "lucide-react";
+import { Ticket, Plus, Trash2, X, Check, Copy, Loader2, Tag } from "lucide-react";
 
 interface CouponItem {
   id: string;
@@ -139,13 +139,38 @@ export default function AdminCouponsPage() {
       {/* Coupons Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {isLoading ? (
-          <div className="col-span-full py-16 text-center text-xs text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
-            <span>იტვირთება კუპონები...</span>
-          </div>
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4 animate-pulse"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-24 h-7 bg-slate-200 rounded-lg" />
+                <div className="w-16 h-5 bg-slate-100 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 bg-slate-200 rounded-md w-3/4" />
+                <div className="h-3.5 bg-slate-100 rounded-md w-1/2" />
+              </div>
+              <div className="pt-2 border-t border-slate-100 flex justify-between">
+                <div className="w-16 h-4 bg-slate-100 rounded" />
+                <div className="w-16 h-4 bg-slate-100 rounded" />
+              </div>
+            </div>
+          ))
         ) : coupons.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-xs text-slate-400">
-            აქტიური კუპონები არ არის დამატებული.
+          <div className="col-span-full py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200/80">
+            <Tag className="w-10 h-10 text-slate-300 mx-auto" />
+            <h3 className="text-sm text-slate-700">აქტიური კუპონები არ არის</h3>
+            <p className="text-xs text-slate-400">შექმენით პრომო კოდი მომხმარებლებისთვის</p>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>კუპონის შექმნა</span>
+            </button>
           </div>
         ) : (
           coupons.map((coupon) => (

@@ -17,7 +17,8 @@ import {
   Check, 
   Plus, 
   Sparkles,
-  Sliders
+  Sliders,
+  RefreshCw
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -248,20 +249,74 @@ export default function AdminCustomersPage() {
 
       {/* Users List Table */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {filteredUsers.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 text-[11px] text-slate-400 uppercase tracking-wider bg-slate-50/50">
-                  <th className="py-4 px-6 font-normal">მომხმარებელი</th>
-                  <th className="py-4 px-6 font-normal">როლი & უფლებები</th>
-                  <th className="py-4 px-6 font-normal">კონტაქტი</th>
-                  <th className="py-4 px-6 font-normal">შეკვეთები / დანახარჯი</th>
-                  <th className="py-4 px-6 font-normal text-right">მოქმედება</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 text-[11px] text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                <th className="py-4 px-6 font-normal">მომხმარებელი</th>
+                <th className="py-4 px-6 font-normal">როლი & უფლებები</th>
+                <th className="py-4 px-6 font-normal">კონტაქტი</th>
+                <th className="py-4 px-6 font-normal">შეკვეთები / დანახარჯი</th>
+                <th className="py-4 px-6 font-normal text-right">მოქმედება</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-200 rounded-2xl shrink-0" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-3.5 bg-slate-200 rounded-md w-32" />
+                          <div className="h-2.5 bg-slate-100 rounded-md w-24" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-7 bg-slate-100 rounded-full w-28" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="space-y-1">
+                        <div className="h-3.5 bg-slate-200 rounded-md w-36" />
+                        <div className="h-2.5 bg-slate-100 rounded-md w-24" />
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-3.5 bg-slate-200 rounded-md w-24" />
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="h-9 w-28 bg-slate-100 rounded-2xl inline-block" />
+                    </td>
+                  </tr>
+                ))
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-16 text-center text-slate-400 text-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm text-slate-700">მომხმარებლები ვერ მოიძებნა</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                      საძიებო სიტყვით ან არჩეული ტაბის ფილტრით მომხმარებლები არ მოიძებნა.
+                    </p>
+                    {(searchQuery.trim() !== "" || tabFilter !== "ALL") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setTabFilter("ALL");
+                        }}
+                        className="mt-3.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>ფილტრების გასუფთავება</span>
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filteredUsers.map((user) => {
+              ) : (
+                filteredUsers.map((user) => {
                   const initials = user.name.slice(0, 2).toUpperCase();
                   const roleConfig = ROLES_INFO.find((r) => r.key === user.role) || ROLES_INFO[4];
 
@@ -299,24 +354,19 @@ export default function AdminCustomersPage() {
                             <span>{user.email}</span>
                           </div>
                           {user.phone && (
-                            <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[11px]">
-                              <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
+                              <Phone className="w-3.5 h-3.5" />
                               <span>{user.phone}</span>
                             </div>
                           )}
                         </div>
                       </td>
 
-                      {/* Orders & Spent */}
-                      <td className="py-4 px-6">
-                        <div className="space-y-0.5">
-                          <span className="text-xs text-slate-900 font-mono block">
-                            {user.totalSpent.toLocaleString()} ₾
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono block">
-                            {user.ordersCount} შეკვეთა
-                          </span>
-                        </div>
+                      {/* Orders Count & Total Spent */}
+                      <td className="py-4 px-6 font-mono text-slate-600">
+                        <span>{user.ordersCount} შეკვეთა</span>
+                        <span className="text-slate-400 mx-1.5">·</span>
+                        <span className="text-slate-900 font-normal">₾{user.totalSpent.toFixed(2)}</span>
                       </td>
 
                       {/* Action: Change Role Button */}
@@ -340,15 +390,11 @@ export default function AdminCustomersPage() {
 
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-12 text-center text-slate-400 text-xs">
-            მომხმარებელი ვერ მოიძებნა
-          </div>
-        )}
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Role & Permissions Assignment Modal */}

@@ -96,7 +96,7 @@ export default function AdminLoginPage() {
         <form onSubmit={handleAdminLogin} className="space-y-4">
           {/* Email Input */}
           <div className="space-y-1.5">
-            <label className="text-xs text-slate-300 font-medium block">
+            <label className="text-xs text-slate-300 block">
               ელ-ფოსტა / Username
             </label>
             <div className="relative">
@@ -116,7 +116,7 @@ export default function AdminLoginPage() {
 
           {/* Password Input */}
           <div className="space-y-1.5">
-            <label className="text-xs text-slate-300 font-medium block">
+            <label className="text-xs text-slate-300 block">
               პაროლი
             </label>
             <div className="relative">
@@ -145,7 +145,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs md:text-sm font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors pt-1"
+            className="w-full h-11 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors pt-1"
           >
             {isLoading ? (
               <span>მოწმდება...</span>

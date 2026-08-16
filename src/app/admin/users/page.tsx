@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, Lock, Check, Plus, Trash2, Edit3, Key, RefreshCw, X, Loader2 } from "lucide-react";
-import { Role } from "@/services/dataService";
+import { Role } from "@/types";
 
 interface DBAdminUser {
   id: string;
@@ -281,7 +281,30 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td style={{ padding: "0.75rem 1rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                        <div style={{ width: "2rem", height: "2rem", borderRadius: "0.5rem", background: "#e2e8f0" }} />
+                        <div style={{ width: "6rem", height: "0.875rem", background: "#e2e8f0", borderRadius: "0.25rem" }} />
+                      </div>
+                    </td>
+                    <td><div style={{ width: "8rem", height: "0.75rem", background: "#e2e8f0", borderRadius: "0.25rem" }} /></td>
+                    <td><div style={{ width: "5rem", height: "1.25rem", background: "#f1f5f9", borderRadius: "0.25rem" }} /></td>
+                    <td><div style={{ width: "4rem", height: "1.25rem", background: "#f1f5f9", borderRadius: "0.25rem" }} /></td>
+                    <td><div style={{ width: "5rem", height: "0.75rem", background: "#e2e8f0", borderRadius: "0.25rem" }} /></td>
+                    <td style={{ textAlign: "right" }}><div style={{ display: "inline-flex", gap: "0.375rem" }}><div style={{ width: "1.5rem", height: "1.5rem", background: "#f1f5f9", borderRadius: "0.25rem" }} /><div style={{ width: "1.5rem", height: "1.5rem", background: "#f1f5f9", borderRadius: "0.25rem" }} /></div></td>
+                  </tr>
+                ))
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: "3rem", textAlign: "center", color: "#94a3b8", fontSize: "0.8rem" }}>
+                    ადმინისტრატორები არ მოიძებნა
+                  </td>
+                </tr>
+              ) : (
+                users.map((u) => (
                 <tr key={u.id}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -333,7 +356,7 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

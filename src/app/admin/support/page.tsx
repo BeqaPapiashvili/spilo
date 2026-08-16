@@ -50,6 +50,7 @@ export default function AdminSupportPage() {
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<"OPEN" | "RESOLVED" | "ALL">("OPEN");
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatFeedRef = useRef<HTMLDivElement>(null);
   const prevMsgCountRef = useRef<number>(0);
@@ -64,6 +65,8 @@ export default function AdminSupportPage() {
       }
     } catch (err) {
       console.warn("Failed to fetch tickets:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -386,7 +389,18 @@ export default function AdminSupportPage() {
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
-            {filteredTickets.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ width: "50%", height: "0.82rem", background: "#e2e8f0", borderRadius: "0.25rem" }} />
+                    <div style={{ width: "20%", height: "0.68rem", background: "#f1f5f9", borderRadius: "0.25rem" }} />
+                  </div>
+                  <div style={{ width: "35%", height: "0.72rem", background: "#f1f5f9", borderRadius: "0.25rem" }} />
+                  <div style={{ width: "80%", height: "0.75rem", background: "#f8fafc", borderRadius: "0.25rem" }} />
+                </div>
+              ))
+            ) : filteredTickets.length === 0 ? (
               <div style={{ padding: "3rem 1.5rem", textAlign: "center", color: "#94a3b8", fontSize: "0.78rem" }}>
                 ჩათები არ არის
               </div>

@@ -27,7 +27,7 @@ export default function PastelPromoCard({
       {card.badge && (
         <div className="absolute top-4 left-4 z-10 bg-white/95 rounded-full px-3.5 py-1.5 shadow-sm flex items-center gap-1.5">
           <Flame className="w-4 h-4 text-orange-500 fill-orange-500 shrink-0" />
-          <span className="text-xs md:text-sm font-extrabold text-gray-900 tracking-tight">
+          <span className="text-xs md:text-sm text-gray-900 tracking-tight">
             {card.badge}
           </span>
         </div>
@@ -35,7 +35,7 @@ export default function PastelPromoCard({
 
       {/* Bottom-Left Title (სათაური) */}
       <div className="absolute bottom-4 left-4 max-w-[55%] z-10">
-        <h3 className="text-base md:text-lg font-bold text-gray-950 leading-tight line-clamp-2">
+        <h3 className="text-base md:text-lg text-gray-950 leading-tight line-clamp-2">
           {card.title || "სათაური"}
         </h3>
         {card.subtitle && (

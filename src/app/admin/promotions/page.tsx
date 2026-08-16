@@ -241,9 +241,20 @@ export default function AdminPromotionsPage() {
 
       {/* Promotions Grid */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200/80">
-          <Loader2 className="w-6 h-6 animate-spin text-purple-600 mx-auto mb-2" />
-          <span>იტვირთება აქციები MySQL ბაზიდან...</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 bg-slate-200 rounded-2xl" />
+                <div className="w-16 h-6 bg-slate-200 rounded-full" />
+              </div>
+              <div className="h-28 bg-slate-100 rounded-2xl" />
+              <div className="space-y-2">
+                <div className="h-4 bg-slate-200 rounded-md w-3/4" />
+                <div className="h-3 bg-slate-100 rounded-md w-1/2" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : promotions.length === 0 ? (
         <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-slate-200/80">

@@ -59,9 +59,20 @@ export async function recordAuditLog(options: AuditLogOptions) {
       } catch {}
     }
 
+    let validUserId: string | null = null;
+    if (userId) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      }).catch(() => null);
+      if (userExists) {
+        validUserId = userExists.id;
+      }
+    }
+
     return await prisma.auditLog.create({
       data: {
-        userId: userId || null,
+        userId: validUserId,
         adminEmail: adminEmail || "admin@spilo.ge",
         adminName: adminName || "Administrator",
         action: options.action,

@@ -718,7 +718,7 @@ function CheckoutContent() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-xs flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center">
                           🦁
                         </div>
                         <span className="text-xs md:text-sm text-gray-900">საქართველოს ბანკი</span>
@@ -738,7 +738,7 @@ function CheckoutContent() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold text-xs flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white text-xs flex items-center justify-center">
                           ▲
                         </div>
                         <span className="text-xs md:text-sm text-gray-900">თიბისი ბანკი</span>
@@ -758,7 +758,7 @@ function CheckoutContent() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold text-xs flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white text-xs flex items-center justify-center">
                           ▲
                         </div>
                         <span className="text-xs md:text-sm text-gray-900">თიბისი <span className="text-gray-500 pl-1">განაწილება</span></span>
@@ -778,7 +778,7 @@ function CheckoutContent() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-500 text-white font-bold text-xs flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
                           🔄
                         </div>
                         <span className="text-xs md:text-sm text-gray-900">კრედო ბანკი</span>
@@ -803,7 +803,7 @@ function CheckoutContent() {
                         className="w-full h-16 px-5 flex items-center justify-between cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold text-xs flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-xl bg-sky-500 text-white text-xs flex items-center justify-center">
                             ▲
                           </div>
                           <span className="text-xs md:text-sm text-gray-900">TBC</span>
@@ -838,7 +838,7 @@ function CheckoutContent() {
                         className="w-full h-16 px-5 flex items-center justify-between cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-xs flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center">
                             🦁
                           </div>
                           <span className="text-xs md:text-sm text-gray-900">Bank of Georgia</span>
@@ -858,7 +858,7 @@ function CheckoutContent() {
                             className="flex items-center justify-between p-3 cursor-pointer"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="text-xs font-bold tracking-widest text-blue-900">VISA</span>
+                              <span className="text-xs tracking-widest text-blue-900">VISA</span>
                               <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა</span>
                             </div>
                             <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center">

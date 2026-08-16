@@ -49,7 +49,6 @@ import {
   Home as HomeIcon
 } from "lucide-react";
 import Link from "next/link";
-import { dataService } from "@/services/dataService";
 import { Category, Brand, Product } from "@/types";
 import { 
   PromoCardItem, 
@@ -469,9 +468,16 @@ export default function AdminHomepageCMSPage() {
 
   useEffect(() => {
     fetchSections();
-    setCategories(dataService.getCategories());
-    setBrands(dataService.getBrands());
-    setAllProducts(dataService.getProducts());
+
+    Promise.all([
+      fetch("/api/categories").then((r) => r.json()).catch(() => ({ success: false })),
+      fetch("/api/brands").then((r) => r.json()).catch(() => ({ success: false })),
+      fetch("/api/products").then((r) => r.json()).catch(() => ({ success: false })),
+    ]).then(([cRes, bRes, pRes]) => {
+      if (cRes.success && Array.isArray(cRes.data)) setCategories(cRes.data);
+      if (bRes.success && Array.isArray(bRes.data)) setBrands(bRes.data);
+      if (pRes.success && Array.isArray(pRes.data)) setAllProducts(pRes.data);
+    }).catch((err) => console.error("Error loading categories/brands/products:", err));
   }, []);
 
   const toggleSection = (id: string) => {
@@ -2167,7 +2173,7 @@ export default function AdminHomepageCMSPage() {
                                   <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
                                     <span className="text-xs text-blue-600">₾{prod.price}</span>
                                     {prod.discountPrice && (
-                                      <span className="text-[10px] text-emerald-600 font-medium">-{prod.discountPercentage || 20}%</span>
+                                      <span className="text-[10px] text-emerald-600">-{prod.discountPercentage || 20}%</span>
                                     )}
                                   </div>
                                 </div>
@@ -2654,7 +2660,7 @@ export default function AdminHomepageCMSPage() {
                                     key={cat.id}
                                     onClick={() => toggleCategorySelection(cat.id)}
                                     className={`p-2 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer transition-all ${
-                                      isSelected ? "bg-purple-50 text-purple-900 font-medium" : "hover:bg-white text-slate-700"
+                                      isSelected ? "bg-purple-50 text-purple-900" : "hover:bg-white text-slate-700"
                                     }`}
                                   >
                                     <div className="flex items-center gap-2 min-w-0">
@@ -2819,7 +2825,7 @@ export default function AdminHomepageCMSPage() {
                                     key={brand.id}
                                     onClick={() => toggleBrandSelection(brand.id)}
                                     className={`p-2 rounded-xl flex items-center justify-between gap-2 cursor-pointer transition-all ${
-                                      isSelected ? "bg-teal-50 text-teal-900 font-medium" : "hover:bg-white text-slate-700"
+                                      isSelected ? "bg-teal-50 text-teal-900" : "hover:bg-white text-slate-700"
                                     }`}
                                   >
                                     <div className="flex items-center gap-2 min-w-0">

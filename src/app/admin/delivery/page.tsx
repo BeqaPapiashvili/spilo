@@ -85,9 +85,23 @@ export default function AdminDeliveryPage() {
 
       {/* Delivery Cards Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-        
-        {/* Free Delivery Threshold */}
-        <div className="adm-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="adm-card animate-pulse" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                <div style={{ width: "2.25rem", height: "2.25rem", borderRadius: "0.625rem", background: "#f1f5f9" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem", flex: 1 }}>
+                  <div style={{ width: "60%", height: "0.85rem", background: "#e2e8f0", borderRadius: "0.25rem" }} />
+                  <div style={{ width: "40%", height: "0.68rem", background: "#f1f5f9", borderRadius: "0.25rem" }} />
+                </div>
+              </div>
+              <div style={{ width: "100%", height: "2.5rem", background: "#f8fafc", borderRadius: "0.5rem" }} />
+            </div>
+          ))
+        ) : (
+          <>
+            {/* Free Delivery Threshold */}
+            <div className="adm-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
             <div style={{ width: "2.25rem", height: "2.25rem", borderRadius: "0.625rem", background: "#f0fdf4", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <ShieldCheck size={18} />
@@ -173,8 +187,9 @@ export default function AdminDeliveryPage() {
             />
           </div>
         </div>
-
-      </div>
+        </>
+      )}
+    </div>
 
     </div>
   );

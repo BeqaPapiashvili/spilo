@@ -16,30 +16,44 @@ import {
   Zap,
   Activity,
   Clock,
-  CheckCircle2,
-  Truck,
-  XCircle,
-  FileText,
-  Search,
-  Sparkles,
-  BarChart2,
-  Filter,
-  RefreshCw,
-  Sliders,
-  PieChart,
-  Layers,
-  Check,
-  MessageSquare,
-  Lock
+  CheckCircle2, 
+  Truck, 
+  XCircle, 
+  FileText, 
+  Search, 
+  Sparkles, 
+  BarChart2, 
+  Filter, 
+  RefreshCw, 
+  Sliders, 
+  PieChart, 
+  Layers, 
+  Check, 
+  MessageSquare, 
+  Lock,
+  History,
+  Loader2
 } from "lucide-react";
-import { dataService, AuditLog } from "@/services/dataService";
 import { useStore } from "@/store/useStore";
 import { Product } from "@/types";
 
+export interface AuditLogItem {
+  id: string;
+  userId?: string | null;
+  adminName: string;
+  adminEmail: string;
+  action: string;
+  entity: string;
+  target?: string | null;
+  details?: string | null;
+  createdAt: string;
+}
+
 export default function AdminDashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState<{
     totalRevenue: number;
@@ -56,44 +70,44 @@ export default function AdminDashboardPage() {
   });
 
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const { adminUser, orders: storeOrders } = useStore();
+  const { adminUser } = useStore();
   const isSupportAgent = adminUser?.role === "SUPPORT_AGENT";
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [pRes, aRes, sRes, oRes] = await Promise.all([
+        fetch("/api/products").then((r) => r.json()).catch(() => ({ success: false })),
+        fetch("/api/admin/audit-logs").then((r) => r.json()).catch(() => ({ success: false })),
+        fetch("/api/admin/stats").then((r) => r.json()).catch(() => ({ success: false })),
+        fetch("/api/orders").then((r) => r.json()).catch(() => ({ success: false })),
+      ]);
+
+      if (pRes.success && Array.isArray(pRes.data)) {
+        setProducts(pRes.data);
+      }
+      if (aRes.success && Array.isArray(aRes.data)) {
+        setAuditLogs(aRes.data);
+      }
+      if (sRes.success && sRes.data) {
+        setStats(sRes.data);
+      }
+      if (oRes.success && Array.isArray(oRes.data)) {
+        setOrders(oRes.data);
+      }
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
-    setProducts(dataService.getProducts());
-    setAuditLogs(dataService.getAuditLogs());
+    fetchDashboardData();
+  }, []);
 
-    // Fetch real MySQL aggregated stats
-    fetch("/api/admin/stats")
-      .then((res) => res.json())
-      .then((resData) => {
-        if (resData && resData.success && resData.data) {
-          setStats(resData.data);
-        }
-      })
-      .catch(() => {});
-
-    // Fetch real MySQL orders
-    fetch("/api/orders")
-      .then((res) => res.json())
-      .then((resData) => {
-        if (resData && resData.success && Array.isArray(resData.data)) {
-          setOrders(resData.data);
-        } else {
-          setOrders(storeOrders);
-        }
-      })
-      .catch(() => setOrders(storeOrders));
-
-    const unsub = dataService.subscribe(() => {
-      setProducts(dataService.getProducts());
-      setAuditLogs(dataService.getAuditLogs());
-    });
-    return () => unsub();
-  }, [storeOrders]);
-
-  const activeOrders = orders.length > 0 ? orders : storeOrders;
+  const activeOrders = orders;
   const outOfStockCount = products.filter((p) => p.stock === 0).length;
   const lowStockCount = stats.lowStockCount || products.filter((p) => p.stock > 0 && p.stock <= 5).length;
   const totalRevenue = stats.totalRevenue || activeOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
@@ -118,223 +132,172 @@ export default function AdminDashboardPage() {
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Spilo E-Commerce Control Center</span>
+              <span>სამართავი პანელი v2.0 • Live MySQL</span>
             </div>
             <h1 className="text-2xl md:text-3xl text-slate-900 tracking-tight">
-              ადმინისტრაციული მართვის პანელი
+              მოგესალმებით, {adminUser?.name || "ადმინისტრატორო"}! 👋
             </h1>
             <p className="text-xs md:text-sm text-slate-500">
-              რეალურ დროში გაყიდვების, შეკვეთების, მარაგებისა და მომხმარებლების ანალიტიკა.
+              დღეს სისტემაში დაფიქსირებულია {activeOrders.length} შეკვეთა და {products.length} აქტიური პროდუქტი.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={fetchDashboardData}
+              disabled={isLoading}
+              className="h-11 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">განახლება</span>
+            </button>
+
             {!isSupportAgent && (
               <Link
                 href="/admin/products/new"
-                className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
+                className="h-11 px-5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>ახალი პროდუქტი</span>
               </Link>
             )}
+          </div>
 
-            <Link
-              href="/admin/support"
-              className="h-11 px-5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>ცოცხალი ჩატი & მხარდაჭერა</span>
-            </Link>
+        </div>
+      </div>
 
+      {/* Primary KPI Metric Cards (4 Pillars) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Metric 1: Total Revenue */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500">სრული შემოსავალი</span>
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <DollarSign className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl text-slate-900 font-mono tracking-tight">{fmtNum(totalRevenue)} ₾</h3>
+            <p className="text-xs text-slate-400 font-mono">
+              საშუალო ჩეკი: {fmtNum(avgOrderValue)} ₾
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 2: Total Orders */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500">შეკვეთები</span>
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl text-slate-900 font-mono tracking-tight">{stats.totalOrders || activeOrders.length}</h3>
+            <p className="text-xs text-emerald-600 font-mono inline-flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>აქტიური შეკვეთები</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 3: Total Products in Catalog */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500">კატალოგი (SKU)</span>
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <Package className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl text-slate-900 font-mono tracking-tight">{stats.totalProducts || products.length}</h3>
+            <p className="text-xs text-slate-400">
+              მარაგში: {products.filter((p) => p.stock > 0).length} პროდუქტი
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 4: Registered Customers */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500">მომხმარებლები</span>
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl text-slate-900 font-mono tracking-tight">{stats.totalCustomers || 12}</h3>
+            <p className="text-xs text-slate-400">
+              რეგისტრირებული კლიენტი
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Inventory Alerts & System Health Quick View */}
+      {(lowStockCount > 0 || outOfStockCount > 0) && (
+        <div className="bg-amber-50/60 border border-amber-200/80 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm text-slate-900">საყურადღებო მარაგები</h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {outOfStockCount > 0 && <span>ამოწურულია: {outOfStockCount} პროდუქტი. </span>}
+                {lowStockCount > 0 && <span>მცირე მარაგი (≤5 ცალი): {lowStockCount} პროდუქტი.</span>}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/admin/inventory"
+            className="h-10 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs inline-flex items-center justify-center gap-1.5 transition-colors shrink-0"
+          >
+            <span>მარაგების შევსება</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {/* Recent Orders Section */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h2 className="text-lg text-slate-900">ბოლო შეკვეთები</h2>
+            <p className="text-xs text-slate-400">უახლესი შეკვეთების სია და სტატუსები</p>
+          </div>
+
+          <div className="flex items-center gap-2">
             <Link
               href="/admin/orders"
-              className="h-11 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
+              className="h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs flex items-center gap-1.5 transition-colors"
             >
-              <ShoppingBag className="w-4 h-4 text-slate-600" />
-              <span>შეკვეთები ({activeOrders.length})</span>
+              <span>ყველას ნახვა ({activeOrders.length})</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-
-        </div>
-      </div>
-
-      {/* Bento Grid System Layout (12-Col Grid) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-
-        {/* Bento Tile 1: Main Revenue or Support Card (Col 1-8) */}
-        <div className="md:col-span-8 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-6">
-          {isSupportAgent ? (
-            <>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Support Agent Workspace</span>
-                  </div>
-                  <h2 className="text-xl text-slate-900">მომხმარებელთა მხარდაჭერა & ჩატი</h2>
-                  <p className="text-xs text-slate-500">
-                    მზადყოფნაშია მომხმარებელთა შეკითხვებზე საპასუხოდ და შეკვეთების მოსაძიებლად.
-                  </p>
-                </div>
-
-                <Link
-                  href="/admin/support"
-                  className="h-10 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs flex items-center gap-2 transition-colors shrink-0 shadow-xs"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>ჩატში გადასვლა</span>
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-1">
-                  <span className="text-xs text-slate-400 block">აქტიური შეკვეთები (ბაზაში)</span>
-                  <p className="text-2xl text-slate-900 font-mono">{activeOrders.length}</p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-1">
-                  <span className="text-xs text-slate-400 block">სისტემის რეჟიმი</span>
-                  <p className="text-xs text-emerald-600 font-mono font-medium inline-flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-600" />
-                    <span>Support Read-Only Mode</span>
-                  </p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <span className="text-xs text-slate-400">ჯამური შემოსავალი</span>
-                  <p className="text-3xl text-slate-900 font-mono">
-                    {isMounted ? `${fmtNum(totalRevenue)} ₾` : "0 ₾"}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                    +18.4% ზრდა
-                  </span>
-                </div>
-              </div>
-
-              {/* Visual Sales Growth Target Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>თვიური მიზანი (200 000 ₾)</span>
-                  <span className="font-mono">{Math.min(100, Math.round((totalRevenue / 200000) * 100))}% შესრულებულია</span>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
-                  <div
-                    className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.round((totalRevenue / 200000) * 100))}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* 3 Metric Pills */}
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                <div className="space-y-0.5">
-                  <span className="text-[11px] text-slate-400">საშუალო კალათა (AOV)</span>
-                  <p className="text-base text-slate-900 font-mono">{avgOrderValue} ₾</p>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[11px] text-slate-400">შეკვეთები სულ</span>
-                  <p className="text-base text-slate-900 font-mono">{activeOrders.length}</p>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[11px] text-slate-400">მომხმარებლები</span>
-                  <p className="text-base text-emerald-600 font-mono">{stats.totalCustomers || 12}</p>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Bento Tile 2: Store Status & Health Radar (Col 9-12) */}
-        <div className="md:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <span className="text-xs text-slate-500">სისტემის სტატუსი</span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              ონლაინშია
-            </span>
+        {isLoading ? (
+          <div className="py-12 text-center text-xs text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
+            <span>იტვირთება შეკვეთები MySQL ბაზიდან...</span>
           </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-2xl">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-blue-600" />
-                <span className="text-slate-700">პროდუქტები კატალოგში</span>
-              </div>
-              <span className="font-mono text-slate-900">{stats.totalProducts || products.length}</span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-2xl">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span className="text-slate-700">მარაგების გაფრთხილება</span>
-              </div>
-              <span className="font-mono text-amber-600">{lowStockCount}</span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-2xl">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-600" />
-                <span className="text-slate-700">რეგისტრირებული კლიენტები</span>
-              </div>
-              <span className="font-mono text-purple-600">{stats.totalCustomers || 12}</span>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-            <span>ბოლო სინქრონიზაცია</span>
-            <span className="font-mono text-slate-600">ახლახანს</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Orders Table Workspace */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 md:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div>
-            <h2 className="text-lg text-slate-900">ბოლო შეკვეთები ({filteredOrders.length})</h2>
-            <p className="text-xs text-slate-400">რეალური შეკვეთები MySQL მონაცემთა ბაზიდან</p>
-          </div>
-
-          {/* Status Filter */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-            {["ALL", "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"].map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                className={`h-8 px-3 rounded-xl text-xs transition-colors cursor-pointer whitespace-nowrap ${
-                  statusFilter === st
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100 text-slate-600"
-                }`}
-              >
-                {st === "ALL" ? "ყველა" : st}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Table */}
-        {filteredOrders.length > 0 ? (
+        ) : filteredOrders.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 text-[11px] text-slate-400 uppercase tracking-wider">
-                  <th className="py-3 px-4 font-normal">შეკვეთის #</th>
-                  <th className="py-3 px-4 font-normal">მომხმარებელი</th>
-                  <th className="py-3 px-4 font-normal">თარიღი</th>
-                  <th className="py-3 px-4 font-normal">თანხა</th>
-                  <th className="py-3 px-4 font-normal">სტატუსი</th>
-                  <th className="py-3 px-4 font-normal text-right">მოქმედება</th>
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3 px-4">შეკვეთის #</th>
+                  <th className="py-3 px-4">მყიდველი</th>
+                  <th className="py-3 px-4">თარიღი</th>
+                  <th className="py-3 px-4">თანხა</th>
+                  <th className="py-3 px-4">სტატუსი</th>
+                  <th className="py-3 px-4 text-right">მოქმედება</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -343,7 +306,7 @@ export default function AdminDashboardPage() {
                     <td className="py-3.5 px-4 font-mono text-slate-900">{ord.orderNumber || `#${ord.id}`}</td>
                     <td className="py-3.5 px-4">{ord.customerName || ord.name || "მომხმარებელი"}</td>
                     <td className="py-3.5 px-4 text-slate-400 font-mono">
-                      {ord.createdAt ? ord.createdAt.toString().slice(0, 10) : ord.date || "დღეს"}
+                      {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("ka-GE") : ord.date || "დღეს"}
                     </td>
                     <td className="py-3.5 px-4 font-mono text-slate-900">{Number(ord.totalAmount).toLocaleString()} ₾</td>
                     <td className="py-3.5 px-4">
