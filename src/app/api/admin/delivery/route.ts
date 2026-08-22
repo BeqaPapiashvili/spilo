@@ -42,8 +42,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const body = await request.json();
 
@@ -69,6 +75,16 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }
 
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "DELIVERY_SETTINGS_UPDATE",
+        entity: "DeliveryZone",
+        target: "მიწოდების ტარიფები",
+        details: "განახლდა მიწოდების ზოგადი ტარიფები",
+      });
+
       return NextResponse.json({ success: true, message: "მიწოდების ტარიფები შენახულია" });
     }
 
@@ -84,11 +100,33 @@ export async function POST(request: Request) {
         update: { title, price: Number(price), estimatedDays, isActive: Boolean(isActive) },
         create: { id, title, price: Number(price), estimatedDays, isActive: Boolean(isActive) },
       });
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "DELIVERY_ZONE_UPDATE",
+        entity: "DeliveryZone",
+        target: `${title} (${id})`,
+        details: `განახლდა მიწოდების ზონა: ${price} ₾`,
+      });
+
       return NextResponse.json({ success: true, data: updated });
     } else {
       const created = await prisma.deliveryZone.create({
         data: { title, price: Number(price), estimatedDays, isActive: Boolean(isActive) },
       });
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "DELIVERY_ZONE_CREATE",
+        entity: "DeliveryZone",
+        target: `${title} (${created.id})`,
+        details: `შეიქმნა ახალი მიწოდების ზონა: ${price} ₾`,
+      });
+
       return NextResponse.json({ success: true, data: created });
     }
   } catch (error: any) {
@@ -98,6 +136,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -106,9 +147,25 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: "ID is required" }, { status: 400 });
     }
 
+    const existing = await prisma.deliveryZone.findUnique({ where: { id } });
+
     await prisma.deliveryZone.delete({ where: { id } });
+
+    if (existing) {
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "DELIVERY_ZONE_DELETE",
+        entity: "DeliveryZone",
+        target: `${existing.title} (${existing.id})`,
+        details: "მიწოდების ზონა წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
+
     return NextResponse.json({ success: true, message: "მიწოდების ზონა წაიშალა" });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

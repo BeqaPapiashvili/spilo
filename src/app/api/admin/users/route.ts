@@ -31,8 +31,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { name, email, password, role, status } = body;
 
@@ -72,6 +78,16 @@ export async function POST(request: Request) {
       },
     }).catch(() => {});
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "ADMIN_USER_CREATE",
+      entity: "AdminUser",
+      target: `${admin.name} (${admin.email})`,
+      details: `შეიქმნა ახალი ადმინისტრატორი როლით: ${admin.role}`,
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -94,6 +110,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { id, name, email, status, role, password } = body;
 
@@ -139,6 +158,16 @@ export async function PUT(request: Request) {
       }).catch(() => {});
     }
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "ADMIN_USER_UPDATE",
+      entity: "AdminUser",
+      target: `${admin.name} (${admin.email})`,
+      details: `განახლდა ადმინისტრატორის მონაცემები / როლი: ${admin.role}`,
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -161,6 +190,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -177,6 +209,16 @@ export async function DELETE(request: Request) {
       if (admin.email) {
         await prisma.user.delete({ where: { email: admin.email } }).catch(() => {});
       }
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "ADMIN_USER_DELETE",
+        entity: "AdminUser",
+        target: `${admin.name} (${admin.email})`,
+        details: "ადმინისტრატორი წაიშალა მონაცემთა ბაზიდან",
+      });
     }
 
     return NextResponse.json({
@@ -191,3 +233,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

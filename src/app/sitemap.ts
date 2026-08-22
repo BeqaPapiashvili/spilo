@@ -40,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const products = await prisma.product.findMany({ select: { id: true, slug: true, updatedAt: true } });
     const categories = await prisma.category.findMany({ select: { id: true, slug: true, updatedAt: true } });
+    const cmsPages = await prisma.cMSPage.findMany({ select: { slug: true, updatedAt: true } });
 
     const productPages: MetadataRoute.Sitemap = products.map((p: any) => ({
       url: `${baseUrl}/product/${p.slug || p.id}`,
@@ -55,8 +56,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticPages, ...categoryPages, ...productPages];
+    const cmsDynamicPages: MetadataRoute.Sitemap = cmsPages.map((page: any) => ({
+      url: `${baseUrl}/page/${page.slug}`,
+      lastModified: page.updatedAt || new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    }));
+
+    return [...staticPages, ...categoryPages, ...productPages, ...cmsDynamicPages];
   } catch {
     return staticPages;
   }
 }
+

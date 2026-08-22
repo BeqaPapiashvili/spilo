@@ -1,12 +1,153 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import "dotenv/config";
-import { CATEGORIES_DATA } from "../src/data/categories";
 
 const connectionString = process.env.DATABASE_URL || "mysql://root:@127.0.0.1:3306/spilo_db";
 const adapter = new PrismaMariaDb(connectionString);
 
 const prisma = new PrismaClient({ adapter });
+
+const SEED_CATEGORIES = [
+  {
+    id: "mobiles",
+    name: "მობილურები",
+    slug: "mobiles",
+    icon: "Smartphone",
+    children: [
+      { id: "mobiles-brands", name: "მობილურის ბრენდები", slug: "mobiles-brands" },
+      { id: "wireless-chargers-sub", name: "უსადენო დამტენები", slug: "wireless-chargers" },
+      { id: "earphones-buds", name: "ყურსასმენები Buds", slug: "earphones-buds" },
+      { id: "charger-adapters-main", name: "დამტენი ადაპტერი", slug: "charger-adapters" },
+      { id: "mobile-cases-main", name: "მობილურის ჩასადებები", slug: "mobile-cases" },
+      { id: "mobile-accessories-main", name: "მობილურის აქსესუარები", slug: "mobile-accessories" },
+      { id: "smartwatches-sub-main", name: "სმარტ საათები", slug: "smartwatches-sub" },
+      { id: "power-banks-main", name: "Power banks", slug: "power-banks" },
+    ],
+  },
+  {
+    id: "tablets",
+    name: "ტაბები",
+    slug: "tablets",
+    icon: "Tablet",
+    children: [
+      { id: "tablet-brands", name: "ბრენდები", slug: "tablet-brands" },
+      { id: "tablet-accessories", name: "ტაბის ჩასადებები & სტილუსები", slug: "tablet-accessories" },
+    ],
+  },
+  {
+    id: "smartwatches",
+    name: "სმარტ საათები",
+    slug: "smartwatches",
+    icon: "Watch",
+    children: [
+      { id: "watch-brands", name: "ბრენდები", slug: "watch-brands" },
+      { id: "watch-straps", name: "საათის სამაჯურები & დამტენები", slug: "watch-straps" },
+    ],
+  },
+  {
+    id: "laptops",
+    name: "ლეპტოპები | IT",
+    slug: "laptops",
+    icon: "Laptop",
+    children: [
+      { id: "laptop-brands", name: "ბრენდები", slug: "laptop-brands" },
+      { id: "laptop-accs", name: "ლეპტოპის აქსესუარები", slug: "laptop-accs" },
+    ],
+  },
+  {
+    id: "audio-systems",
+    name: "აუდიო სისტემა",
+    slug: "audio-systems",
+    icon: "Headphones",
+    children: [
+      { id: "audio-brands", name: "ბრენდები", slug: "audio-brands" },
+      { id: "headphones-sub", name: "ყურსასმენები", slug: "headphones" },
+      { id: "audio-equipment", name: "აუდიო ტექნიკა", slug: "audio-equipment" },
+      { id: "microphones", name: "მიკროფონები", slug: "microphones" },
+      { id: "audio-accessories", name: "აქსესუარები", slug: "audio-accessories" },
+      { id: "charging-adapters", name: "დამტენი ადაპტერი", slug: "charging-adapters" },
+    ],
+  },
+  {
+    id: "gaming",
+    name: "Gaming",
+    slug: "gaming",
+    icon: "Gamepad2",
+    children: [
+      { id: "gaming-consoles-sub", name: "სათამაშო კონსოლები", slug: "gaming-consoles-sub" },
+      { id: "gaming-accessories", name: "გეიმინგ აქსესუარები", slug: "gaming-accessories" },
+    ],
+  },
+  {
+    id: "tv-monitors",
+    name: "TV | მონიტორები",
+    slug: "tv-monitors",
+    icon: "Tv",
+    children: [
+      { id: "televisions", name: "ტელევიზორები", slug: "televisions" },
+      { id: "gaming-monitors", name: "გეიმინგ მონიტორები", slug: "gaming-monitors" },
+    ],
+  },
+  {
+    id: "photo-video",
+    name: "ფოტო | ვიდეო",
+    slug: "photo-video",
+    icon: "Camera",
+    children: [
+      { id: "drones-cams", name: "დრონები & კამერები", slug: "drones-cams" },
+      { id: "gimbals-accessories", name: "სტაბილიზატორები & აქსესუარები", slug: "gimbals-accessories" },
+    ],
+  },
+  {
+    id: "scooters",
+    name: "სკუტერები",
+    slug: "scooters",
+    icon: "Sparkles",
+    children: [
+      { id: "electric-scooters", name: "ელექტრო სკუტერები", slug: "electric-scooters" },
+      { id: "scooter-accs", name: "ჩაფხუტები & დამცავები", slug: "scooter-accs" },
+    ],
+  },
+  {
+    id: "smart-home",
+    name: "ჭკვიანი სახლი",
+    slug: "smart-home",
+    icon: "Home",
+    children: [
+      { id: "vacuums", name: "მტვერსასრუტები", slug: "vacuums" },
+      { id: "home-appliances", name: "საყოფაცხოვრებო ჭკვიანი ტექნიკა", slug: "home-appliances" },
+    ],
+  },
+  {
+    id: "beauty",
+    name: "Beauty",
+    slug: "beauty",
+    icon: "Sparkles",
+    children: [
+      { id: "hair-styler", name: "თმის მოვლა & სტაილერი", slug: "hair-styler" },
+      { id: "personal-care", name: "პირადი ჰიგიენა & მოვლა", slug: "personal-care" },
+    ],
+  },
+  {
+    id: "car-accessories",
+    name: "მანქანის აქსესუარები",
+    slug: "car-accessories",
+    icon: "Sparkles",
+    children: [
+      { id: "car-electronics", name: "ავტო ელექტრონიკა", slug: "car-electronics" },
+      { id: "car-holders-cleaners", name: "ავტო ჰოლდერები & მტვერსასრუტები", slug: "car-holders-cleaners" },
+    ],
+  },
+  {
+    id: "accessories",
+    name: "აქსესუარები",
+    slug: "accessories",
+    icon: "Sparkles",
+    children: [
+      { id: "daily-accessories", name: "ყოველდღიური აქსესუარები", slug: "daily-accessories" },
+    ],
+  },
+];
 
 async function main() {
   console.log("🌱 Starting MySQL Database Seed for Spilo.ge...");
@@ -32,8 +173,8 @@ async function main() {
   }
   console.log("✅ Seeded Brands");
 
-  // 2. Seed Main Categories from CATEGORIES_DATA
-  for (const c of CATEGORIES_DATA) {
+  // 2. Seed Main Categories from SEED_CATEGORIES
+  for (const c of SEED_CATEGORIES) {
     await prisma.category.upsert({
       where: { id: c.id },
       update: { 
@@ -52,18 +193,8 @@ async function main() {
     });
   }
 
-  // Ensure photo-video and mobiles exist
-  await prisma.category.upsert({
-    where: { id: "photo-video" },
-    update: { name: "ფოტო & ვიდეო", slug: "photo-video" },
-    create: { id: "photo-video", name: "ფოტო & ვიდეო", slug: "photo-video", icon: "Camera" },
-  });
+  console.log("✅ Seeded Categories");
 
-  await prisma.category.upsert({
-    where: { id: "mobiles" },
-    update: { name: "მობილურები", slug: "mobiles" },
-    create: { id: "mobiles", name: "მობილურები", slug: "mobiles", icon: "Smartphone" },
-  });
 
   console.log("✅ Seeded Categories");
 

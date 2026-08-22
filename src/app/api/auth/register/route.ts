@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+
+    // Rate limit: max 5 registrations per 15 minutes per IP
+    const rateLimitRes = await enforceRateLimit(request, {
+      namespace: "register_ip",
+      identifier: clientIp,
+      limit: 5,
+      windowSeconds: 15 * 60,
+      customMessage: "რეგისტრაციის მცდელობების ლიმიტი გადაჭარბებულია. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+    });
+    if (!rateLimitRes.success && rateLimitRes.response) return rateLimitRes.response;
+
     const body = await request.json();
+
     const { name, email, password } = body;
 
     if (!name || !name.trim()) {

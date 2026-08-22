@@ -13,8 +13,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const body = await request.json();
     const { pageSlug, metaTitle, metaDescription, metaKeywords } = body;
@@ -29,8 +35,19 @@ export async function POST(request: Request) {
       create: { pageSlug, metaTitle, metaDescription, metaKeywords },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "SEO_SETTINGS_UPDATE",
+      entity: "SeoSetting",
+      target: pageSlug,
+      details: `განახლდა SEO პარამეტრები გვერდისთვის: ${pageSlug} (${metaTitle})`,
+    });
+
     return NextResponse.json({ success: true, data: saved });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

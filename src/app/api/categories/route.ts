@@ -40,8 +40,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { name, slug, icon, children } = body;
 
@@ -63,6 +69,16 @@ export async function POST(request: Request) {
       },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "CATEGORY_CREATE",
+      entity: "Category",
+      target: `${category.name} (${category.slug})`,
+      details: "შეიქმნა ახალი კატეგორია",
+    });
+
     return NextResponse.json({
       success: true,
       data: category,
@@ -79,6 +95,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { id, name, slug, icon, children } = body;
 
@@ -99,6 +118,16 @@ export async function PUT(request: Request) {
       },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "CATEGORY_UPDATE",
+      entity: "Category",
+      target: `${category.name} (${category.slug})`,
+      details: "განახლდა კატეგორიის მონაცემები",
+    });
+
     return NextResponse.json({
       success: true,
       data: category,
@@ -115,6 +144,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -125,9 +157,23 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const existing = await prisma.category.findUnique({ where: { id } });
+
     await prisma.category.delete({
       where: { id },
     });
+
+    if (existing) {
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "CATEGORY_DELETE",
+        entity: "Category",
+        target: `${existing.name} (${existing.slug})`,
+        details: "კატეგორია წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -141,3 +187,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

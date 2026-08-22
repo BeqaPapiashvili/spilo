@@ -91,11 +91,10 @@ export function ProductHeaderInfo({
           <button
             type="button"
             onClick={onToggleWishlist}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
-              isLiked
-                ? "bg-red-50 border-red-200 text-red-600"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${isLiked
+              ? "bg-red-50 border-red-200 text-red-600"
+              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
             title="ფავორიტებში დამატება"
           >
             <Heart className={`size-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
@@ -105,11 +104,10 @@ export function ProductHeaderInfo({
           <button
             type="button"
             onClick={onToggleCompare}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
-              isCompared
-                ? "bg-blue-50 border-blue-200 text-blue-600"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${isCompared
+              ? "bg-blue-50 border-blue-200 text-blue-600"
+              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
             title="შედარება"
           >
             <GitCompare className="size-4" />

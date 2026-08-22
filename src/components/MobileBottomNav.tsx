@@ -28,9 +28,8 @@ export default function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 text-[11px] transition-colors relative cursor-pointer px-3 py-1 ${
-              isActive ? "text-blue-600" : "text-gray-500 hover:text-gray-900"
-            }`}
+            className={`flex flex-col items-center gap-1 text-[11px] transition-colors relative cursor-pointer px-3 py-1 ${isActive ? "text-blue-600" : "text-gray-500 hover:text-gray-900"
+              }`}
           >
             <div className="relative">
               <Icon className="w-5 h-5" />

@@ -4,22 +4,26 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, FreeMode, Mousewheel } from "swiper/modules";
-import { 
-  Tv, 
-  Sparkles, 
-  Home, 
-  Gift, 
-  Gamepad2, 
-  Dumbbell, 
-  BookOpen, 
-  Wine, 
-  ShoppingBag, 
+import {
+  Tv,
+  Sparkles,
+  Home,
+  Gift,
+  Gamepad2,
+  Dumbbell,
+  BookOpen,
+  Wine,
+  ShoppingBag,
   Briefcase,
   Smartphone,
+  Tablet,
+  Watch,
   Laptop,
   Camera,
   Headphones,
-  LayoutGrid
+  LayoutGrid,
+  Bike,
+  Car
 } from "lucide-react";
 
 // Swiper styles
@@ -28,60 +32,70 @@ import "swiper/css/navigation";
 import "swiper/css/free-mode";
 
 const CAROUSEL_CATEGORIES = [
-  { 
-    title: "სასაჩუქრე ვაუჩერები", 
+  {
+    title: "სასაჩუქრე ვაუჩერები",
     isVoucher: true,
-    slug: "smartphones",
+    slug: "mobiles",
   },
-  { 
-    title: "სმარტფონები", 
+  {
+    title: "სმარტფონები",
     icon: Smartphone,
-    slug: "smartphones",
+    slug: "mobiles",
   },
-  { 
-    title: "ლეპტოპები", 
+  {
+    title: "ტაბები",
+    icon: Tablet,
+    slug: "tablets",
+  },
+  {
+    title: "სმარტ საათები",
+    icon: Watch,
+    slug: "smartwatches",
+  },
+  {
+    title: "ლეპტოპები | IT",
     icon: Laptop,
-    slug: "laptops-computers",
+    slug: "laptops",
   },
-  { 
-    title: "დრონები & კამერები", 
-    icon: Camera,
-    slug: "drones-gadgets",
-  },
-  { 
-    title: "აუდიო & ხმა", 
+  {
+    title: "აუდიო სისტემა",
     icon: Headphones,
-    slug: "audio-sound",
+    slug: "audio-systems",
   },
-  { 
-    title: "ავეჯი & სახლი", 
-    icon: Home,
-    slug: "furniture-home",
-  },
-  { 
-    title: "საჩუქრები", 
-    icon: Gift,
-    slug: "drones-gadgets",
-  },
-  { 
-    title: "სათამაშოები", 
+  {
+    title: "Gaming & კონსოლები",
     icon: Gamepad2,
-    slug: "drones-gadgets",
+    slug: "gaming",
   },
-  { 
-    title: "სპორტი & მოგზაურობა", 
-    icon: Dumbbell,
-    slug: "laptops-computers",
+  {
+    title: "TV | მონიტორები",
+    icon: Tv,
+    slug: "tv-monitors",
   },
-  { 
-    title: "წიგნები & კრაფტი", 
-    icon: BookOpen,
-    slug: "smartphones",
+  {
+    title: "ფოტო | ვიდეო",
+    icon: Camera,
+    slug: "photo-video",
   },
-  { 
-    title: "ყოველდღიური საყიდლები", 
-    icon: ShoppingBag,
-    slug: "furniture-home",
+  {
+    title: "სკუტერები",
+    icon: Bike,
+    slug: "scooters",
+  },
+  {
+    title: "ჭკვიანი სახლი",
+    icon: Home,
+    slug: "smart-home",
+  },
+  {
+    title: "Beauty & მოვლა",
+    icon: Sparkles,
+    slug: "beauty",
+  },
+  {
+    title: "ავტო აქსესუარები",
+    icon: Car,
+    slug: "car-accessories",
   },
 ];
 
@@ -94,14 +108,14 @@ export default function CategoryCarousel() {
     <section className="w-full pt-6 relative">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center gap-3 relative">
-          
-          {/* Black Menu Card - Redirects directly to /categories Page */}
+
+          {/* Sleek All Categories Card */}
           <Link
             href="/categories"
-            className="shrink-0 w-[130px] sm:w-[145px] h-[160px] bg-[#111111] hover:bg-black transition-all hover:scale-[1.02] text-white rounded-2xl p-4 flex flex-col justify-between items-center text-center cursor-pointer shadow-md select-none z-10 group border border-white/10"
+            className="shrink-0 w-[130px] sm:w-[145px] h-[160px] bg-[#1D1D1F] hover:bg-[#2C2C2E] transition-all hover:scale-[1.02] text-white rounded-2xl p-4 flex flex-col justify-between items-center text-center cursor-pointer shadow-md select-none z-10 group border border-white/10"
           >
             <div className="flex-1 flex flex-col items-center justify-center pt-1 group-hover:scale-110 transition-transform">
-              <LayoutGrid className="w-7 h-7 mb-1 text-blue-400" />
+              <LayoutGrid className="w-7 h-7 mb-1 text-[#FBBF24]" />
             </div>
             <h4 className="text-xs sm:text-sm text-white leading-tight pb-1">
               ყველა კატეგორია
@@ -147,26 +161,26 @@ export default function CategoryCarousel() {
                   <SwiperSlide key={idx} className="!w-[130px] sm:!w-[145px]">
                     <Link
                       href={`/catalog?category=${cat.slug}`}
-                      className="w-[130px] sm:w-[145px] h-[160px] bg-[#EAECEF] hover:bg-[#E2E5EA] transition-all hover:scale-[1.02] rounded-xl p-3.5 flex flex-col justify-between items-start cursor-pointer relative overflow-hidden select-none block group"
+                      className="w-[130px] sm:w-[145px] h-[160px] bg-[#F1F5F9] hover:bg-[#E2E8F0] transition-all hover:scale-[1.02] rounded-xl p-3.5 flex flex-col justify-between items-start cursor-pointer relative overflow-hidden select-none block group"
                     >
-                      <h4 className="text-xs sm:text-sm text-[#111111] group-hover:text-blue-600 transition-colors leading-tight pt-0.5 z-10 text-left">
+                      <h4 className="text-xs sm:text-sm text-[#0F172A] group-hover:text-[#1D1D1F] transition-colors leading-tight pt-0.5 z-10 text-left">
                         {cat.title}
                       </h4>
 
                       {cat.isVoucher ? (
                         <div className="w-[95px] h-[75px] absolute bottom-2 right-2 rotate-[-8deg] pointer-events-none group-hover:rotate-0 transition-transform">
-                          <div className="w-full h-full bg-[#2563EB] rounded-lg p-2 flex flex-col justify-between shadow-xs text-white border border-white/20">
-                            <div className="flex justify-between items-center text-[9px]">
+                          <div className="w-full h-full bg-[#0D9488] rounded-lg p-2 flex flex-col justify-between shadow-xs text-white border border-white/20">
+                            <div className="flex justify-between items-center text-[9px] text-[#CCFBF1]">
                               <span>spilo</span>
                               <span>★</span>
                             </div>
-                            <div className="text-left text-lg tracking-tighter leading-none">
+                            <div className="text-left text-lg tracking-tighter leading-none text-[#FEF08A]">
                               100₾
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="absolute bottom-1.5 right-1.5 w-14 h-14 flex items-end justify-end pointer-events-none opacity-40 group-hover:opacity-70 group-hover:scale-110 transition-all text-black">
+                        <div className="absolute bottom-1.5 right-1.5 w-14 h-14 flex items-end justify-end pointer-events-none opacity-40 group-hover:opacity-80 group-hover:scale-110 transition-all text-[#1D1D1F]">
                           {IconComponent && <IconComponent className="w-12 h-12 stroke-[1.6]" />}
                         </div>
                       )}

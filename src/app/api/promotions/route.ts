@@ -51,8 +51,13 @@ export async function GET(request: Request) {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const id = body.id;
     const title = body.title || body.name || "აქცია";
@@ -111,6 +116,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "PROMOTION_UPDATE",
         entity: "Promotion",
         target: `${promotion.title} (${promotion.id})`,
@@ -137,6 +145,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "PROMOTION_CREATE",
         entity: "Promotion",
         target: `${promotion.title} (${promotion.id})`,
@@ -176,6 +187,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -194,6 +208,9 @@ export async function DELETE(request: Request) {
 
     if (existing) {
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "PROMOTION_DELETE",
         entity: "Promotion",
         target: `${existing.title} (${existing.id})`,
@@ -213,3 +230,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

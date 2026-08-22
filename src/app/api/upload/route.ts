@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { getAuthSession } from "@/lib/jwt";
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
 
 // 10 MB Maximum file size limit
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -21,14 +22,10 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Enforce authenticated session
-    const session = await getAuthSession(request);
-    if (!session || !session.userId) {
-      return NextResponse.json(
-        { success: false, error: "ავტორიზაცია აუცილებელია ფაილის ასატვირთად (Unauthorized)" },
-        { status: 401 }
-      );
-    }
+    // 1. Enforce verified admin session
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
 
     const data = await request.formData();
     const files: File[] = data.getAll("files") as File[];

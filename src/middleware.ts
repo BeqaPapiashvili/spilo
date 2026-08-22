@@ -112,6 +112,63 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // 6. Handle standalone mutating API routes (Defense-in-depth for POST/PUT/PATCH/DELETE on admin resources)
+  const isMutatingMethod = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
+  const standaloneAdminPrefixes = [
+    "/api/products",
+    "/api/categories",
+    "/api/brands",
+    "/api/banners",
+    "/api/coupons",
+    "/api/promotions",
+    "/api/upload",
+  ];
+
+  const isStandaloneAdminRoute = standaloneAdminPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+
+  // Exempt public validation endpoint: POST /api/coupons/validate
+  const isExempt = pathname === "/api/coupons/validate";
+
+  if (isMutatingMethod && isStandaloneAdminRoute && !isExempt) {
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: "ავტორიზაცია აუცილებელია (Unauthorized)" },
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token);
+    if (!payload || !payload.userId) {
+      return NextResponse.json(
+        { success: false, error: "სესია არასწორია ან ვადაგასულია (Unauthorized)" },
+        { status: 401 }
+      );
+    }
+
+    const role = payload.role || "CUSTOMER";
+    if (!ADMIN_ROLES.includes(role)) {
+      return NextResponse.json(
+        { success: false, error: "წვდომა შეზღუდულია: არასაკმარისი უფლებები (Forbidden)" },
+        { status: 403 }
+      );
+    }
+
+    // Forward authenticated user data in headers for API route handlers
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-user-id", payload.userId);
+    requestHeaders.set("x-user-email", payload.email || "");
+    requestHeaders.set("x-user-role", role);
+    if (payload.name) requestHeaders.set("x-user-name", encodeURIComponent(payload.name));
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  }
+
   return NextResponse.next();
 }
 
@@ -120,5 +177,19 @@ export const config = {
     "/admin/:path*",
     "/api/admin/:path*",
     "/profile/:path*",
+    "/api/products/:path*",
+    "/api/products",
+    "/api/categories/:path*",
+    "/api/categories",
+    "/api/brands/:path*",
+    "/api/brands",
+    "/api/banners/:path*",
+    "/api/banners",
+    "/api/coupons/:path*",
+    "/api/coupons",
+    "/api/promotions/:path*",
+    "/api/promotions",
+    "/api/upload",
   ],
 };
+

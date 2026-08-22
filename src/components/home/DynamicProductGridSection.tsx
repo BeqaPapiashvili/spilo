@@ -34,8 +34,8 @@ export default function DynamicProductGridSection({
     (config?.categoryId
       ? `/catalog?category=${encodeURIComponent(config.categoryId)}`
       : config?.brand
-      ? `/catalog?brand=${encodeURIComponent(config.brand)}`
-      : "/catalog");
+        ? `/catalog?brand=${encodeURIComponent(config.brand)}`
+        : "/catalog");
 
   const columns = config?.columns || 4;
 
@@ -43,12 +43,12 @@ export default function DynamicProductGridSection({
     columns === 2
       ? "grid-cols-1 sm:grid-cols-2"
       : columns === 3
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-      : columns === 5
-      ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-      : columns === 6
-      ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
-      : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        : columns === 5
+          ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+          : columns === 6
+            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
 
   return (
     <section className="py-2">
@@ -65,7 +65,7 @@ export default function DynamicProductGridSection({
                 </span>
               )}
               {config?.isFeatured && (
-                <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full border border-blue-100">
+                <span className="bg-gray-100 text-[#1D1D1F] text-[10px] px-2 py-0.5 rounded-full border border-gray-200">
                   FEATURED
                 </span>
               )}
@@ -76,7 +76,7 @@ export default function DynamicProductGridSection({
           </div>
           <Link
             href={targetLink}
-            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-[#1D1D1F] transition-colors cursor-pointer"
           >
             <span>სრულად ნახვა</span>
             <ArrowRight className="w-4 h-4" />

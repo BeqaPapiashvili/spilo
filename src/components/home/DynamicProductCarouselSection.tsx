@@ -33,8 +33,8 @@ export default function DynamicProductCarouselSection({
     (config?.categoryId
       ? `/catalog?category=${encodeURIComponent(config.categoryId)}`
       : config?.brand
-      ? `/catalog?brand=${encodeURIComponent(config.brand)}`
-      : "/catalog");
+        ? `/catalog?brand=${encodeURIComponent(config.brand)}`
+        : "/catalog");
 
   return (
     <section className="py-2">
@@ -51,7 +51,7 @@ export default function DynamicProductCarouselSection({
                 </span>
               )}
               {config?.isFeatured && (
-                <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full border border-blue-100">
+                <span className="bg-gray-100 text-[#1D1D1F] text-[10px] px-2 py-0.5 rounded-full border border-gray-200">
                   FEATURED
                 </span>
               )}
@@ -62,7 +62,7 @@ export default function DynamicProductCarouselSection({
           </div>
           <Link
             href={targetLink}
-            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-[#1D1D1F] transition-colors cursor-pointer"
           >
             <span>სრულად ნახვა</span>
             <ArrowRight className="w-4 h-4" />

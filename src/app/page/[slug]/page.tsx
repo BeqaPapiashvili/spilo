@@ -4,9 +4,34 @@ import { ArrowLeft, FileText, ShieldCheck, Truck, HelpCircle, Info } from "lucid
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
+import type { Metadata } from "next";
+import { constructMetadata, getSeoSettings } from "@/lib/seo";
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const pageData = await prisma.cMSPage.findFirst({
+    where: { slug },
+  }).catch(() => null);
+
+  const fallback = DEFAULT_PAGES[slug];
+  const title = pageData?.title || fallback?.title || slug;
+  const description = fallback?.subtitle || `${title} - Spilo.ge ოფიციალური ინფორმაცია და წესები.`;
+
+  const siteSeo = await getSeoSettings(slug);
+
+  return constructMetadata({
+    title: siteSeo.hasSpecificOverride ? siteSeo.title : title,
+    description: siteSeo.hasSpecificOverride ? siteSeo.description : description,
+    ogImage: siteSeo.ogImage,
+    canonicalUrl: `/page/${slug}`,
+  });
+
+}
+
 
 const DEFAULT_PAGES: Record<string, { title: string; subtitle: string; content: string }> = {
   about: {

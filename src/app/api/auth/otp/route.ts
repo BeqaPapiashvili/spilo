@@ -5,15 +5,20 @@ import bcrypt from "bcryptjs";
 import { signToken, setAuthCookie } from "@/lib/jwt";
 
 /**
- * Normalizes Georgian phone numbers (removes spaces, dashes, parentheses, ensures standard 9-digit format).
+ * Normalizes Georgian phone numbers (removes spaces, dashes, parentheses, strips 00995, +995, and leading 0 to ensure standard 9-digit format).
  */
 function normalizePhoneNumber(rawPhone: string): string {
-  const digitsOnly = rawPhone.replace(/\D/g, "");
-  if (digitsOnly.startsWith("995") && digitsOnly.length === 12) {
-    return digitsOnly.substring(3);
+  let digits = rawPhone.replace(/\D/g, "");
+  if (digits.startsWith("00995") && digits.length === 14) {
+    digits = digits.substring(5);
+  } else if (digits.startsWith("995") && digits.length === 12) {
+    digits = digits.substring(3);
+  } else if (digits.startsWith("0") && digits.length === 10) {
+    digits = digits.substring(1);
   }
-  return digitsOnly;
+  return digits;
 }
+
 
 /**
  * Dispatches SMS via SMS Office API if configured, or logs instructions.
@@ -47,6 +52,8 @@ async function sendSmsViaProvider(phone: string, code: string): Promise<{ sent: 
   }
 }
 
+import { enforceRateLimit, resetRateLimit, getClientIp } from "@/lib/rateLimit";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -67,31 +74,41 @@ export async function POST(request: Request) {
       );
     }
 
-    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+    const clientIp = getClientIp(request);
 
     // -------------------------------------------------------------
     // ACTION 1: SEND OTP
     // -------------------------------------------------------------
     if (action === "send") {
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-
-      // Rate limit check: max 3 OTP requests per phone number in 15 minutes
-      const recentOtpCount = await prisma.otpVerification.count({
-        where: {
-          phone,
-          createdAt: { gte: fifteenMinutesAgo },
-        },
+      // 1. IP Rate Limiting (max 5 requests per 15 min per IP)
+      const ipLimit = await enforceRateLimit(request, {
+        namespace: "otp_send_ip",
+        identifier: clientIp,
+        limit: 5,
+        windowSeconds: 15 * 60,
+        customMessage: "გადაჭარბებულია SMS-ის მოთხოვნის ლიმიტი თქვენი IP მისამართიდან. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
       });
+      if (!ipLimit.success && ipLimit.response) return ipLimit.response;
 
-      if (recentOtpCount >= 3) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "გადაჭარბებულია SMS-ის მოთხოვნის ლიმიტი (მაქსიმუმ 3 მოთხოვნა 15 წუთში). გთხოვთ სცადოთ მოგვიანებით.",
-          },
-          { status: 429 }
-        );
-      }
+      // 2. Cooldown check (minimum 60 seconds between resends for the same phone)
+      const cooldownLimit = await enforceRateLimit(request, {
+        namespace: "otp_cooldown",
+        identifier: phone,
+        limit: 1,
+        windowSeconds: 60,
+        customMessage: "გთხოვთ მოიცადოთ 1 წუთი ახალი SMS-ის მოთხოვნამდე.",
+      });
+      if (!cooldownLimit.success && cooldownLimit.response) return cooldownLimit.response;
+
+      // 3. Phone Rate Limiting (max 5 requests per 15 min per phone)
+      const phoneLimit = await enforceRateLimit(request, {
+        namespace: "otp_send_phone",
+        identifier: phone,
+        limit: 5,
+        windowSeconds: 15 * 60,
+        customMessage: "გადაჭარბებულია SMS-ის მოთხოვნის ლიმიტი (მაქსიმუმ 5 მოთხოვნა 15 წუთში). გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+      });
+      if (!phoneLimit.success && phoneLimit.response) return phoneLimit.response;
 
       // Invalidate any previous unconsumed active OTPs for this phone
       await prisma.otpVerification.updateMany({
@@ -134,12 +151,33 @@ export async function POST(request: Request) {
     // ACTION 2: VERIFY OTP
     // -------------------------------------------------------------
     if (action === "verify") {
+      // 1. IP Rate Limiting for verify attempts (max 15 attempts per 15 min)
+      const ipVerifyLimit = await enforceRateLimit(request, {
+        namespace: "otp_verify_ip",
+        identifier: clientIp,
+        limit: 15,
+        windowSeconds: 15 * 60,
+        customMessage: "ძალიან ბევრი მცდელობა თქვენი IP მისამართიდან. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+      });
+      if (!ipVerifyLimit.success && ipVerifyLimit.response) return ipVerifyLimit.response;
+
+      // 2. Phone Rate Limiting for verify attempts (max 5 attempts per 15 min)
+      const phoneVerifyLimit = await enforceRateLimit(request, {
+        namespace: "otp_verify_phone",
+        identifier: phone,
+        limit: 5,
+        windowSeconds: 15 * 60,
+        customMessage: "კოდის შეყვანის მცდელობების ლიმიტი ამოიწურა. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+      });
+      if (!phoneVerifyLimit.success && phoneVerifyLimit.response) return phoneVerifyLimit.response;
+
       if (!code || typeof code !== "string" || code.trim().length !== 4) {
         return NextResponse.json(
           { success: false, verified: false, error: "გთხოვთ მიუთითოთ 4-ნიშნა კოდი" },
           { status: 400 }
         );
       }
+
 
       const submittedCode = code.trim();
 
@@ -199,6 +237,10 @@ export async function POST(request: Request) {
         data: { used: true },
       });
 
+      // Clear verify attempt rate limits upon successful verification
+      resetRateLimit(`otp_verify_phone:${phone}`);
+      resetRateLimit(`otp_verify_ip:${clientIp}`);
+
       // Find or create customer user
       const user = await prisma.user.upsert({
         where: { phone },
@@ -209,6 +251,7 @@ export async function POST(request: Request) {
           role: "CUSTOMER",
         },
       });
+
 
       const sessionPayload = {
         userId: user.id,

@@ -1,10 +1,10 @@
 "use client";
 
-import { 
-  Truck, 
-  Package, 
-  ShieldCheck, 
-  FileText, 
+import {
+  Truck,
+  Package,
+  ShieldCheck,
+  FileText,
   Sliders
 } from "lucide-react";
 import { Tabs } from "@/components/ui/Tabs";
@@ -45,7 +45,7 @@ export function ProductTabsSection({
 
       {/* Tab Content Container */}
       <div className="p-6 md:p-8 bg-gray-50/60 rounded-3xl border border-gray-100 shadow-2xs">
-        
+
         {/* Specifications Tab */}
         {activeTab === "specs" && (
           <div className="flex flex-col gap-6">
@@ -92,7 +92,7 @@ export function ProductTabsSection({
         {activeTab === "delivery" && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
+
               <div className="p-4 bg-white rounded-2xl border border-gray-100 flex flex-col gap-2">
                 <div className="size-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                   <Truck className="size-5" />

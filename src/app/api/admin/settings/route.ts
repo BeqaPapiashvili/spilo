@@ -15,8 +15,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const body = await request.json(); // key-value object
 
@@ -24,16 +30,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Settings object required" }, { status: 400 });
     }
 
+    const updatedKeys: string[] = [];
+
     for (const [key, value] of Object.entries(body)) {
       await prisma.systemSetting.upsert({
         where: { key },
         update: { value: String(value) },
         create: { key, value: String(value) },
       });
+      updatedKeys.push(key);
     }
+
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "SYSTEM_SETTINGS_UPDATE",
+      entity: "SystemSetting",
+      target: updatedKeys.join(", "),
+      details: `განახლდა სისტემური პარამეტრები: ${updatedKeys.join(", ")}`,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

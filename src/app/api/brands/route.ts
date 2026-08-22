@@ -21,8 +21,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { name, slug, logo } = body;
 
@@ -43,6 +49,16 @@ export async function POST(request: Request) {
       },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "BRAND_CREATE",
+      entity: "Brand",
+      target: `${brand.name} (${brand.slug})`,
+      details: "შეიქმნა ახალი ბრენდი",
+    });
+
     return NextResponse.json({
       success: true,
       data: brand,
@@ -59,6 +75,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { id, name, slug, logo } = body;
 
@@ -78,6 +97,16 @@ export async function PUT(request: Request) {
       },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "BRAND_UPDATE",
+      entity: "Brand",
+      target: `${brand.name} (${brand.slug})`,
+      details: "განახლდა ბრენდის მონაცემები",
+    });
+
     return NextResponse.json({
       success: true,
       data: brand,
@@ -94,6 +123,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -104,9 +136,23 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const existing = await prisma.brand.findUnique({ where: { id } });
+
     await prisma.brand.delete({
       where: { id },
     });
+
+    if (existing) {
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "BRAND_DELETE",
+        entity: "Brand",
+        target: `${existing.name} (${existing.slug})`,
+        details: "ბრენდი წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -120,3 +166,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

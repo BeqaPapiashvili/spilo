@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  MessageSquare, 
-  X, 
-  Send, 
-  Minus, 
-  ThumbsUp, 
-  ThumbsDown, 
-  ChevronDown, 
-  Plus, 
+import {
+  MessageSquare,
+  X,
+  Send,
+  Minus,
+  ThumbsUp,
+  ThumbsDown,
+  ChevronDown,
+  Plus,
   GitCompare,
   CheckCircle2,
   ShieldCheck,
@@ -83,7 +83,7 @@ export default function SupportChatWidget() {
         document.cookie = `spilo_chat_customer_id=${encodeURIComponent(cid)}; max-age=${30 * 24 * 60 * 60}; path=/; SameSite=Lax`;
       }
       setCustomerId(cid);
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   // Session Persistence: Restore session from localStorage on F5 refresh
@@ -173,7 +173,7 @@ export default function SupportChatWidget() {
             setTicketId(null);
             try {
               localStorage.removeItem("spilo_chat_session");
-            } catch (e) {}
+            } catch (e) { }
             setChatStep("auth");
             return;
           }
@@ -248,7 +248,7 @@ export default function SupportChatWidget() {
           timestamp: Date.now(),
         })
       );
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleStartAuth = (e: React.FormEvent) => {
@@ -301,7 +301,7 @@ export default function SupportChatWidget() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: ticketId, customerId, isUserTyping: true }),
-      }).catch(() => {});
+      }).catch(() => { });
 
       if (userTypingTimeoutRef.current) clearTimeout(userTypingTimeoutRef.current);
       userTypingTimeoutRef.current = setTimeout(() => {
@@ -309,7 +309,7 @@ export default function SupportChatWidget() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: ticketId, customerId, isUserTyping: false }),
-        }).catch(() => {});
+        }).catch(() => { });
       }, 2500);
     }
   };
@@ -457,7 +457,7 @@ export default function SupportChatWidget() {
       )}
 
       <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col items-end gap-3">
-        
+
         {/* Floating Sticky Compare Button */}
         <Link
           href="/compare"
@@ -510,7 +510,7 @@ export default function SupportChatWidget() {
 
               {/* Inner Main Card Container */}
               <div className="flex-1 bg-white rounded-[28px] border border-slate-100/90 shadow-sm relative overflow-hidden flex flex-col">
-                
+
                 {/* STEP 1: AUTHORIZATION (ავტორიზაცია) */}
                 {chatStep === "auth" && (
                   <div className="p-6 flex-1 flex flex-col justify-between relative">
@@ -605,7 +605,7 @@ export default function SupportChatWidget() {
                 {/* STEP 3: ACTIVE CONVERSATION (მერი / Spilo AI & Support) */}
                 {chatStep === "chat" && (
                   <div className="flex-1 flex flex-col h-full overflow-hidden">
-                    
+
                     {/* Agent Header Card inside */}
                     {(() => {
                       const lastAdminMsg = [...messages].reverse().find((m) => m.sender === "admin");
@@ -662,11 +662,10 @@ export default function SupportChatWidget() {
 
                             <div className={`max-w-[82%] flex flex-col ${isUser ? "items-end" : "items-start"}`}>
                               <div
-                                className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                                  isUser
+                                className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${isUser
                                     ? "bg-blue-600 text-white rounded-tr-none shadow-xs"
                                     : "bg-[#F2F4F8] text-slate-800 rounded-tl-none border border-slate-100"
-                                }`}
+                                  }`}
                               >
                                 {/* Attachment Rendering */}
                                 {msg.attachment && (
@@ -702,11 +701,10 @@ export default function SupportChatWidget() {
                                         target="_blank"
                                         rel="noreferrer"
                                         download={msg.attachment.name}
-                                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors ${
-                                          isUser
+                                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors ${isUser
                                             ? "bg-blue-700/80 border-blue-400/30 text-white hover:bg-blue-700"
                                             : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-                                        }`}
+                                          }`}
                                       >
                                         <div className="w-8 h-8 rounded-lg bg-black/10 flex items-center justify-center shrink-0">
                                           <FileText size={16} />
@@ -746,18 +744,16 @@ export default function SupportChatWidget() {
                                   <button
                                     type="button"
                                     onClick={() => handleFeedback(msg.id, true)}
-                                    className={`p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
-                                      msg.liked === true ? "text-emerald-600 bg-emerald-50" : ""
-                                    }`}
+                                    className={`p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${msg.liked === true ? "text-emerald-600 bg-emerald-50" : ""
+                                      }`}
                                   >
                                     <ThumbsUp size={11} />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleFeedback(msg.id, false)}
-                                    className={`p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
-                                      msg.liked === false ? "text-red-500 bg-red-50" : ""
-                                    }`}
+                                    className={`p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${msg.liked === false ? "text-red-500 bg-red-50" : ""
+                                      }`}
                                   >
                                     <ThumbsDown size={11} />
                                   </button>
@@ -873,11 +869,10 @@ export default function SupportChatWidget() {
                       <button
                         type="button"
                         onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer ${
-                          isAttachmentMenuOpen
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer ${isAttachmentMenuOpen
                             ? "bg-blue-600 text-white rotate-45 shadow-sm shadow-blue-500/25"
                             : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                        }`}
+                          }`}
                         title="ფაილის, სურათის ან ვიდეოს გაგზავნა"
                       >
                         <Plus size={16} className="transition-transform duration-150" />
@@ -913,11 +908,10 @@ export default function SupportChatWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border ${
-            isOpen
+          className={`p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border ${isOpen
               ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-400/40 shadow-blue-500/30"
               : "bg-[#111111] hover:bg-black text-white border-white/20"
-          }`}
+            }`}
           title={isOpen ? "ჩათის დახურვა" : "დახმარება & ჩატი"}
         >
           {isOpen ? (

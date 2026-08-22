@@ -28,8 +28,13 @@ export async function GET(request: Request) {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { id, title, slug, content } = body;
 
@@ -51,6 +56,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "CMS_PAGE_UPDATE",
         entity: "CMSPage",
         target: `${result.title} (${result.slug})`,
@@ -67,6 +75,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "CMS_PAGE_CREATE",
         entity: "CMSPage",
         target: `${result.title} (${result.slug})`,
@@ -87,6 +98,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -100,6 +114,9 @@ export async function DELETE(request: Request) {
 
     if (existing) {
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "CMS_PAGE_DELETE",
         entity: "CMSPage",
         target: `${existing.title} (${existing.slug})`,
@@ -113,3 +130,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

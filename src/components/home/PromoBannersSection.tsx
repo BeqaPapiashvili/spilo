@@ -20,9 +20,9 @@ export default function PromoBannersSection({ title, subtitle }: PromoBannersSec
       <section className="py-2">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="relative rounded-[32px] overflow-hidden min-h-[220px] md:min-h-[260px] flex items-center p-8 md:p-12 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white shadow-md">
-            <img 
-              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80" 
-              alt="iPhone 16 Pro Promo" 
+            <img
+              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80"
+              alt="iPhone 16 Pro Promo"
               className="absolute inset-0 w-full h-full object-cover opacity-40"
             />
             <div className="relative z-10 max-w-lg space-y-3">
@@ -48,9 +48,9 @@ export default function PromoBannersSection({ title, subtitle }: PromoBannersSec
       <section className="py-2">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="relative rounded-[32px] overflow-hidden min-h-[220px] md:min-h-[260px] flex items-center p-8 md:p-12 bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white shadow-md">
-            <img 
-              src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1400&q=80" 
-              alt="PlayStation 5 Gaming Promo" 
+            <img
+              src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1400&q=80"
+              alt="PlayStation 5 Gaming Promo"
               className="absolute inset-0 w-full h-full object-cover opacity-35"
             />
             <div className="relative z-10 max-w-lg space-y-3">

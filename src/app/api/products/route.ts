@@ -184,8 +184,14 @@ export async function GET(request: Request) {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
 
     const newProduct = await prisma.product.create({
@@ -208,6 +214,16 @@ export async function POST(request: Request) {
       },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "PRODUCT_CREATE",
+      entity: "Product",
+      target: `${newProduct.title} (${newProduct.sku})`,
+      details: `შეიქმნა ახალი პროდუქტი: ფასი ${newProduct.price} ₾, მარაგი: ${newProduct.stock}`,
+    });
+
     return NextResponse.json({ success: true, data: newProduct });
   } catch (error: any) {
     console.error("POST /api/products error:", error);
@@ -217,3 +233,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

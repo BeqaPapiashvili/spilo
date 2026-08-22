@@ -24,20 +24,26 @@ export async function GET(request: Request) {
   }
 }
 
+import { getAuthSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const session = await getAuthSession(request);
     const body = await request.json();
-    const { productId, userId, author, rating, comment } = body;
+    const { productId, author, rating, comment } = body;
 
-    if (!productId || !author || rating === undefined) {
+    if (!productId || (!author && !session?.name) || rating === undefined) {
       return NextResponse.json({ success: false, error: "Product ID, author, and rating are required" }, { status: 400 });
     }
+
+    const resolvedAuthor = session?.name || author.trim();
+    const resolvedUserId = session?.userId || null;
 
     const newReview = await prisma.review.create({
       data: {
         productId,
-        userId: userId || null,
-        author: author.trim(),
+        userId: resolvedUserId,
+        author: resolvedAuthor,
         rating: Math.min(5, Math.max(1, Number(rating))),
         comment: (comment || "").trim(),
         verifiedPurchase: true,
@@ -53,3 +59,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

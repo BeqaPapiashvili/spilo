@@ -47,8 +47,13 @@ export async function GET(request: Request) {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
 
     // Check if bulk reorder array is passed: { reorder: [{ id, priority }] }
@@ -61,6 +66,16 @@ export async function POST(request: Request) {
           })
         )
       );
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "BANNER_REORDER",
+        entity: "Banner",
+        target: "ბანერების რიგი",
+        details: "ბანერების თანმიმდევრობა განახლდა",
+      });
 
       return NextResponse.json({
         success: true,
@@ -113,6 +128,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "BANNER_UPDATE",
         entity: "Banner",
         target: `${banner.title} (${banner.id})`,
@@ -135,6 +153,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "BANNER_CREATE",
         entity: "Banner",
         target: `${banner.title} (${banner.id})`,
@@ -172,6 +193,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -190,6 +214,9 @@ export async function DELETE(request: Request) {
 
     if (existing) {
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "BANNER_DELETE",
         entity: "Banner",
         target: `${existing.title} (${existing.id})`,
@@ -209,3 +236,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

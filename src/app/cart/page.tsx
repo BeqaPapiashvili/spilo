@@ -1,14 +1,14 @@
 "use client";
 
 import { useStore } from "@/store/useStore";
-import { 
-  ShoppingBag, 
-  Trash2, 
-  Plus, 
-  Minus, 
-  ArrowRight, 
-  ArrowLeft, 
-  ShieldCheck, 
+import {
+  ShoppingBag,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
   Tag,
   Truck,
   Sparkles,

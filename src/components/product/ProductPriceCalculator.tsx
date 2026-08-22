@@ -85,11 +85,10 @@ export function ProductPriceCalculator({
                   key={bank}
                   type="button"
                   onClick={() => onBankChange(bank)}
-                  className={`py-2 rounded-2xl text-xs border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    isSelected
-                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                  }`}
+                  className={`py-2 rounded-2xl text-xs border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${isSelected
+                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                    }`}
                 >
                   {bank} Bank
                 </button>
@@ -109,11 +108,10 @@ export function ProductPriceCalculator({
                   key={months}
                   type="button"
                   onClick={() => onMonthsChange(months)}
-                  className={`py-1.5 rounded-xl text-xs border transition-all cursor-pointer ${
-                    isSelected
-                      ? "bg-gray-900 text-white border-gray-900 shadow-xs"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                  }`}
+                  className={`py-1.5 rounded-xl text-xs border transition-all cursor-pointer ${isSelected
+                    ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                    }`}
                 >
                   {months} თვე
                 </button>

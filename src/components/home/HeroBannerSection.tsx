@@ -23,20 +23,20 @@ export default function HeroBannerSection({
     (heroSlides && heroSlides.length > 0)
       ? heroSlides
       : (config?.heroSlides && Array.isArray(config.heroSlides) && config.heroSlides.length > 0)
-      ? config.heroSlides
-      : config?.bannerUrl
-      ? [
-          {
-            id: "slide-1",
-            image: config.bannerUrl,
-            badge: config.tagText || config.badgeText || "სპეციალური შეთავაზება",
-            title: config.title || title || "იპოვე იდეალური საჩუქარი ყველასთვის",
-            subtitle: config.subtitle || subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად spilo-თი",
-            buttonText: config.buttonText || "შეარჩიე საჩუქარი",
-            link: config.link || config.targetLink || "/catalog",
-          },
-        ]
-      : DEFAULT_HERO_SLIDES;
+        ? config.heroSlides
+        : config?.bannerUrl
+          ? [
+            {
+              id: "slide-1",
+              image: config.bannerUrl,
+              badge: config.tagText || config.badgeText || "სპეციალური შეთავაზება",
+              title: config.title || title || "იპოვე იდეალური საჩუქარი ყველასთვის",
+              subtitle: config.subtitle || subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად spilo-თი",
+              buttonText: config.buttonText || "შეარჩიე საჩუქარი",
+              link: config.link || config.targetLink || "/catalog",
+            },
+          ]
+          : DEFAULT_HERO_SLIDES;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const autoplay = config?.autoplay !== false;
@@ -74,9 +74,8 @@ export default function HeroBannerSection({
               return (
                 <div
                   key={slide.id || idx}
-                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                    isCurrent ? "opacity-100 z-0 pointer-events-auto" : "opacity-0 -z-10 pointer-events-none"
-                  }`}
+                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${isCurrent ? "opacity-100 z-0 pointer-events-auto" : "opacity-0 -z-10 pointer-events-none"
+                    }`}
                 >
                   <img
                     src={slide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
@@ -95,8 +94,8 @@ export default function HeroBannerSection({
 
             {/* Floating White Card */}
             <div className="relative z-10 bg-white/95 backdrop-blur-md p-6 md:p-8 rounded-[28px] max-w-md shadow-2xl border border-white/60 space-y-4 text-black transition-all duration-300">
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs">
-                <Sparkles className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-2 bg-gray-100 text-[#1D1D1F] px-3 py-1 rounded-full text-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
                 <span>{currentSlide.badge || "სპეციალური შეთავაზება"}</span>
               </div>
 
@@ -111,11 +110,11 @@ export default function HeroBannerSection({
               <div className="pt-2 flex items-center justify-between">
                 <Link
                   href={currentSlide.link || "/catalog"}
-                  className="bg-[#111111] text-white px-6 py-3 rounded-2xl text-xs sm:text-sm hover:bg-black transition-colors cursor-pointer"
+                  className="bg-[#1D1D1F] text-white px-6 py-3 rounded-2xl text-xs sm:text-sm hover:bg-[#2C2C2E] transition-colors cursor-pointer"
                 >
                   {currentSlide.buttonText || "შეარჩიე საჩუქარი"}
                 </Link>
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white cursor-pointer shadow-xs hover:scale-105 transition-transform">
+                <div className="w-12 h-12 bg-[#F59E0B] rounded-full flex items-center justify-center text-white cursor-pointer shadow-xs hover:scale-105 transition-transform">
                   <Gift className="w-6 h-6" />
                 </div>
               </div>
@@ -149,9 +148,8 @@ export default function HeroBannerSection({
                       key={dotIdx}
                       type="button"
                       onClick={() => setActiveIndex(dotIdx)}
-                      className={`h-2 rounded-full transition-all cursor-pointer ${
-                        dotIdx === activeIndex ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/80"
-                      }`}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${dotIdx === activeIndex ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/80"
+                        }`}
                       title={`სლაიდი #${dotIdx + 1}`}
                     />
                   ))}

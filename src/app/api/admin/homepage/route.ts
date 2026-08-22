@@ -33,10 +33,16 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const body = await request.json();
+
 
     if (!prisma.storefrontSection) {
       return NextResponse.json(
@@ -187,9 +193,13 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     let id = searchParams.get("id");
+
 
     if (!id) {
       try {

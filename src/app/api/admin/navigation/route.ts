@@ -14,8 +14,13 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
 
     // Check for bulk reorder: { reorder: [{ id, order }] }
@@ -28,6 +33,16 @@ export async function POST(request: Request) {
           })
         )
       );
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "NAVIGATION_REORDER",
+        entity: "NavigationItem",
+        target: "ნავიგაციის რიგი",
+        details: "ნავიგაციის თანმიმდევრობა განახლდა",
+      });
 
       return NextResponse.json({
         success: true,
@@ -55,6 +70,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "NAVIGATION_UPDATE",
         entity: "NavigationItem",
         target: `${result.label} (${result.id})`,
@@ -71,6 +89,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "NAVIGATION_CREATE",
         entity: "NavigationItem",
         target: `${result.label} (${result.id})`,
@@ -91,6 +112,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -104,6 +128,9 @@ export async function DELETE(request: Request) {
 
     if (existing) {
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "NAVIGATION_DELETE",
         entity: "NavigationItem",
         target: `${existing.label} (${existing.id})`,
@@ -117,3 +144,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

@@ -1,29 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Check, 
-  Heart, 
-  GitCompare, 
-  Share2, 
-  Moon, 
-  CreditCard, 
-  Zap, 
-  ShoppingBag, 
-  Bell, 
-  Plus, 
+import {
+  Check,
+  Heart,
+  GitCompare,
+  Share2,
+  CreditCard,
+  Zap,
+  ShoppingBag,
+  Plus,
   Minus,
-  ShieldCheck,
-  Building2,
-  Clock
+  Truck,
+  MapPin,
+  RotateCcw,
+  Sparkles
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { useStore } from "@/store/useStore";
 
 export interface ProductPurchaseOptions {
   color?: string;
   storage?: string;
-  hasExtraProtection?: boolean;
   unitPrice?: number;
 }
 
@@ -37,6 +34,7 @@ interface ProductPurchasePanelProps {
     code?: string;
     price: number;
     discountPrice?: number;
+    discountPercentage?: number;
     images: string[];
     variants?: {
       id: string;
@@ -50,7 +48,7 @@ interface ProductPurchasePanelProps {
   onToggleWishlist: () => void;
   onToggleCompare: () => void;
   onAddToCart: (qty: number, options?: ProductPurchaseOptions) => void;
-  onOpenQuickBuy: (qty: number, options?: ProductPurchaseOptions) => void;
+  onBuyNow: (qty: number, options?: ProductPurchaseOptions) => void;
 }
 
 export function ProductPurchasePanel({
@@ -61,14 +59,12 @@ export function ProductPurchasePanel({
   onToggleWishlist,
   onToggleCompare,
   onAddToCart,
-  onOpenQuickBuy,
+  onBuyNow,
 }: ProductPurchasePanelProps) {
   const { addToast } = useStore();
 
   const [quantity, setQuantity] = useState(1);
-  const [purchaseMode, setPurchaseMode] = useState<"direct" | "installment">("direct");
-  const [selectedBank, setSelectedBank] = useState<"TBC" | "BOG" | "Credo" | "Space">("TBC");
-  const [installmentMonths, setInstallmentMonths] = useState<number>(12);
+
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {};
     if (product.variants && product.variants.length > 0) {
@@ -80,25 +76,11 @@ export function ProductPurchasePanel({
     }
     return defaults;
   });
-  const [hasExtraProtection, setHasExtraProtection] = useState(false);
-  const [isPriceAlertActive, setIsPriceAlertActive] = useState(false);
 
   const unitPrice = product.discountPrice || product.price;
-  const protectionFee = hasExtraProtection ? 29 : 0;
-  const totalPrice = (unitPrice + protectionFee) * quantity;
-  const monthlyInstallment = (totalPrice / installmentMonths).toFixed(2);
+  const totalPrice = unitPrice * quantity;
   const savings = product.discountPrice ? (product.price - product.discountPrice) * quantity : 0;
-
-  const handlePriceAlertToggle = () => {
-    setIsPriceAlertActive(!isPriceAlertActive);
-    addToast({
-      title: !isPriceAlertActive ? "შეტყობინება ჩაირთო" : "შეტყობინება გაითიშა",
-      message: !isPriceAlertActive
-        ? "შეგატყობინებთ ფასის დაკლებისთანავე!"
-        : "ფასის დაკლების შეტყობინება გაუქმებულია.",
-      type: "info",
-    });
-  };
+  const discountPercent = product.discountPercentage || (product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -108,7 +90,7 @@ export function ProductPurchasePanel({
           text: `ნახეთ ${product.title} Spilo.ge-ზე`,
           url: window.location.href,
         });
-      } catch (e) {}
+      } catch (e) { }
     } else {
       await navigator.clipboard.writeText(window.location.href);
       addToast({
@@ -119,334 +101,269 @@ export function ProductPurchasePanel({
     }
   };
 
+  const handleAddToCartClick = () => {
+    const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
+    const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
+    onAddToCart(quantity, {
+      color: colorVal,
+      storage: storageVal,
+      unitPrice,
+    });
+  };
+
+  const handleBuyNowClick = () => {
+    const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
+    const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
+    onBuyNow(quantity, {
+      color: colorVal,
+      storage: storageVal,
+      unitPrice,
+    });
+  };
+
   return (
-    <div className="flex flex-col gap-5">
-      
-      {/* Brand, Stock Urgency & SKU Bar */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          {product.brandName && (
-            <span className="text-xs text-blue-700 bg-blue-50/80 px-3 py-1 rounded-xl uppercase tracking-wider border border-blue-100/80">
-              {product.brandName}
-            </span>
-          )}
-          {product.stock > 0 ? (
-            <span className="text-xs text-emerald-700 bg-emerald-50/80 px-3 py-1 rounded-xl flex items-center gap-1.5 border border-emerald-100/80">
-              <Clock className="size-3.5" /> მარაგშია (მხოლოდ {product.stock} ცალი)
-            </span>
-          ) : (
-            <span className="text-xs text-red-600 bg-red-50 px-3 py-1 rounded-xl border border-red-100">
-              მარაგი ამოწურულია
-            </span>
-          )}
-        </div>
+    <div className="flex flex-col gap-6">
 
-        <span className="text-xs text-gray-400">SKU: {product.sku || product.code || product.id}</span>
-      </div>
-
-      {/* Main Title */}
-      <h1 className="text-xl md:text-2xl text-gray-900 leading-snug tracking-tight">
-        {product.title}
-      </h1>
-
-      {/* Quick Actions Bar - Clean Borderless Human Layout */}
-      <div className="flex items-center gap-6 pb-3 border-b border-gray-100/80 text-xs text-gray-500">
-        <button
-          type="button"
-          onClick={onToggleWishlist}
-          className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
-            isLiked ? "text-red-500" : "hover:text-gray-900"
-          }`}
-        >
-          <Heart className={`size-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-          <span>{isLiked ? "ფავორიტი" : "ფავორიტები"}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onToggleCompare}
-          className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
-            isCompared ? "text-blue-600" : "hover:text-gray-900"
-          }`}
-        >
-          <GitCompare className="size-4" />
-          <span>{isCompared ? "შედარებულია" : "შედარება"}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleShare}
-          className="flex items-center gap-1.5 hover:text-gray-900 transition-colors cursor-pointer"
-        >
-          <Share2 className="size-4" />
-          <span>გაზიარება</span>
-        </button>
-      </div>
-
-      {/* Primary Price Card */}
-      <div className="p-5 bg-gradient-to-br from-gray-50/90 via-white to-slate-50/70 rounded-3xl border border-gray-200/60 shadow-2xs flex flex-col gap-3">
-        <div className="flex items-baseline justify-between flex-wrap gap-2">
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl text-gray-900 tracking-tight">
-              {totalPrice.toFixed(2)} ₾
-            </span>
-            {product.discountPrice && (
-              <span className="text-sm text-gray-400 line-through">
-                {(product.price * quantity).toFixed(2)} ₾
+      {/* 1. Header: Brand, Stock Status & Floating Actions */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2.5">
+            {product.brandName && (
+              <span className="text-xs text-blue-600 bg-blue-50/80 ring-1 ring-blue-600/15 px-3 py-1 rounded-full uppercase tracking-wider">
+                {product.brandName}
+              </span>
+            )}
+            {product.stock > 0 ? (
+              <span className="text-xs text-emerald-700 bg-emerald-50/80 ring-1 ring-emerald-600/15 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                მარაგშია ({product.stock} ცალი)
+              </span>
+            ) : (
+              <span className="text-xs text-rose-600 bg-rose-50 ring-1 ring-rose-500/20 px-3 py-1 rounded-full">
+                მარაგი ამოწურულია
               </span>
             )}
           </div>
 
+          {/* Floating Actions (Wishlist, Compare, Share) */}
           <div className="flex items-center gap-2">
-            {savings > 0 && (
-              <span className="text-xs text-emerald-700 bg-emerald-50/90 border border-emerald-100 px-3 py-1 rounded-xl">
-                დაზოგეთ: {savings.toFixed(2)} ₾
-              </span>
-            )}
             <button
               type="button"
-              onClick={handlePriceAlertToggle}
-              className={`p-2 rounded-xl border transition-colors cursor-pointer ${
-                isPriceAlertActive
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+              onClick={onToggleWishlist}
+              className={`size-9 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                isLiked
+                  ? "bg-rose-50 text-rose-500 border-rose-200 shadow-2xs"
+                  : "bg-white text-gray-500 border-gray-200/70 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50"
               }`}
-              title="ფასის დაკლების შეტყობინება"
+              title={isLiked ? "ფავორიტებიდან წაშლა" : "ფავორიტებში დამატება"}
             >
-              <Bell className="size-3.5" />
+              <Heart className={`size-4 ${isLiked ? "fill-rose-500" : ""}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={onToggleCompare}
+              className={`size-9 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                isCompared
+                  ? "bg-blue-50 text-blue-600 border-blue-200 shadow-2xs"
+                  : "bg-white text-gray-500 border-gray-200/70 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              title={isCompared ? "შედარებიდან წაშლა" : "შედარება"}
+            >
+              <GitCompare className="size-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              className="size-9 rounded-full border border-gray-200/70 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95"
+              title="გაზიარება"
+            >
+              <Share2 className="size-4" />
             </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-100 pt-2.5">
-          <span className="flex items-center gap-1.5">
-            <CreditCard className="size-3.5 text-blue-600" /> დღგ ჩათვლილია
-          </span>
-          <span className="text-emerald-600 flex items-center gap-1">
-            <Check className="size-3.5" /> საუკეთესო ფასის გარანტია
+        {/* Main Product Title */}
+        <h1 className="text-2xl lg:text-3xl text-gray-950 leading-snug tracking-tight font-sans">
+          {product.title}
+        </h1>
+
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          <span>კოდი:</span>
+          <span className="font-mono text-gray-600 bg-gray-100/70 px-2 py-0.5 rounded-md">
+            {product.sku || product.code || product.id}
           </span>
         </div>
       </div>
 
-      {/* Purchase Mode Switcher */}
-      <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-2 p-1.5 bg-gray-100/70 backdrop-blur-md rounded-2xl border border-gray-200/60">
-          <button
-            type="button"
-            onClick={() => setPurchaseMode("direct")}
-            className={`py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
-              purchaseMode === "direct"
-                ? "bg-white text-gray-900 shadow-xs border border-gray-200/80"
-                : "text-gray-500 hover:text-gray-900"
-            }`}
-          >
-            <Zap className="size-3.5 text-blue-600" />
-            <span>პირდაპირი ყიდვა</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPurchaseMode("installment")}
-            className={`py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
-              purchaseMode === "installment"
-                ? "bg-white text-gray-900 shadow-xs border border-gray-200/80"
-                : "text-gray-500 hover:text-gray-900"
-            }`}
-          >
-            <Moon className="size-3.5 text-purple-600" />
-            <span>0% ონლაინ განვადება</span>
-          </button>
+      {/* 2. Modern 2026 Price Display */}
+      <div className="flex items-baseline justify-between flex-wrap gap-3 pb-3 border-b border-gray-100/80">
+        <div className="flex items-baseline gap-3">
+          <span className="text-3xl lg:text-4xl text-gray-950 tracking-tight font-sans">
+            {totalPrice.toFixed(2)} ₾
+          </span>
+          {product.discountPrice && (
+            <span className="text-base text-gray-400 line-through">
+              {(product.price * quantity).toFixed(2)} ₾
+            </span>
+          )}
+          {discountPercent > 0 && (
+            <span className="text-xs text-rose-600 bg-rose-50 ring-1 ring-rose-500/20 px-2.5 py-0.5 rounded-full">
+              -{discountPercent}% ფასდაკლება
+            </span>
+          )}
         </div>
 
-        {/* 0% Installment Bank Hub Calculator */}
-        {purchaseMode === "installment" && (
-          <div className="p-4 bg-gradient-to-br from-purple-50/30 via-white to-blue-50/20 rounded-3xl border border-purple-100/70 flex flex-col gap-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-900 flex items-center gap-1.5">
-                <Building2 className="size-3.5 text-purple-600" /> აირჩიეთ ბანკი:
-              </span>
-              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                0% ეფექტური
-              </span>
-            </div>
-
-            <div className="grid grid-cols-4 gap-2">
-              {(["TBC", "BOG", "Credo", "Space"] as const).map((bank) => (
-                <button
-                  key={bank}
-                  type="button"
-                  onClick={() => setSelectedBank(bank)}
-                  className={`py-2 rounded-xl text-xs border transition-all duration-200 cursor-pointer flex items-center justify-center ${
-                    selectedBank === bank
-                      ? "bg-purple-600 text-white border-purple-600 shadow-xs"
-                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {bank}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="text-gray-500">ვადა (თვე):</span>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[3, 6, 12, 24, 36].map((months) => (
-                  <button
-                    key={months}
-                    type="button"
-                    onClick={() => setInstallmentMonths(months)}
-                    className={`py-1.5 rounded-xl text-xs border transition-all duration-200 cursor-pointer ${
-                      installmentMonths === months
-                        ? "bg-gray-900 text-white border-gray-900 shadow-xs"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    {months} თვე
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-3 bg-white rounded-2xl border border-purple-100 flex items-center justify-between text-xs">
-              <span className="text-gray-600">ყოველთვიური შენატანი:</span>
-              <span className="text-sm text-gray-900">{monthlyInstallment} ₾ / თვეში</span>
-            </div>
-          </div>
+        {savings > 0 && (
+          <span className="text-xs text-emerald-700 bg-emerald-50/90 ring-1 ring-emerald-600/20 px-3 py-1 rounded-full">
+            დაზოგეთ: {savings.toFixed(2)} ₾
+          </span>
         )}
       </div>
 
-      {/* Product Variants (Color & Specs Options) */}
+      {/* 3. Modern Variant Selection (Colors, Storage, Specs) */}
       {product.variants && product.variants.length > 0 && (
-        <div className="flex flex-col gap-3 py-2 border-t border-gray-100">
-          {product.variants.map((v) => (
-            <div key={v.id} className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-700">{v.name}:</span>
-              <div className="flex items-center gap-2 flex-wrap">
-                {v.options.map((opt) => {
-                  const isSelected = selectedVariants[v.id] === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() =>
-                        setSelectedVariants((prev) => ({ ...prev, [v.id]: opt.value }))
-                      }
-                      className={`px-3.5 py-2 rounded-xl text-xs border transition-all duration-200 cursor-pointer flex items-center gap-2 ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-50/80 text-blue-700"
-                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      {opt.colorHex && (
-                        <span
-                          className="size-3.5 rounded-full border border-black/10"
-                          style={{ backgroundColor: opt.colorHex }}
-                        />
-                      )}
-                      <span>{opt.label}</span>
-                      {opt.priceDelta && opt.priceDelta > 0 && (
-                        <span className="text-[10px] text-gray-400">+{opt.priceDelta} ₾</span>
-                      )}
-                    </button>
-                  );
-                })}
+        <div className="flex flex-col gap-4 py-1">
+          {product.variants.map((v) => {
+            const isColorVariant = v.name.toLowerCase().includes("color") || v.name.includes("ფერ");
+            return (
+              <div key={v.id} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-gray-500">{v.name}:</span>
+                  <span className="text-gray-950">
+                    {v.options.find((o) => o.value === selectedVariants[v.id])?.label || ""}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {v.options.map((opt) => {
+                    const isSelected = selectedVariants[v.id] === opt.value;
+
+                    if (isColorVariant && opt.colorHex) {
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setSelectedVariants((prev) => ({ ...prev, [v.id]: opt.value }))}
+                          className={`size-8.5 rounded-full p-0.5 border transition-all duration-200 cursor-pointer ${
+                            isSelected
+                              ? "border-[#1D1D1F] ring-2 ring-black/20 scale-105 shadow-2xs"
+                              : "border-gray-200/90 hover:scale-105"
+                          }`}
+                          title={opt.label}
+                        >
+                          <span
+                            className="block w-full h-full rounded-full border border-black/10 shadow-inner"
+                            style={{ backgroundColor: opt.colorHex }}
+                          />
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setSelectedVariants((prev) => ({ ...prev, [v.id]: opt.value }))}
+                        className={`px-4 py-2 rounded-xl text-xs border transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                          isSelected
+                            ? "border-[#1D1D1F] bg-gray-50 text-[#1D1D1F] shadow-2xs"
+                            : "border-gray-200/90 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {opt.priceDelta && opt.priceDelta > 0 && (
+                          <span className="text-[10px] text-gray-400">+{opt.priceDelta} ₾</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Protection Plan Checkbox Add-on */}
-      <label className="p-3.5 bg-purple-50/40 hover:bg-purple-50/70 rounded-2xl border border-purple-100 flex items-center justify-between gap-3 cursor-pointer transition-colors duration-200">
-        <div className="flex items-center gap-2.5 text-xs">
-          <input
-            type="checkbox"
-            checked={hasExtraProtection}
-            onChange={(e) => setHasExtraProtection(e.target.checked)}
-            className="size-4 accent-purple-600 rounded cursor-pointer"
-          />
-          <ShieldCheck className="size-4 text-purple-600 shrink-0" />
-          <span className="text-gray-900">დაამატეთ +2 წლიანი გაფართოებული გარანტია</span>
-        </div>
-        <span className="text-xs text-purple-700 font-sans">+29.00 ₾</span>
-      </label>
-
-      {/* Quantity Stepper & Standard Button Components */}
-      <div className="flex flex-col gap-3 pt-2">
+      {/* 4. Actions: Ergonomic Quantity Stepper + Solid Primary Buttons */}
+      <div className="flex flex-col gap-3">
         {product.stock <= 0 ? (
-          <Button
+          <button
             disabled
-            variant="secondary"
-            size="lg"
-            className="w-full bg-gray-100 text-gray-400 cursor-not-allowed select-none border-gray-200"
+            className="w-full h-12 bg-gray-100 text-gray-400 rounded-2xl text-sm cursor-not-allowed select-none flex items-center justify-center border border-gray-200"
           >
-            არ არის მარაგში
-          </Button>
+            მარაგი ამოწურულია
+          </button>
         ) : (
           <>
             <div className="flex items-center gap-3">
-              {/* Quantity Stepper */}
-              <div className="flex items-center gap-1 bg-gray-100/70 rounded-xl p-1 border border-gray-200/60">
+              {/* Ergonomic Stepper */}
+              <div className="flex items-center gap-1 bg-gray-50/90 rounded-2xl p-1 border border-gray-200/80 shrink-0">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="size-9 rounded-lg bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50 cursor-pointer shadow-2xs"
+                  className="size-10 rounded-xl bg-white text-gray-700 flex items-center justify-center hover:bg-gray-100 cursor-pointer border border-gray-100 shadow-2xs active:scale-90 transition-all duration-150"
                 >
                   <Minus className="size-3.5" />
                 </button>
-                <span className="w-8 text-center text-xs text-gray-900">{quantity}</span>
+                <span className="w-8 text-center text-xs text-gray-900 select-none">{quantity}</span>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
-                  className="size-9 rounded-lg bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50 cursor-pointer shadow-2xs"
+                  className="size-10 rounded-xl bg-white text-gray-700 flex items-center justify-center hover:bg-gray-100 cursor-pointer border border-gray-100 shadow-2xs active:scale-90 transition-all duration-150"
                 >
                   <Plus className="size-3.5" />
                 </button>
               </div>
 
-              {/* 1-Click Buy Primary Button using Button UI component */}
-              <Button
+              {/* Solid Primary Add-to-Cart Button */}
+              <button
                 type="button"
-                onClick={() => {
-                  const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
-                  const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
-                  onOpenQuickBuy(quantity, {
-                    color: colorVal,
-                    storage: storageVal,
-                    hasExtraProtection,
-                    unitPrice,
-                  });
-                }}
-                variant="primary"
-                size="lg"
-                leftIcon={<Zap className="size-4" />}
-                className="flex-1 shadow-xs"
+                onClick={handleAddToCartClick}
+                className="flex-1 h-12 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white rounded-2xl text-sm flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_4px_16px_rgba(29,29,31,0.22)] hover:shadow-[0_6px_22px_rgba(29,29,31,0.32)] transition-all duration-200"
               >
-                1-დაწკაპუნებით ყიდვა
-              </Button>
+                {isAdded ? (
+                  <>
+                    <Check className="size-4.5 text-white" />
+                    <span>დამატებულია კალათაში</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="size-4.5" />
+                    <span>კალათაში დამატება</span>
+                  </>
+                )}
+              </button>
             </div>
 
-            {/* Add to Cart Secondary Button using Button UI component */}
-            <Button
+            {/* Direct Buy Now Button */}
+            <button
               type="button"
-              onClick={() => {
-                const colorVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("color") || k.includes("ფერ"))?.[1] || Object.values(selectedVariants)[0];
-                const storageVal = Object.entries(selectedVariants).find(([k]) => k.toLowerCase().includes("storage") || k.includes("მეხსიერებ") || k.includes("ზომ"))?.[1] || Object.values(selectedVariants)[1];
-                onAddToCart(quantity, {
-                  color: colorVal,
-                  storage: storageVal,
-                  hasExtraProtection,
-                  unitPrice,
-                });
-              }}
-              variant="secondary"
-              size="lg"
-              leftIcon={isAdded ? <Check className="size-5 text-emerald-600" /> : <ShoppingBag className="size-5" />}
-              className="w-full shadow-xs"
+              onClick={handleBuyNowClick}
+              className="w-full h-12 bg-white hover:bg-gray-50 active:scale-[0.98] text-[#1D1D1F] border border-gray-300 hover:border-[#1D1D1F] rounded-2xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200"
             >
-              {isAdded ? "დაემატა კალათაში" : "კალათაში დამატება"}
-            </Button>
+              <Zap className="size-4 text-[#1D1D1F]" />
+              <span>ყიდვა</span>
+            </button>
           </>
         )}
+      </div>
+
+      {/* 5. Clean Human-Designed Delivery & Pickup Details */}
+      <div className="flex flex-col gap-2.5 pt-4 border-t border-gray-100 text-xs text-gray-600">
+        <div className="flex items-center gap-2.5">
+          <Truck className="size-4 text-gray-400 shrink-0" />
+          <span>მიწოდება თბილისში 24 საათში, რეგიონებში 1-2 დღე</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <MapPin className="size-4 text-gray-400 shrink-0" />
+          <span>უფასო გატანა Spilo-ს ფილიალებიდან</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <CreditCard className="size-4 text-gray-400 shrink-0" />
+          <span>გადახდა ბარათით ონლაინ ან კურიერთან</span>
+        </div>
       </div>
 
     </div>

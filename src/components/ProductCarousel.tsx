@@ -30,7 +30,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
 
   return (
     <div className="relative overflow-hidden">
-      
+
       {/* Previous Arrow Button (Left) */}
       {!isBeginning && (
         <button

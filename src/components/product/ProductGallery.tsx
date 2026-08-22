@@ -104,11 +104,10 @@ export function ProductGallery({
                 key={idx}
                 type="button"
                 onClick={() => setSelectedIndex(idx)}
-                className={`size-20 rounded-2xl border bg-gray-50/80 p-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${
-                  isSelected
+                className={`size-20 rounded-2xl border bg-gray-50/80 p-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${isSelected
                     ? "border-blue-600 ring-2 ring-blue-500/20 bg-white"
                     : "border-gray-200 hover:border-gray-300 hover:bg-white"
-                }`}
+                  }`}
               >
                 <img
                   src={img}

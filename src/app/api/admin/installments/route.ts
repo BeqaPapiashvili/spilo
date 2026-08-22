@@ -101,8 +101,13 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const body = await request.json();
 
@@ -146,6 +151,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "INSTALLMENT_UPDATE",
         entity: "InstallmentOption",
         target: `${bankName} (${result.id})`,
@@ -168,6 +176,9 @@ export async function POST(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "INSTALLMENT_CREATE",
         entity: "InstallmentOption",
         target: `${bankName} (${result.id})`,
@@ -196,6 +207,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const body = await request.json();
 
@@ -219,6 +233,9 @@ export async function PUT(request: Request) {
       }
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "INSTALLMENT_BULK_UPDATE",
         entity: "InstallmentOption",
         target: "ბანკის განვადებები",
@@ -239,6 +256,9 @@ export async function PUT(request: Request) {
       });
 
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "INSTALLMENT_UPDATE",
         entity: "InstallmentOption",
         target: `${body.bankName || body.id}`,
@@ -266,6 +286,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -283,6 +306,9 @@ export async function DELETE(request: Request) {
 
     if (deleted) {
       await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
         action: "INSTALLMENT_DELETE",
         entity: "InstallmentOption",
         target: `${deleted.bankName} (${deleted.id})`,
@@ -307,3 +333,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

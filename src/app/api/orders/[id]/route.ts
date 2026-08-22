@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthSession, requireAdminSession } from "@/lib/jwt";
+import { ADMIN_ROLES } from "@/lib/permissions";
+import { recordAuditLog } from "@/lib/audit";
+
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthSession(request);
     const { id } = await params;
 
     const order = await prisma.order.findFirst({
@@ -22,6 +27,15 @@ export async function GET(
       return NextResponse.json(
         { success: false, error: "Order not found" },
         { status: 404 }
+      );
+    }
+
+    // If order has an associated userId, only allow owner or admin
+    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
+    if (order.userId && !isAdmin && (!session || session.userId !== order.userId)) {
+      return NextResponse.json(
+        { success: false, error: "წვდომა შეზღუდულია (Forbidden)" },
+        { status: 403 }
       );
     }
 
@@ -43,6 +57,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { id } = await params;
     const body = await request.json();
     const { status, paymentStatus } = body;
@@ -71,15 +88,15 @@ export async function PUT(
       },
     });
 
-    try {
-      const { recordAuditLog } = await import("@/lib/audit");
-      await recordAuditLog({
-        action: "ORDER_STATUS_UPDATE",
-        entity: "Order",
-        target: `#${updatedOrder.orderNumber}`,
-        details: `შეკვეთის სტატუსი შეიცვალა: ${status || paymentStatus}`,
-      });
-    } catch {}
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "ORDER_STATUS_UPDATE",
+      entity: "Order",
+      target: `#${updatedOrder.orderNumber}`,
+      details: `შეკვეთის სტატუსი შეიცვალა: ${status || paymentStatus}`,
+    });
 
     return NextResponse.json({
       success: true,
@@ -94,3 +111,4 @@ export async function PUT(
     );
   }
 }
+

@@ -9,10 +9,18 @@ const notoGeorgian = Noto_Sans_Georgian({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-export const metadata: Metadata = {
-  title: "spilo.ge - ონლაინ მაღაზია საქართველოში",
-  description: "შეიძინეთ საუკეთესო ელექტრონიკა, ტექნიკა და სხვა პროდუქტები საქართველოში მარტივად spilo-თი.",
-};
+import { getSeoSettings, constructMetadata } from "@/lib/seo";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeoSettings("home");
+  return constructMetadata({
+    title: seo.title,
+    description: seo.description,
+    ogImage: seo.ogImage,
+    canonicalUrl: "/",
+  });
+}
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

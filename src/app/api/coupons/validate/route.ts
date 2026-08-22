@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 
 /**
  * POST /api/coupons/validate
@@ -13,7 +14,20 @@ import { prisma } from "@/lib/prisma";
  */
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+
+    // Rate limit: max 15 coupon validations per 15 minutes per IP
+    const rateLimitRes = await enforceRateLimit(request, {
+      namespace: "coupon_validate_ip",
+      identifier: clientIp,
+      limit: 15,
+      windowSeconds: 15 * 60,
+      customMessage: "პრომო კოდის გადამოწმების მცდელობების ლიმიტი გადაჭარბებულია. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+    });
+    if (!rateLimitRes.success && rateLimitRes.response) return rateLimitRes.response;
+
     const body = await request.json();
+
     const { code, orderTotal = 0 } = body;
 
     if (!code || typeof code !== "string" || !code.trim()) {

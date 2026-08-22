@@ -39,8 +39,14 @@ export async function GET() {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function POST(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const id = body.id;
     const code = (body.code || "COUPON").trim().toUpperCase();
@@ -90,6 +96,16 @@ export async function POST(request: Request) {
           validUntil,
         },
       });
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "COUPON_UPDATE",
+        entity: "Coupon",
+        target: `${coupon.code} (${coupon.id})`,
+        details: `განახლდა კუპონი: ${discountType === "percentage" ? `${discountVal}%` : `${discountVal} ₾`}, სტატუსი: ${status}`,
+      });
     } else {
       coupon = await prisma.coupon.upsert({
         where: { code },
@@ -121,6 +137,16 @@ export async function POST(request: Request) {
           validUntil,
         },
       });
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "COUPON_CREATE",
+        entity: "Coupon",
+        target: `${coupon.code} (${coupon.id})`,
+        details: `შეიქმნა ახალი კუპონი: ${discountType === "percentage" ? `${discountVal}%` : `${discountVal} ₾`}`,
+      });
     }
 
     return NextResponse.json({
@@ -151,6 +177,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -161,9 +190,23 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const existing = await prisma.coupon.findUnique({ where: { id } });
+
     await prisma.coupon.delete({
       where: { id },
     });
+
+    if (existing) {
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "COUPON_DELETE",
+        entity: "Coupon",
+        target: `${existing.code} (${existing.id})`,
+        details: "კუპონი წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -177,3 +220,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

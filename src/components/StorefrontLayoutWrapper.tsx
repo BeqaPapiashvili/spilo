@@ -10,6 +10,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
 import { NetworkStatusToast } from "@/components/ui/NetworkStatusToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
+import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 
 export function StorefrontLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,6 +19,7 @@ export function StorefrontLayoutWrapper({ children }: { children: React.ReactNod
   if (isAdmin) {
     return (
       <>
+        <NavigationProgressBar />
         <NetworkStatusToast />
         <ToastContainer />
         {children}
@@ -27,6 +29,7 @@ export function StorefrontLayoutWrapper({ children }: { children: React.ReactNod
 
   return (
     <>
+      <NavigationProgressBar />
       <NetworkStatusToast />
       <Header />
       <CartDrawer />

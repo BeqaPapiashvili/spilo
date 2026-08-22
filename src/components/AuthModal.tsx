@@ -202,9 +202,8 @@ export default function AuthModal() {
               <div className="border-b border-gray-200/80 relative flex items-center justify-between">
                 <button
                   onClick={() => switchMode("login")}
-                  className={`flex-1 pb-3 text-center text-base md:text-lg transition-colors cursor-pointer relative ${
-                    mode === "login" ? "text-gray-900" : "text-gray-500 hover:text-gray-800"
-                  }`}
+                  className={`flex-1 pb-3 text-center text-base md:text-lg transition-colors cursor-pointer relative ${mode === "login" ? "text-gray-900" : "text-gray-500 hover:text-gray-800"
+                    }`}
                 >
                   <span>ავტორიზაცია</span>
                   {mode === "login" && (
@@ -218,9 +217,8 @@ export default function AuthModal() {
 
                 <button
                   onClick={() => switchMode("register")}
-                  className={`flex-1 pb-3 text-center text-base md:text-lg transition-colors cursor-pointer relative ${
-                    mode === "register" ? "text-gray-900" : "text-gray-500 hover:text-gray-800"
-                  }`}
+                  className={`flex-1 pb-3 text-center text-base md:text-lg transition-colors cursor-pointer relative ${mode === "register" ? "text-gray-900" : "text-gray-500 hover:text-gray-800"
+                    }`}
                 >
                   <span>რეგისტრაცია</span>
                   {mode === "register" && (
@@ -322,11 +320,10 @@ export default function AuthModal() {
                           <motion.div
                             whileHover={{ scale: 1.06 }}
                             whileTap={{ scale: 0.94 }}
-                            className={`w-5 h-5 rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-200 shadow-2xs ${
-                              rememberMe
-                                ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border border-blue-600"
-                                : "bg-[#F1F3F6] border border-gray-300/80 group-hover:border-blue-400 group-hover:bg-blue-50/50"
-                            }`}
+                            className={`w-5 h-5 rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-200 shadow-2xs ${rememberMe
+                              ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border border-blue-600"
+                              : "bg-[#F1F3F6] border border-gray-300/80 group-hover:border-blue-400 group-hover:bg-blue-50/50"
+                              }`}
                           >
                             <AnimatePresence>
                               {rememberMe && (
@@ -512,13 +509,12 @@ export default function AuthModal() {
                           <motion.div
                             whileHover={{ scale: 1.06 }}
                             whileTap={{ scale: 0.94 }}
-                            className={`w-5 h-5 rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-200 mt-0.5 shadow-2xs ${
-                              agreeTerms
-                                ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border border-blue-600"
-                                : errors.terms
+                            className={`w-5 h-5 rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-200 mt-0.5 shadow-2xs ${agreeTerms
+                              ? "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border border-blue-600"
+                              : errors.terms
                                 ? "bg-red-50 border-2 border-red-500"
                                 : "bg-[#F1F3F6] border border-gray-300/80 group-hover:border-blue-400 group-hover:bg-blue-50/50"
-                            }`}
+                              }`}
                           >
                             <AnimatePresence>
                               {agreeTerms && (

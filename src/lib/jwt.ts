@@ -96,3 +96,35 @@ export async function getAuthSession(request: Request): Promise<SessionPayload |
 
   return await verifyToken(token);
 }
+
+const ADMIN_ROLE_LIST = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"];
+
+/**
+ * Enforces admin session authentication and returns 401/403 response if unauthorized.
+ */
+export async function requireAdminSession(request: Request): Promise<{ session: SessionPayload | null; errorResponse: NextResponse | null }> {
+  const session = await getAuthSession(request);
+  if (!session || !session.userId) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json(
+        { success: false, error: "ავტორიზაცია აუცილებელია (Unauthorized)" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  const role = session.role || "CUSTOMER";
+  if (!ADMIN_ROLE_LIST.includes(role)) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json(
+        { success: false, error: "წვდომა შეზღუდულია: არასაკმარისი უფლებები (Forbidden)" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { session, errorResponse: null };
+}
+

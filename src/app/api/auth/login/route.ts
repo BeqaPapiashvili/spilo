@@ -2,9 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signToken, setAuthCookie } from "@/lib/jwt";
+import { enforceRateLimit, resetRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+
+    // 1. IP Rate Limiting (max 10 login attempts per 15 minutes per IP)
+    const ipLimit = await enforceRateLimit(request, {
+      namespace: "login_ip",
+      identifier: clientIp,
+      limit: 10,
+      windowSeconds: 15 * 60,
+      customMessage: "ძალიან ბევრი წარუმატებელი მცდელობა თქვენი IP მისამართიდან. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+    });
+    if (!ipLimit.success && ipLimit.response) return ipLimit.response;
+
     const body = await request.json();
     const { email, password } = body;
 
@@ -26,7 +39,17 @@ export async function POST(request: Request) {
     const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@spilo.ge`;
     const submittedPassword = password.trim();
 
-    // 1. Search in User table first
+    // 2. Account/Email Rate Limiting (max 5 failed attempts per 15 min per account)
+    const emailLimit = await enforceRateLimit(request, {
+      namespace: "login_email",
+      identifier: cleanInput,
+      limit: 5,
+      windowSeconds: 15 * 60,
+      customMessage: "ანგარიშზე ავტორიზაციის მცდელობების ლიმიტი გადაჭარბებულია. უსაფრთხოების მიზნით ანგარიში დროებით დაბლოკილია. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+    });
+    if (!emailLimit.success && emailLimit.response) return emailLimit.response;
+
+    // 3. Search in User table first
     let user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -36,7 +59,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // 2. If user not in User table, search in AdminUser table and sync
+    // 4. If user not in User table, search in AdminUser table and sync
     if (!user) {
       const admin = await prisma.adminUser.findFirst({
         where: {
@@ -76,7 +99,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify password strictly using bcrypt compare (backdoors removed)
+    // Verify password strictly using bcrypt compare
     const storedPassword = user.password || "";
     let isPasswordValid = false;
 
@@ -98,6 +121,10 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Clear rate limit counters upon successful login
+    resetRateLimit(`login_email:${cleanInput}`);
+    resetRateLimit(`login_ip:${clientIp}`);
 
     const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"].includes(user.role);
 
@@ -145,3 +172,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

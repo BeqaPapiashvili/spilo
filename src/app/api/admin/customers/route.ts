@@ -89,8 +89,14 @@ export async function GET(request: Request) {
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function PUT(request: Request) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const body = await request.json();
     const { userId, email, role } = body;
 
@@ -145,6 +151,16 @@ export async function PUT(request: Request) {
       }
     }
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "USER_ROLE_UPDATE",
+      entity: "User",
+      target: targetEmail || userId,
+      details: `მომხმარებლის როლი შეიცვალა: ${role}`,
+    });
+
     return NextResponse.json({
       success: true,
       message: `მომხმარებლის როლი შეიცვალა: ${role}`,
@@ -157,3 +173,4 @@ export async function PUT(request: Request) {
     );
   }
 }
+

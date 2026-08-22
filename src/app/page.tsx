@@ -1,9 +1,22 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import type { Metadata } from "next";
 import dynamicImport from "next/dynamic";
 import { resolveStorefrontFeed, ResolvedStorefrontSection } from "@/lib/storefrontFeed";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { getSeoSettings, constructMetadata } from "@/lib/seo";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeoSettings("home");
+  return constructMetadata({
+    title: seo.title,
+    description: seo.description,
+    ogImage: seo.ogImage,
+    canonicalUrl: "/",
+  });
+}
+
 
 function SectionFallback({ height = 240 }: { height?: number }) {
   return (

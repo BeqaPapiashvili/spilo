@@ -119,25 +119,23 @@ export default function ProductCard({
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
           <button
             onClick={handleToggleCompare}
-            className={`p-1.5 rounded-md cursor-pointer transition-colors ${
-              isCompared
-                ? "bg-blue-50 text-blue-600"
-                : "bg-gray-100/90 text-gray-400 hover:text-blue-600"
-            }`}
+            className={`p-1.5 rounded-md cursor-pointer transition-colors ${isCompared
+              ? "bg-[#E0F2FE] text-[#0284C7]"
+              : "bg-gray-100/90 text-gray-400 hover:text-[#0284C7]"
+              }`}
             title="შედარება"
           >
             <GitCompare className="w-4 h-4" />
           </button>
           <button
             onClick={handleToggleFavorite}
-            className={`p-1.5 rounded-md cursor-pointer transition-colors ${
-              isLiked
-                ? "bg-red-50 text-red-500"
-                : "bg-gray-100/90 text-gray-400 hover:text-red-500"
-            }`}
+            className={`p-1.5 rounded-md cursor-pointer transition-colors ${isLiked
+              ? "bg-[#FFE4E6] text-[#F43F5E]"
+              : "bg-gray-100/90 text-gray-400 hover:text-[#F43F5E]"
+              }`}
             title="სურვილების სია"
           >
-            <Heart className={`w-4 h-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+            <Heart className={`w-4 h-4 ${isLiked ? "fill-[#F43F5E] text-[#F43F5E]" : ""}`} />
           </button>
         </div>
 
@@ -145,9 +143,8 @@ export default function ProductCard({
         <img
           src={image}
           alt={title}
-          className={`w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 ${
-            isOutOfStock ? "opacity-60 grayscale-[40%]" : ""
-          }`}
+          className={`w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 ${isOutOfStock ? "opacity-60 grayscale-[40%]" : ""
+            }`}
         />
       </Link>
 
@@ -157,7 +154,7 @@ export default function ProductCard({
         <div className="h-[40px] flex items-start overflow-hidden">
           <Link
             href={`/product/${id}`}
-            className="text-xs sm:text-sm text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2"
+            className="text-xs sm:text-sm text-gray-900 hover:text-[#1D1D1F] transition-colors leading-snug line-clamp-2"
           >
             {title}
           </Link>
@@ -189,7 +186,7 @@ export default function ProductCard({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleBuyNow}
-                className="flex-1 h-9 bg-[#111111] hover:bg-black text-white rounded-xl text-xs md:text-sm flex items-center justify-center cursor-pointer transition-colors"
+                className="flex-1 h-9 bg-[#1D1D1F] hover:bg-[#2C2C2E] text-white rounded-xl text-xs md:text-sm flex items-center justify-center cursor-pointer transition-colors"
               >
                 <span>ყიდვა</span>
               </button>
@@ -197,14 +194,13 @@ export default function ProductCard({
               <button
                 onClick={handleAddToCart}
                 title="კალათაში დამატება"
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
-                  isAdded
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-[#F1F5F9] hover:bg-[#E2E8F0] text-gray-800"
-                }`}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer transition-colors ${isAdded
+                  ? "bg-gray-200 text-[#1D1D1F]"
+                  : "bg-[#F1F5F9] hover:bg-gray-200 text-gray-800"
+                  }`}
               >
                 {isAdded ? (
-                  <Check className="w-4 h-4 text-emerald-600" />
+                  <Check className="w-4 h-4 text-[#1D1D1F]" />
                 ) : (
                   <ShoppingBag className="w-4 h-4" />
                 )}

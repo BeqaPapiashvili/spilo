@@ -64,11 +64,17 @@ export async function GET(
   }
 }
 
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -93,6 +99,16 @@ export async function PUT(
       },
     });
 
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "PRODUCT_UPDATE",
+      entity: "Product",
+      target: `${updated.title} (${updated.sku})`,
+      details: `განახლდა პროდუქტი: ფასი ${updated.price} ₾, მარაგი: ${updated.stock}`,
+    });
+
     return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {
     console.error("PUT /api/products/[id] error:", error);
@@ -108,11 +124,28 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { id } = await params;
+
+    const existing = await prisma.product.findUnique({ where: { id } });
 
     await prisma.product.delete({
       where: { id },
     });
+
+    if (existing) {
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "PRODUCT_DELETE",
+        entity: "Product",
+        target: `${existing.title} (${existing.sku})`,
+        details: "პროდუქტი წაიშალა მონაცემთა ბაზიდან",
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -126,3 +159,4 @@ export async function DELETE(
     );
   }
 }
+

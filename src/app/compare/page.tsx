@@ -218,12 +218,12 @@ export default function ComparePage() {
       <div className="min-h-screen bg-[#F8FAFC] text-gray-900 font-sans pb-24 animate-pulse">
         {/* Top Breadcrumb Navigation */}
         <div className="py-3.5 bg-white mb-6">
-          <div className="container mx-auto px-4 lg:px-6 max-w-[1600px]">
+          <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
             <div className="h-4 bg-gray-200 rounded-md w-36" />
           </div>
         </div>
 
-        <div className="container mx-auto px-4 lg:px-6 max-w-[1600px] space-y-6">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1560px] space-y-6">
           {/* Header Skeleton */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-2xs flex items-center justify-between">
             <div className="space-y-2">
@@ -260,7 +260,7 @@ export default function ComparePage() {
       <div className="min-h-screen bg-[#F8FAFC] text-gray-900 font-sans pb-24">
         {/* Top Breadcrumb Navigation */}
         <div className="py-3.5 bg-white mb-6">
-          <div className="container mx-auto px-4 lg:px-6 max-w-[1600px]">
+          <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
             <nav className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
               <Link href="/" className="hover:text-blue-600 transition-colors">
                 მთავარი
@@ -300,7 +300,7 @@ export default function ComparePage() {
       
       {/* Top Breadcrumb Navigation */}
       <div className="py-3.5 bg-white mb-6">
-        <div className="container mx-auto px-4 lg:px-6 max-w-[1600px]">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
           <nav className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
             <Link href="/" className="hover:text-blue-600 transition-colors">
               მთავარი
@@ -311,7 +311,7 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 lg:px-6 max-w-[1600px] space-y-6">
+      <main className="container mx-auto px-4 lg:px-6 max-w-[1560px] space-y-6">
         
         {/* Top Header Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
