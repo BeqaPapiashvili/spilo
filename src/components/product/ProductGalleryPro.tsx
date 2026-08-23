@@ -10,6 +10,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Camera,
   Play
 } from "lucide-react";
@@ -41,6 +43,8 @@ export function ProductGalleryPro({
   
   const mainSwiperRef = useRef<any>(null);
   const lightboxSwiperRef = useRef<any>(null);
+  const thumbnailContainerRef = useRef<HTMLDivElement>(null);
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const displayImages = images && images.length > 0 ? images : ["/placeholder.png"];
 
@@ -48,11 +52,51 @@ export function ProductGalleryPro({
     setMounted(true);
   }, []);
 
+  // Auto-scroll active thumbnail into view smoothly without any visible scrollbar
+  useEffect(() => {
+    if (thumbnailRefs.current[selectedIndex]) {
+      thumbnailRefs.current[selectedIndex]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [selectedIndex]);
+
   // Main Gallery Thumbnail Click
   const handleSelectThumbnail = (index: number) => {
     setSelectedIndex(index);
     if (mainSwiperRef.current) {
       mainSwiperRef.current.slideTo(index);
+    }
+  };
+
+  // Scroll Thumbnails List Manually
+  const handleScrollThumbnails = (direction: "prev" | "next") => {
+    if (!thumbnailContainerRef.current) return;
+    const isDesktop = window.innerWidth >= 768;
+    const scrollAmount = isDesktop ? 90 : 80;
+
+    if (direction === "prev") {
+      thumbnailContainerRef.current.scrollBy({
+        top: isDesktop ? -scrollAmount : 0,
+        left: isDesktop ? 0 : -scrollAmount,
+        behavior: "smooth",
+      });
+      setSelectedIndex((prev) => Math.max(0, prev - 1));
+      if (mainSwiperRef.current) {
+        mainSwiperRef.current.slideTo(Math.max(0, selectedIndex - 1));
+      }
+    } else {
+      thumbnailContainerRef.current.scrollBy({
+        top: isDesktop ? scrollAmount : 0,
+        left: isDesktop ? 0 : scrollAmount,
+        behavior: "smooth",
+      });
+      setSelectedIndex((prev) => Math.min(displayImages.length - 1, prev + 1));
+      if (mainSwiperRef.current) {
+        mainSwiperRef.current.slideTo(Math.min(displayImages.length - 1, selectedIndex + 1));
+      }
     }
   };
 
@@ -73,7 +117,7 @@ export function ProductGalleryPro({
     }
   };
 
-  // Lightbox Modal Controls (Completely Isolated from Background)
+  // Lightbox Modal Controls
   const handleOpenLightbox = (index?: number) => {
     const targetIdx = typeof index === "number" ? index : selectedIndex;
     setLightboxIndex(targetIdx);
@@ -132,16 +176,17 @@ export function ProductGalleryPro({
 
   return (
     <div className="flex flex-col gap-3.5 sticky top-24">
+      
       {/* Mode Switcher pill container (Photos / Video) */}
       {videoUrl && (
-        <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-2xl border border-gray-100 self-start shadow-2xs">
+        <div className="inline-flex items-center gap-1.5 p-1 bg-zinc-50 rounded-2xl border border-zinc-200/80 self-start shadow-2xs">
           <button
             type="button"
             onClick={() => setActiveMode("photos")}
             className={`py-1.5 px-3 rounded-xl text-xs flex items-center gap-2 transition-all duration-200 cursor-pointer ${
               activeMode === "photos"
-                ? "bg-white text-gray-900 shadow-2xs border border-gray-200/80"
-                : "text-gray-500 hover:text-gray-900"
+                ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80"
+                : "text-zinc-500 hover:text-zinc-900"
             }`}
           >
             <Camera className="size-3.5 text-[#FF5238]" />
@@ -153,8 +198,8 @@ export function ProductGalleryPro({
             onClick={() => setActiveMode("video")}
             className={`py-1.5 px-3 rounded-xl text-xs flex items-center gap-2 transition-all duration-200 cursor-pointer ${
               activeMode === "video"
-                ? "bg-white text-gray-900 shadow-2xs border border-gray-200/80"
-                : "text-gray-500 hover:text-gray-900"
+                ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80"
+                : "text-zinc-500 hover:text-zinc-900"
             }`}
           >
             <Play className="size-3.5 text-[#FF5238]" />
@@ -166,36 +211,71 @@ export function ProductGalleryPro({
       {/* Main Gallery Layout: Left Thumbnails + Right Swiper Slider */}
       <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start w-full">
 
-        {/* 1. Left Vertical Thumbnails Column (Always visible, even with 1 image) */}
+        {/* 1. Left Vertical Thumbnails Navigation (Scrollbar 100% hidden, smooth micro-arrows) */}
         {activeMode === "photos" && displayImages.length > 0 && (
-          <div className="flex flex-row md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto max-h-[540px] w-full md:w-[72px] lg:w-[82px] shrink-0 custom-sidebar-scrollbar pb-1 md:pb-0 pr-0.5 select-none">
-            {displayImages.map((img, idx) => {
-              const isSelected = selectedIndex === idx;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onMouseEnter={() => handleSelectThumbnail(idx)}
-                  onClick={() => handleSelectThumbnail(idx)}
-                  className={`size-16 md:size-[72px] lg:size-[80px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 bg-white"
-                      : "border-gray-200/80 hover:border-gray-300 bg-transparent"
-                  }`}
-                >
-                  <img
-                    src={img}
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-contain pointer-events-none"
-                  />
-                </button>
-              );
-            })}
+          <div className="relative flex flex-col items-center w-full md:w-[76px] lg:w-[84px] shrink-0 group/thumbs">
+            
+            {/* Top Navigation Arrow (Desktop) */}
+            {displayImages.length > 4 && (
+              <button
+                type="button"
+                onClick={() => handleScrollThumbnails("prev")}
+                disabled={selectedIndex === 0}
+                className="hidden md:flex mb-1.5 size-7 rounded-xl bg-white text-zinc-600 border border-zinc-200 items-center justify-center hover:bg-zinc-50 hover:text-[#FF5238] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer z-10"
+                title="წინა"
+              >
+                <ChevronUp className="size-4" />
+              </button>
+            )}
+
+            {/* Thumbnails Track (Zero ugly scrollbar, perfectly centered & smooth) */}
+            <div
+              ref={thumbnailContainerRef}
+              className="flex flex-row md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto max-h-[500px] w-full md:w-full py-1 px-1 select-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {displayImages.map((img, idx) => {
+                const isSelected = selectedIndex === idx;
+                return (
+                  <button
+                    key={idx}
+                    ref={(el) => { thumbnailRefs.current[idx] = el; }}
+                    type="button"
+                    onMouseEnter={() => handleSelectThumbnail(idx)}
+                    onClick={() => handleSelectThumbnail(idx)}
+                    className={`size-16 md:size-[68px] lg:size-[76px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer bg-white relative ${
+                      isSelected
+                        ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-2xs"
+                        : "border-zinc-200 hover:border-zinc-300 opacity-75 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-contain pointer-events-none"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bottom Navigation Arrow (Desktop) */}
+            {displayImages.length > 4 && (
+              <button
+                type="button"
+                onClick={() => handleScrollThumbnails("next")}
+                disabled={selectedIndex === displayImages.length - 1}
+                className="hidden md:flex mt-1.5 size-7 rounded-xl bg-white text-zinc-600 border border-zinc-200 items-center justify-center hover:bg-zinc-50 hover:text-[#FF5238] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer z-10"
+                title="შემდეგი"
+              >
+                <ChevronDown className="size-4" />
+              </button>
+            )}
+
           </div>
         )}
 
         {/* 2. Main Large Image Display (Swiper Slider for Smooth Drag & Click) */}
-        <div className="flex-1 relative w-full h-[420px] sm:h-[480px] lg:h-[540px] p-2 flex items-center justify-center overflow-hidden group select-none">
+        <div className="flex-1 relative w-full h-[420px] sm:h-[480px] lg:h-[540px] p-2 flex items-center justify-center overflow-hidden group select-none bg-white rounded-3xl border border-zinc-100/80">
 
           {/* Status Badges */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
@@ -210,6 +290,16 @@ export function ProductGalleryPro({
               </span>
             )}
           </div>
+
+          {/* Expand / Lightbox Button */}
+          <button
+            type="button"
+            onClick={() => handleOpenLightbox(selectedIndex)}
+            className="absolute top-4 right-4 z-10 size-9 rounded-xl bg-white/90 text-zinc-600 border border-zinc-200/80 flex items-center justify-center shadow-2xs opacity-0 group-hover:opacity-100 hover:text-[#FF5238] hover:bg-white transition-all cursor-pointer"
+            title="გადიდება"
+          >
+            <Maximize2 className="size-4" />
+          </button>
 
           {/* Photos Mode: Real-time Touch & Mouse Swipe via Swiper */}
           {activeMode === "photos" ? (
@@ -256,7 +346,7 @@ export function ProductGalleryPro({
             </div>
           )}
 
-          {/* Comfortable Large Navigation Arrows */}
+          {/* Large Navigation Arrows on Hover */}
           {activeMode === "photos" && displayImages.length > 1 && (
             <>
               <button
@@ -265,10 +355,10 @@ export function ProductGalleryPro({
                   e.stopPropagation();
                   handleMainPrev();
                 }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-white/95 text-gray-800 border border-gray-200/80 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 cursor-pointer shadow-md"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200/80 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 cursor-pointer shadow-md"
                 title="წინა სურათი"
               >
-                <ChevronLeft className="size-6 text-gray-700" />
+                <ChevronLeft className="size-6 text-zinc-700" />
               </button>
               <button
                 type="button"
@@ -276,10 +366,10 @@ export function ProductGalleryPro({
                   e.stopPropagation();
                   handleMainNext();
                 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-white/95 text-gray-800 border border-gray-200/80 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 cursor-pointer shadow-md"
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200/80 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 cursor-pointer shadow-md"
                 title="შემდეგი სურათი"
               >
-                <ChevronRight className="size-6 text-gray-700" />
+                <ChevronRight className="size-6 text-zinc-700" />
               </button>
             </>
           )}
@@ -288,34 +378,40 @@ export function ProductGalleryPro({
 
       </div>
 
-      {/* Premium Lightbox Modal (Independent Swiper, Zero Background Motion) */}
+      {/* 3. Premium Lightbox Modal */}
       {mounted && isLightboxOpen && createPortal(
         <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+          className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
           onClick={handleCloseLightbox}
         >
-          {/* Floating White Card Modal */}
+          {/* Floating Card Modal */}
           <div
-            className="relative max-w-4xl w-full bg-white rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center gap-5 border border-gray-100"
+            className="relative max-w-4xl w-full bg-white rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center gap-5 border border-zinc-100 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Top-Right Close Button */}
-            <button
-              type="button"
-              onClick={handleCloseLightbox}
-              className="absolute -top-3 -right-3 md:-top-4 md:-right-4 size-10 rounded-full bg-[#FF5238] hover:bg-[#EA3A20] text-white shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 z-30"
-              title="დახურვა (Esc)"
-            >
-              <X className="size-5" />
-            </button>
+            {/* Lightbox Header Bar */}
+            <div className="w-full flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-900 font-sans truncate max-w-md">{title}</span>
+                <span className="text-[11px] text-zinc-400 font-mono">
+                  ({lightboxIndex + 1} / {displayImages.length})
+                </span>
+              </div>
 
-            {/* Top-Left Photo Counter Badge */}
-            <div className="absolute top-4 left-6 text-xs text-gray-500 bg-gray-100/80 px-3 py-1 rounded-xl">
-              {lightboxIndex + 1} / {displayImages.length}
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={handleCloseLightbox}
+                className="p-1.5 rounded-full hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
+                title="დახურვა (Esc)"
+              >
+                <X className="size-5" />
+              </button>
             </div>
 
-            {/* Main Image Viewport with Swiper Touch & Mouse Drag */}
-            <div className="relative w-full aspect-4/3 max-h-[55vh] flex items-center justify-center overflow-hidden select-none my-2">
+            {/* Lightbox Main Image Stage */}
+            <div className="relative w-full h-[55vh] flex items-center justify-center">
+              
               {/* Left Arrow */}
               {displayImages.length > 1 && (
                 <button
@@ -324,10 +420,10 @@ export function ProductGalleryPro({
                     e.stopPropagation();
                     handleLightboxPrev();
                   }}
-                  className="absolute left-1 md:left-3 z-30 size-11 rounded-full bg-white/95 text-gray-800 border border-gray-100 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                  className="absolute left-1 md:left-3 z-30 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   title="წინა ფოტო (←)"
                 >
-                  <ChevronLeft className="size-6 text-gray-700" />
+                  <ChevronLeft className="size-6 text-zinc-700" />
                 </button>
               )}
 
@@ -370,17 +466,17 @@ export function ProductGalleryPro({
                     e.stopPropagation();
                     handleLightboxNext();
                   }}
-                  className="absolute right-1 md:right-3 z-30 size-11 rounded-full bg-white/95 text-gray-800 border border-gray-100 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                  className="absolute right-1 md:right-3 z-30 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   title="შემდეგი ფოტო (→)"
                 >
-                  <ChevronRight className="size-6 text-gray-700" />
+                  <ChevronRight className="size-6 text-zinc-700" />
                 </button>
               )}
             </div>
 
-            {/* Bottom Thumbnails Row */}
+            {/* Bottom Thumbnails Row (Clean, Scrollbar-Free) */}
             {displayImages.length > 0 && (
-              <div className="flex items-center gap-2.5 overflow-x-auto p-1 max-w-full scrollbar-none">
+              <div className="flex items-center gap-2.5 overflow-x-auto p-1 max-w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {displayImages.map((img, idx) => {
                   const isSelected = lightboxIndex === idx;
                   return (
@@ -388,10 +484,10 @@ export function ProductGalleryPro({
                       key={idx}
                       type="button"
                       onClick={() => handleLightboxSelectThumbnail(idx)}
-                      className={`size-14 md:size-16 rounded-xl border p-1.5 bg-white flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
+                      className={`size-14 md:size-16 rounded-2xl border p-1.5 bg-white flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
                         isSelected
                           ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-2xs"
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-zinc-200 hover:border-zinc-300 opacity-80 hover:opacity-100"
                       }`}
                     >
                       <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-contain pointer-events-none" />
