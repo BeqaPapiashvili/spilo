@@ -46,86 +46,35 @@ interface Message {
   attachment?: ChatAttachment;
 }
 
-/* Unique Custom Spilo Concierge Mascot & Headset SVG Icon */
+/* Modern Custom Dual-Bubble Chat SVG Icon */
 function CustomSpiloChatIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <defs>
-        <linearGradient id="spiloMascotGrad" x1="6" y1="6" x2="26" y2="26" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FFFFFF" />
-          <stop offset="1" stopColor="#FED7CC" />
-        </linearGradient>
-      </defs>
-
-      {/* Headset Arc Band over head */}
+      {/* Background Secondary Chat Bubble (Dialog response) */}
       <path
-        d="M8.5 14C8.5 9.8 11.8 6.5 16 6.5C20.2 6.5 23.5 9.8 23.5 14"
-        stroke="url(#spiloMascotGrad)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
+        d="M18.5 4H8.5C7.12 4 6 5.12 6 6.5V7.5H15.5C17.43 7.5 19 9.07 19 11V14.5H19.5C20.33 14.5 21 13.83 21 13V6.5C21 5.12 19.88 4 18.5 4Z"
+        fill="white"
+        fillOpacity="0.4"
       />
-
-      {/* Left Ear / Headset Cushion */}
-      <rect x="5.5" y="12" width="3.2" height="7" rx="1.6" fill="white" />
-      
-      {/* Right Ear / Headset Cushion */}
-      <rect x="23.3" y="12" width="3.2" height="7" rx="1.6" fill="white" />
-
-      {/* Cute Mascot Head Capsule */}
-      <rect
-        x="9"
-        y="9.5"
-        width="14"
-        height="12"
-        rx="6"
+      {/* Foreground Main Chat Bubble with Smooth Tail */}
+      <path
+        d="M16 8H5C3.34 8 2 9.34 2 11V16C2 17.66 3.34 19 5 19H6V21.4C6 21.85 6.53 22.09 6.87 21.8L10.2 19H16C17.66 19 19 17.66 19 16V11C19 9.34 17.66 8 16 8Z"
         fill="white"
         fillOpacity="0.2"
-        stroke="white"
-        strokeWidth="2"
-      />
-
-      {/* Friendly Eyes */}
-      <circle cx="13" cy="14" r="1.3" fill="white" />
-      <circle cx="19" cy="14" r="1.3" fill="white" />
-
-      {/* Signature Spilo Elephant Trunk / Cheerful Smile */}
-      <path
-        d="M16 15.5V18C16 19.4 17.1 20.5 18.5 20.5C19 20.5 19.4 20.1 19.4 19.6"
         stroke="white"
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-
-      {/* Modern Microphone Boom with Coral Tip */}
-      <path
-        d="M24 16.5C24 20 21.2 22.8 17.8 23.2"
-        stroke="#FF5238"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <circle cx="17" cy="23.2" r="1.5" fill="#FF5238" />
-
-      {/* Audio Ripple Signal Waves in top-right */}
-      <path
-        d="M24.5 6C26.5 7.5 28 9.8 28.5 12.5"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeOpacity="0.8"
-      />
-      <path
-        d="M27 3.5C29.5 5.5 31 8.5 31.5 11.5"
-        stroke="white"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeOpacity="0.4"
-      />
+      {/* Three dialogue / typing dots inside main chat bubble */}
+      <circle cx="6.5" cy="13.5" r="1.2" fill="white" />
+      <circle cx="10.5" cy="13.5" r="1.2" fill="white" />
+      <circle cx="14.5" cy="13.5" r="1.2" fill="white" />
     </svg>
   );
 }
