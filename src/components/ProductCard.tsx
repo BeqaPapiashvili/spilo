@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, ShoppingCart, Check, GitCompare, Star } from "lucide-react";
+import { Heart, ShoppingCart, Check, GitCompare } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 export interface ProductCardProps {
@@ -30,8 +30,6 @@ export default function ProductCard({
   images,
   discountPercentage,
   stock,
-  rating,
-  reviewsCount,
 }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
@@ -45,9 +43,11 @@ export default function ProductCard({
   const isLiked = isInWishlist(id);
   const isCompared = compareList.includes(id);
 
-  // Deterministic rating fallback based on id hash if not provided
-  const displayRating = rating || (4.2 + ((id.charCodeAt(0) + id.length) % 8) * 0.1).toFixed(1);
-  const displayReviews = reviewsCount || (12 + ((id.charCodeAt(id.length - 1) || 5) * 17) % 350);
+  // Installment calculation fallback
+  const currentPrice = discountPrice || price;
+  const calculatedMonthly = monthlyInstallment || Math.round(currentPrice / 12);
+  const effectiveDiscount = discountPercentage || (discountPrice ? Math.round(((price - discountPrice) / price) * 100) : 0);
+  const currentDisplayImage = allImages[activeImageIndex] || allImages[0] || image;
 
   // Navigate to product page on entire card click
   const handleCardClick = (e: React.MouseEvent) => {
@@ -88,7 +88,7 @@ export default function ProductCard({
       title,
       price,
       discountPrice,
-      monthlyInstallment,
+      monthlyInstallment: calculatedMonthly,
       image: allImages[0] || image,
       discountPercentage,
     });
@@ -100,15 +100,11 @@ export default function ProductCard({
     toggleCompare(id);
   };
 
-  const currentPrice = discountPrice || price;
-  const effectiveDiscount = discountPercentage || (discountPrice ? Math.round(((price - discountPrice) / price) * 100) : 0);
-  const currentDisplayImage = allImages[activeImageIndex] || allImages[0] || image;
-
   return (
     <div
       onClick={handleCardClick}
       onMouseLeave={() => setActiveImageIndex(0)}
-      className="group relative flex flex-col h-[390px] w-full bg-white rounded-[24px] p-4 select-none cursor-pointer border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between"
+      className="group relative flex flex-col h-[380px] w-full bg-white rounded-[24px] p-4 select-none cursor-pointer border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between shadow-2xs hover:shadow-xs"
     >
       
       {/* Top Section: Image Area with Floating Hover Actions */}
@@ -154,7 +150,7 @@ export default function ProductCard({
           />
         </div>
 
-        {/* Hover-triggered Segmented Hover Zones (Switches preview on hover, enters page on click) */}
+        {/* Hover-triggered Segmented Hover Zones */}
         {allImages.length > 1 && (
           <div className="absolute inset-0 z-10 flex cursor-pointer">
             {allImages.map((_, idx) => (
@@ -186,14 +182,14 @@ export default function ProductCard({
         )}
       </div>
 
-      {/* Lower Content: Discount Badge, Price with Hover Cart Button, Title, Rating */}
+      {/* Lower Content: Discount Badge, Price, Title, Installment */}
       <div className="space-y-2 pt-1 flex-1 flex flex-col justify-end cursor-pointer">
         
         {/* Price & Action Row (With Discount Badge) */}
-        <div className="flex items-center justify-between gap-2 min-h-[48px] relative">
+        <div className="flex items-center justify-between gap-2 min-h-[44px] relative">
           
           {/* Price Stack */}
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className="min-w-0 flex-1 space-y-0.5">
             {effectiveDiscount > 0 && (
               <div>
                 <span className="inline-block text-[11px] bg-[#10B981] text-white px-2 py-0.5 rounded-md leading-none">
@@ -247,11 +243,27 @@ export default function ProductCard({
           {title}
         </h3>
 
-        {/* Bottom Rating Row (Star + Rating + Count) */}
-        <div className="flex items-center gap-1.5 pt-1 text-xs">
-          <Star className="w-3.5 h-3.5 fill-[#FF5238] text-[#FF5238] shrink-0" />
-          <span className="text-zinc-800">{displayRating}</span>
-          <span className="text-zinc-400">({displayReviews})</span>
+        {/* Clean Installment & Stock Row (Replaced cluttered rating) */}
+        <div className="flex items-center justify-between pt-1 border-t border-zinc-100 text-[11px]">
+          {calculatedMonthly > 0 && currentPrice >= 50 ? (
+            <span className="text-zinc-500 font-mono">
+              თვეში <span className="text-zinc-900">{calculatedMonthly} ₾</span>-დან
+            </span>
+          ) : (
+            <span className="text-zinc-400">სტანდარტული ფასი</span>
+          )}
+
+          {isOutOfStock ? (
+            <span className="text-zinc-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
+              ამოწურულია
+            </span>
+          ) : (
+            <span className="text-emerald-600 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              მარაგშია
+            </span>
+          )}
         </div>
 
       </div>
