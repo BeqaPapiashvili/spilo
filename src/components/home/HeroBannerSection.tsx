@@ -105,7 +105,7 @@ export default function HeroBannerSection({
             {slides.length > 1 && (
               <div
                 onClick={handlePrev}
-                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-55 hover:opacity-95 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-md border border-zinc-800 bg-[#111111] group"
+                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-55 hover:opacity-95 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-md bg-[#111111] group"
               >
                 <img
                   src={prevSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&q=80"}
@@ -131,7 +131,7 @@ export default function HeroBannerSection({
             )}
 
             {/* CENTER SPOTLIGHT CARD (Primary Hero Slide) */}
-            <div className="flex-1 max-w-[1000px] h-[420px] sm:h-[460px] md:h-[480px] rounded-[32px] sm:rounded-[36px] overflow-hidden relative shadow-2xl border border-zinc-800 bg-[#111111] group">
+            <div className="flex-1 max-w-[1000px] h-[420px] sm:h-[460px] md:h-[480px] rounded-[32px] sm:rounded-[36px] overflow-hidden relative shadow-2xl bg-[#111111] group">
               
               {/* Slide Background Images (Layered Cross-Fade without White Flashes) */}
               {slides.map((slide, idx) => {
@@ -280,7 +280,7 @@ export default function HeroBannerSection({
             {slides.length > 1 && (
               <div
                 onClick={handleNext}
-                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-55 hover:opacity-95 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-md border border-zinc-800 bg-[#111111] group"
+                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-55 hover:opacity-95 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-md bg-[#111111] group"
               >
                 <img
                   src={nextSlide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&q=80"}
