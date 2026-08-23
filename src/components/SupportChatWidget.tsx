@@ -596,10 +596,9 @@ export default function SupportChatWidget() {
 
                         <button
                           type="submit"
-                          className="w-full h-12 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs sm:text-sm cursor-pointer transition-all shadow-md shadow-[#FF5238]/20 mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
+                          className="w-full h-12 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs sm:text-sm cursor-pointer transition-all shadow-md shadow-[#FF5238]/20 mt-4 active:scale-[0.98] flex items-center justify-center"
                         >
-                          <span>კონსულტაციის დაწყება</span>
-                          <Sparkles className="w-4 h-4" />
+                          კონსულტაციის დაწყება
                         </button>
                       </form>
                     </div>
