@@ -46,8 +46,8 @@ interface Message {
   attachment?: ChatAttachment;
 }
 
-/* Modern Custom Dual-Bubble Chat SVG Icon */
-function CustomSpiloChatIcon({ className = "w-6 h-6" }: { className?: string }) {
+/* Ultra-Modern Solid Messenger Chat SVG Icon */
+function CustomSpiloChatIcon({ className = "w-6 h-6", dotColor = "#111111" }: { className?: string; dotColor?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -55,26 +55,15 @@ function CustomSpiloChatIcon({ className = "w-6 h-6" }: { className?: string }) 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Background Secondary Chat Bubble (Dialog response) */}
+      {/* Sleek Modern Solid Chat Bubble */}
       <path
-        d="M18.5 4H8.5C7.12 4 6 5.12 6 6.5V7.5H15.5C17.43 7.5 19 9.07 19 11V14.5H19.5C20.33 14.5 21 13.83 21 13V6.5C21 5.12 19.88 4 18.5 4Z"
-        fill="white"
-        fillOpacity="0.4"
+        d="M12 2.5C6.753 2.5 2.5 6.47 2.5 11.37C2.5 14.18 3.84 16.68 5.95 18.28C5.72 19.7 5.1 20.94 4.28 21.84C4.1 22.04 4.25 22.36 4.52 22.35C6.72 22.29 8.62 21.33 9.9 20.08C10.58 20.2 11.28 20.25 12 20.25C17.247 20.25 21.5 16.28 21.5 11.37C21.5 6.47 17.247 2.5 12 2.5Z"
+        fill="currentColor"
       />
-      {/* Foreground Main Chat Bubble with Smooth Tail */}
-      <path
-        d="M16 8H5C3.34 8 2 9.34 2 11V16C2 17.66 3.34 19 5 19H6V21.4C6 21.85 6.53 22.09 6.87 21.8L10.2 19H16C17.66 19 19 17.66 19 16V11C19 9.34 17.66 8 16 8Z"
-        fill="white"
-        fillOpacity="0.2"
-        stroke="white"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Three dialogue / typing dots inside main chat bubble */}
-      <circle cx="6.5" cy="13.5" r="1.2" fill="white" />
-      <circle cx="10.5" cy="13.5" r="1.2" fill="white" />
-      <circle cx="14.5" cy="13.5" r="1.2" fill="white" />
+      {/* 3 Modern Contrast Cutout Dots */}
+      <circle cx="8" cy="11.4" r="1.3" fill={dotColor} />
+      <circle cx="12" cy="11.4" r="1.3" fill={dotColor} />
+      <circle cx="16" cy="11.4" r="1.3" fill={dotColor} />
     </svg>
   );
 }
@@ -846,24 +835,24 @@ export default function SupportChatWidget() {
           )}
         </AnimatePresence>
 
-        {/* 3. Floating Trigger Button (Custom Spilo Chat Icon) */}
+        {/* 3. Floating Trigger Button (Clean Modern Messenger Icon) */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border ${
+          className={`w-12 h-12 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-105 border relative active:scale-95 ${
             isOpen
               ? "bg-[#FF5238] hover:bg-[#EA3A20] text-white border-[#FED7CC] shadow-[#FF5238]/30"
-              : "bg-[#111111] hover:bg-black text-white border-white/10"
+              : "bg-[#111111] hover:bg-black text-white border-white/15"
           }`}
           title={isOpen ? "ჩათის დახურვა" : "დახმარება & ჩატი"}
         >
           {isOpen ? (
             <X className="w-5 h-5 text-white" />
           ) : (
-            <div className="relative flex items-center justify-center">
-              <CustomSpiloChatIcon className="w-5.5 h-5.5 text-white" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#FF5238] rounded-full border border-[#111111] animate-pulse" />
-            </div>
+            <>
+              <CustomSpiloChatIcon className="w-6 h-6 text-white" dotColor="#111111" />
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#FF5238] rounded-full ring-2 ring-[#111111] animate-pulse" />
+            </>
           )}
         </button>
 
