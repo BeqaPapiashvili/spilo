@@ -92,6 +92,7 @@ function SearchContent() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
           {productsList.map((product) => {
             const prodImg = product.images?.[0] || product.image || "";
+            const prodImages = product.images && product.images.length > 0 ? product.images : [prodImg];
             return (
               <ProductCard
                 key={product.id}
@@ -101,6 +102,7 @@ function SearchContent() {
                 discountPrice={product.discountPrice}
                 monthlyInstallment={product.monthlyInstallment}
                 image={prodImg}
+                images={prodImages}
                 discountPercentage={product.discountPercentage}
                 stock={product.stock}
               />

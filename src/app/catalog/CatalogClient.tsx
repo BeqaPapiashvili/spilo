@@ -312,9 +312,9 @@ function CatalogContent() {
           <button
             type="button"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-            className="lg:hidden flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl text-xs text-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.015)] cursor-pointer border border-gray-100"
+            className="lg:hidden flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl text-xs text-zinc-700 shadow-sm cursor-pointer border border-zinc-200"
           >
-            <SlidersHorizontal className="w-4 h-4 text-blue-600" />
+            <SlidersHorizontal className="w-4 h-4 text-[#FF5238]" />
             <span>ფილტრები ({activeFiltersCount})</span>
           </button>
 
@@ -324,10 +324,10 @@ function CatalogContent() {
               type="button"
               onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
               onBlur={() => setTimeout(() => setIsSortDropdownOpen(false), 200)}
-              className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl text-xs text-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.015)] cursor-pointer select-none border border-transparent hover:border-gray-200/60 transition-all"
+              className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl text-xs text-zinc-700 shadow-sm cursor-pointer select-none border border-transparent hover:border-zinc-200/60 transition-all"
             >
-              <ArrowUpDown className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-900">
+              <ArrowUpDown className="w-4 h-4 text-zinc-400" />
+              <span className="text-zinc-900">
                 {filters.sort === "default" && "სორტირება"}
                 {filters.sort === "all" && "ყველა"}
                 {filters.sort === "price-desc" && "ფასი: კლებადობით"}
@@ -337,13 +337,13 @@ function CatalogContent() {
                 {filters.sort === "newest" && "უახლესი"}
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-gray-400 ml-0.5 transition-transform duration-200 ${isSortDropdownOpen ? "rotate-180" : ""
+                className={`w-3.5 h-3.5 text-zinc-400 ml-0.5 transition-transform duration-200 ${isSortDropdownOpen ? "rotate-180" : ""
                   }`}
               />
             </button>
 
             {isSortDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[200px] z-30 space-y-0.5">
+              <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-zinc-100 py-1.5 min-w-[200px] z-30 space-y-0.5">
                 {[
                   { id: "all", label: "ყველა" },
                   { id: "price-desc", label: "ფასი: კლებადობით" },
@@ -360,12 +360,12 @@ function CatalogContent() {
                       setIsSortDropdownOpen(false);
                     }}
                     className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors cursor-pointer ${filters.sort === s.id
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-50"
+                        ? "bg-[#FFF5F2] text-[#FF5238]"
+                        : "text-zinc-700 hover:bg-zinc-50"
                       }`}
                   >
                     <span>{s.label}</span>
-                    {filters.sort === s.id && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                    {filters.sort === s.id && <Check className="w-3.5 h-3.5 text-[#FF5238]" />}
                   </button>
                 ))}
               </div>
@@ -374,24 +374,24 @@ function CatalogContent() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* Left Filter Sidebar */}
+      <div className="flex flex-col lg:flex-row gap-6 xl:gap-8 items-start">
+        {/* Left Filter Sidebar (Expanded Width & Luxury Styling) */}
         <aside
-          className={`w-full lg:w-64 bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-gray-100/80 space-y-6 shrink-0 ${isMobileFilterOpen ? "block" : "hidden lg:block"
+          className={`w-full lg:w-[290px] xl:w-[320px] bg-white rounded-[26px] p-6 shadow-sm border border-zinc-200/80 space-y-6 shrink-0 ${isMobileFilterOpen ? "block" : "hidden lg:block"
             }`}
         >
           {/* Filter Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-              <span className="text-xs text-gray-900">ფილტრები</span>
+              <SlidersHorizontal className="w-4 h-4 text-[#FF5238]" />
+              <span className="text-xs text-zinc-900 font-sans">ფილტრები</span>
             </div>
 
             {activeFiltersCount > 0 && (
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-[11px] text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
+                className="text-[11px] text-zinc-400 hover:text-[#FF5238] transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>გასუფთავება</span>
@@ -400,51 +400,51 @@ function CatalogContent() {
           </div>
 
           {/* Dual Range Price Slider */}
-          <div className="space-y-4 pb-5 border-b border-gray-100">
+          <div className="space-y-4 pb-5 border-b border-zinc-100">
             <button
               type="button"
               onClick={() => setPriceOpen(!priceOpen)}
-              className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
+              className="w-full flex items-center justify-between text-xs text-zinc-900 cursor-pointer font-sans"
             >
               <span>ფასი (₾)</span>
               {priceOpen ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
+                <ChevronUp className="w-4 h-4 text-zinc-400" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
+                <ChevronDown className="w-4 h-4 text-zinc-400" />
               )}
             </button>
 
             {priceOpen && (
               <div className="space-y-4 pt-1">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex-1 bg-gray-50 border border-gray-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-blue-500">
-                    <span className="text-[10px] text-gray-400 block leading-none">დან</span>
+                  <div className="flex-1 bg-zinc-50 border border-zinc-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-[#FF5238]">
+                    <span className="text-[10px] text-zinc-400 block leading-none">დან</span>
                     <input
                       type="number"
                       value={filters.minPrice}
                       onChange={(e) => handleMinPriceChange(Number(e.target.value))}
-                      className="w-full bg-transparent text-xs text-gray-900 focus:outline-none"
+                      className="w-full bg-transparent text-xs text-zinc-900 focus:outline-none"
                     />
                   </div>
 
-                  <span className="text-gray-300">-</span>
+                  <span className="text-zinc-300">-</span>
 
-                  <div className="flex-1 bg-gray-50 border border-gray-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-blue-500">
-                    <span className="text-[10px] text-gray-400 block leading-none">მდე</span>
+                  <div className="flex-1 bg-zinc-50 border border-zinc-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-[#FF5238]">
+                    <span className="text-[10px] text-zinc-400 block leading-none">მდე</span>
                     <input
                       type="number"
                       value={filters.maxPrice}
                       onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
-                      className="w-full bg-transparent text-xs text-gray-900 focus:outline-none"
+                      className="w-full bg-transparent text-xs text-zinc-900 focus:outline-none"
                     />
                   </div>
                 </div>
 
                 {/* Dual Slider Bar */}
                 <div className="relative h-5 flex items-center">
-                  <div className="absolute left-0 right-0 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="absolute left-0 right-0 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-blue-600 rounded-full"
+                      className="h-full bg-[#FF5238] rounded-full"
                       style={{
                         left: `${minPercent}%`,
                         width: `${maxPercent - minPercent}%`,
@@ -460,7 +460,7 @@ function CatalogContent() {
                     step={25}
                     value={filters.minPrice}
                     onChange={(e) => handleMinPriceChange(Number(e.target.value))}
-                    className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-600 [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(37,99,235,0.3)] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                    className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#FF5238] [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(255,82,56,0.3)] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
                   />
 
                   <input
@@ -470,7 +470,7 @@ function CatalogContent() {
                     step={25}
                     value={filters.maxPrice}
                     onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
-                    className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-600 [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(37,99,235,0.3)] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                    className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#FF5238] [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(255,82,56,0.3)] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
                   />
                 </div>
 
@@ -487,8 +487,8 @@ function CatalogContent() {
                         setPriceRange(preset.min, preset.max);
                       }}
                       className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${filters.minPrice === preset.min && filters.maxPrice === preset.max
-                          ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                          ? "bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC]"
+                          : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
                         }`}
                     >
                       {preset.label}
@@ -500,22 +500,22 @@ function CatalogContent() {
           </div>
 
           {/* Brand Filter */}
-          <div className="space-y-3 pb-5 border-b border-gray-100">
+          <div className="space-y-3 pb-5 border-b border-zinc-100">
             <button
               type="button"
               onClick={() => setBrandOpen(!brandOpen)}
-              className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
+              className="w-full flex items-center justify-between text-xs text-zinc-900 cursor-pointer font-sans"
             >
               <span>ბრენდი</span>
               {brandOpen ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
+                <ChevronUp className="w-4 h-4 text-zinc-400" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
+                <ChevronDown className="w-4 h-4 text-zinc-400" />
               )}
             </button>
 
             {brandOpen && (
-              <div className="space-y-2.5 pt-1 text-xs text-gray-700 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2.5 pt-1 text-xs text-zinc-700 max-h-48 overflow-y-auto pr-1">
                 {Object.entries(brandCounts).map(([brand, count]) => {
                   const isChecked = filters.brand.some(
                     (b) => b.toLowerCase() === brand.toLowerCase()
@@ -530,15 +530,15 @@ function CatalogContent() {
                       <div className="flex items-center gap-2.5">
                         <div
                           className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${isChecked
-                              ? "bg-blue-600 border border-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
-                              : "bg-gray-50 border border-gray-200 group-hover:border-blue-400"
+                              ? "bg-[#FF5238] border border-[#FF5238] text-white shadow-xs"
+                              : "bg-zinc-50 border border-zinc-200 group-hover:border-[#FF5238]/60"
                             }`}
                         >
                           {isChecked && <Check className="w-3.5 h-3.5" />}
                         </div>
-                        <span className="group-hover:text-gray-900 transition-colors">{brand}</span>
+                        <span className="group-hover:text-zinc-900 transition-colors font-sans">{brand}</span>
                       </div>
-                      <span className="text-[11px] text-gray-400">({count})</span>
+                      <span className="text-[11px] text-zinc-400 font-mono">({count})</span>
                     </div>
                   );
                 })}
@@ -547,22 +547,22 @@ function CatalogContent() {
           </div>
 
           {/* Category Filter */}
-          <div className="space-y-3 pb-5 border-b border-gray-100">
+          <div className="space-y-3 pb-5 border-b border-zinc-100">
             <button
               type="button"
               onClick={() => setCategoryOpen(!categoryOpen)}
-              className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
+              className="w-full flex items-center justify-between text-xs text-zinc-900 cursor-pointer font-sans"
             >
               <span>კატეგორია</span>
               {categoryOpen ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
+                <ChevronUp className="w-4 h-4 text-zinc-400" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
+                <ChevronDown className="w-4 h-4 text-zinc-400" />
               )}
             </button>
 
             {categoryOpen && (
-              <div className="space-y-2.5 pt-1 text-xs text-gray-700 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2.5 pt-1 text-xs text-zinc-700 max-h-48 overflow-y-auto pr-1">
                 {Object.entries(categoryCounts).map(([cat, count]) => {
                   const isChecked = filters.category.some(
                     (c) => c.toLowerCase() === cat.toLowerCase()
@@ -577,15 +577,15 @@ function CatalogContent() {
                       <div className="flex items-center gap-2.5">
                         <div
                           className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${isChecked
-                              ? "bg-blue-600 border border-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
-                              : "bg-gray-50 border border-gray-200 group-hover:border-blue-400"
+                              ? "bg-[#FF5238] border border-[#FF5238] text-white shadow-xs"
+                              : "bg-zinc-50 border border-zinc-200 group-hover:border-[#FF5238]/60"
                             }`}
                         >
                           {isChecked && <Check className="w-3.5 h-3.5" />}
                         </div>
-                        <span className="group-hover:text-gray-900 transition-colors">{cat}</span>
+                        <span className="group-hover:text-zinc-900 transition-colors font-sans">{cat}</span>
                       </div>
-                      <span className="text-[11px] text-gray-400">({count})</span>
+                      <span className="text-[11px] text-zinc-400 font-mono">({count})</span>
                     </div>
                   );
                 })}
@@ -594,17 +594,17 @@ function CatalogContent() {
           </div>
 
           {/* Color Selector */}
-          <div className="space-y-3 pb-5 border-b border-gray-100">
+          <div className="space-y-3 pb-5 border-b border-zinc-100">
             <button
               type="button"
               onClick={() => setColorOpen(!colorOpen)}
-              className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
+              className="w-full flex items-center justify-between text-xs text-zinc-900 cursor-pointer font-sans"
             >
               <span>ფერი</span>
               {colorOpen ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
+                <ChevronUp className="w-4 h-4 text-zinc-400" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
+                <ChevronDown className="w-4 h-4 text-zinc-400" />
               )}
             </button>
 
@@ -619,15 +619,15 @@ function CatalogContent() {
                       onClick={() => handleColorToggle(color.label)}
                       title={color.label}
                       className={`relative w-7 h-7 rounded-full border transition-all cursor-pointer flex items-center justify-center ${isSelected
-                          ? "ring-2 ring-blue-600 ring-offset-2 scale-105 border-transparent"
-                          : "border-gray-200 hover:scale-105"
+                          ? "ring-2 ring-[#FF5238] ring-offset-2 scale-105 border-transparent"
+                          : "border-zinc-200 hover:scale-105"
                         }`}
                       style={{ backgroundColor: color.hex }}
                     >
                       {isSelected && (
                         <Check
                           className={`w-3.5 h-3.5 ${["#FFFFFF", "#F5F5DC", "#C5C1B8"].includes(color.hex)
-                              ? "text-gray-900"
+                              ? "text-zinc-900"
                               : "text-white"
                             }`}
                         />
@@ -640,17 +640,17 @@ function CatalogContent() {
           </div>
 
           {/* Storage Filter */}
-          <div className="space-y-3 pb-5 border-b border-gray-100">
+          <div className="space-y-3 pb-5 border-b border-zinc-100">
             <button
               type="button"
               onClick={() => setStorageOpen(!storageOpen)}
-              className="w-full flex items-center justify-between text-xs text-gray-900 cursor-pointer"
+              className="w-full flex items-center justify-between text-xs text-zinc-900 cursor-pointer font-sans"
             >
               <span>მეხსიერება</span>
               {storageOpen ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
+                <ChevronUp className="w-4 h-4 text-zinc-400" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
+                <ChevronDown className="w-4 h-4 text-zinc-400" />
               )}
             </button>
 
@@ -663,9 +663,9 @@ function CatalogContent() {
                       key={s}
                       type="button"
                       onClick={() => handleStorageToggle(s)}
-                      className={`py-2 px-3 rounded-xl text-xs transition-all cursor-pointer text-center ${isSelected
-                          ? "bg-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
-                          : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-100"
+                      className={`py-2 px-3 rounded-xl text-xs transition-all cursor-pointer text-center font-sans ${isSelected
+                          ? "bg-[#FF5238] text-white shadow-xs"
+                          : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border border-zinc-100"
                         }`}
                     >
                       {s}
@@ -679,15 +679,15 @@ function CatalogContent() {
           {/* Toggle Switch: Discounted Only */}
           <div
             onClick={toggleDiscountedOnly}
-            className="flex items-center justify-between pt-1 text-xs text-gray-900 cursor-pointer group"
+            className="flex items-center justify-between pt-1 text-xs text-zinc-900 cursor-pointer group font-sans"
           >
             <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-red-500" />
+              <Tag className="w-4 h-4 text-[#FF5238]" />
               <span>მხოლოდ ფასდაკლებული</span>
             </div>
 
             <div
-              className={`w-9 h-5 rounded-full p-0.5 transition-colors ${filters.onlyDiscounted ? "bg-blue-600" : "bg-gray-200 group-hover:bg-gray-300"
+              className={`w-9 h-5 rounded-full p-0.5 transition-colors ${filters.onlyDiscounted ? "bg-[#FF5238]" : "bg-zinc-200 group-hover:bg-zinc-300"
                 }`}
             >
               <div
@@ -704,9 +704,10 @@ function CatalogContent() {
             <ProductGridSkeleton count={8} />
           ) : displayedProducts.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                 {displayedProducts.map((product) => {
                   const prodImg = product.images?.[0] || product.image || "";
+                  const prodImages = product.images && product.images.length > 0 ? product.images : [prodImg];
                   return (
                     <ProductCard
                       key={product.id}
@@ -716,6 +717,7 @@ function CatalogContent() {
                       discountPrice={product.discountPrice}
                       monthlyInstallment={product.monthlyInstallment}
                       image={prodImg}
+                      images={prodImages}
                       discountPercentage={product.discountPercentage}
                       stock={product.stock}
                     />
@@ -730,7 +732,7 @@ function CatalogContent() {
                     type="button"
                     disabled={filters.page <= 1}
                     onClick={() => setPage(filters.page - 1)}
-                    className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     <span>წინა</span>
@@ -744,8 +746,8 @@ function CatalogContent() {
                         type="button"
                         onClick={() => setPage(p)}
                         className={`w-8 h-8 rounded-xl text-xs flex items-center justify-center transition-colors cursor-pointer ${isCurrent
-                            ? "bg-blue-600 text-white shadow-xs"
-                            : "border border-gray-200 text-gray-700 hover:bg-gray-50"
+                            ? "bg-[#FF5238] text-white shadow-xs"
+                            : "border border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                           }`}
                       >
                         {p}
@@ -757,7 +759,7 @@ function CatalogContent() {
                     type="button"
                     disabled={filters.page >= totalPages}
                     onClick={() => setPage(filters.page + 1)}
-                    className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
                   >
                     <span>შემდეგი</span>
                     <ChevronRight className="w-3.5 h-3.5" />
