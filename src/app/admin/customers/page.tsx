@@ -28,7 +28,14 @@ import {
   FilterX,
   CreditCard,
   TrendingUp,
-  UserPlus
+  UserPlus,
+  Trash2,
+  Edit3,
+  Lock,
+  KeyRound,
+  AlertTriangle,
+  Loader2,
+  ShieldAlert
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { CustomSelect, CustomSelectOption } from "@/components/admin/ui/CustomSelect";
@@ -95,11 +102,22 @@ export default function AdminCustomersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // Modals & Details Drawer
-  const [selectedUserForRole, setSelectedUserForRole] = useState<UserRecord | null>(null);
+  // Modals
   const [inspectingUser, setInspectingUser] = useState<UserRecord | null>(null);
-  const [newRole, setNewRole] = useState("CUSTOMER");
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form State for Create / Edit
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    role: "CUSTOMER",
+    password: "",
+  });
 
   const { adminUser, addToast } = useStore();
   const isSuperAdmin = adminUser?.role === "SUPER_ADMIN";
@@ -121,39 +139,69 @@ export default function AdminCustomersPage() {
     fetchUsers();
   }, []);
 
-  const handleRoleChangeSubmit = async (e: React.FormEvent) => {
+  // Open Edit Modal
+  const handleOpenEdit = (u: UserRecord) => {
+    setEditingUser(u);
+    setFormData({
+      name: u.name || "",
+      email: u.email || "",
+      phone: u.phone || "",
+      address: u.address || "",
+      role: u.role || "CUSTOMER",
+      password: "",
+    });
+  };
+
+  // Open Create Modal
+  const handleOpenCreate = () => {
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      role: "CUSTOMER",
+      password: "",
+    });
+    setIsCreateModalOpen(true);
+  };
+
+  // Save Edit
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUserForRole) return;
-    setIsUpdating(true);
+    if (!editingUser) return;
+    setIsSubmitting(true);
 
     try {
       const res = await fetch("/api/admin/customers", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: selectedUserForRole.id,
-          email: selectedUserForRole.email,
-          role: newRole,
+          userId: editingUser.id,
+          email: formData.email,
+          name: formData.name,
+          phone: formData.phone,
+          address: formData.address,
+          role: formData.role,
+          password: formData.password || undefined,
         }),
       });
 
       const resData = await res.json();
       if (resData.success) {
-        useStore.getState().updateUserRole(selectedUserForRole.email, newRole);
         addToast({
-          title: "როლი განახლდა",
-          message: `${selectedUserForRole.name}-ს მიენიჭა ${newRole} უფლება`,
+          title: "წარმატება",
+          message: `${formData.name}-ს მონაცემები განახლდა`,
           type: "success",
         });
-        setSelectedUserForRole(null);
-        if (inspectingUser?.id === selectedUserForRole.id) {
-          setInspectingUser({ ...inspectingUser, role: newRole });
+        setEditingUser(null);
+        if (inspectingUser?.id === editingUser.id) {
+          setInspectingUser({ ...inspectingUser, ...formData });
         }
         fetchUsers();
       } else {
         addToast({
           title: "შეცდომა",
-          message: resData.error || "როლის განახლება ვერ მოხერხდა",
+          message: resData.error || "განახლება ვერ მოხერხდა",
           type: "error",
         });
       }
@@ -164,7 +212,85 @@ export default function AdminCustomersPage() {
         type: "error",
       });
     } finally {
-      setIsUpdating(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Save Create
+  const handleSaveCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/admin/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        addToast({
+          title: "შექმნილია",
+          message: `მომხმარებელი ${formData.name} წარმატებით შეიქმნა`,
+          type: "success",
+        });
+        setIsCreateModalOpen(false);
+        fetchUsers();
+      } else {
+        addToast({
+          title: "შეცდომა",
+          message: resData.error || "შექმნა ვერ მოხერხდა",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      addToast({
+        title: "შეცდომა",
+        message: "სერვერთან კავშირი შეწყდა",
+        type: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Confirm Delete
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/admin/customers?id=${encodeURIComponent(userToDelete.id)}&email=${encodeURIComponent(userToDelete.email)}`, {
+        method: "DELETE",
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        addToast({
+          title: "წაშლილია",
+          message: `${userToDelete.name} წაიშალა ბაზიდან`,
+          type: "success",
+        });
+        setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+        if (inspectingUser?.id === userToDelete.id) {
+          setInspectingUser(null);
+        }
+        setUserToDelete(null);
+      } else {
+        addToast({
+          title: "შეცდომა",
+          message: resData.error || "წაშლა ვერ მოხერხდა",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      addToast({
+        title: "შეცდომა",
+        message: "სერვერთან კავშირი შეწყდა",
+        type: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -180,11 +306,9 @@ export default function AdminCustomersPage() {
 
       if (!matchesSearch) return false;
 
-      // Tab filter
       if (tabFilter === "CUSTOMERS" && u.role !== "CUSTOMER") return false;
       if (tabFilter === "STAFF" && u.role === "CUSTOMER") return false;
 
-      // Dropdown role filter
       if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
 
       return true;
@@ -271,7 +395,7 @@ export default function AdminCustomersPage() {
             მომხმარებლები & გუნდი ({users.length})
           </h1>
           <p className="text-xs md:text-sm text-zinc-500">
-            მართეთ რეგისტრირებული მომხმარებლები, შეკვეთების ისტორია და ადმინისტრაციული როლები.
+            სრული კონტროლი: მომხმარებლების შექმნა, რედაქტირება, წაშლა და ადმინისტრაციული როლები.
           </p>
         </div>
 
@@ -290,10 +414,19 @@ export default function AdminCustomersPage() {
           <button
             type="button"
             onClick={handleExportCSV}
-            className="h-11 px-5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
+            className="h-11 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Download className="w-4 h-4" />
             <span>ექსპორტი (CSV)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>ახალი მომხმარებელი</span>
           </button>
         </div>
       </div>
@@ -468,7 +601,7 @@ export default function AdminCustomersPage() {
                 <th className="py-3.5 px-6">კონტაქტი</th>
                 <th className="py-3.5 px-6">შეკვეთები / დანახარჯი</th>
                 <th className="py-3.5 px-6">რეგისტრაცია</th>
-                <th className="py-3.5 px-6 text-right">მოქმედება</th>
+                <th className="py-3.5 px-6 text-right pr-6">მოქმედებები</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -488,7 +621,7 @@ export default function AdminCustomersPage() {
                     <td className="py-4 px-6"><div className="h-3.5 bg-zinc-100 rounded w-32" /></td>
                     <td className="py-4 px-6"><div className="h-3.5 bg-zinc-100 rounded w-24" /></td>
                     <td className="py-4 px-6"><div className="h-3.5 bg-zinc-100 rounded w-20" /></td>
-                    <td className="py-4 px-6 text-right"><div className="h-8 bg-zinc-100 rounded-xl w-24 inline-block" /></td>
+                    <td className="py-4 px-6 text-right pr-6"><div className="h-8 bg-zinc-100 rounded-xl w-24 inline-block" /></td>
                   </tr>
                 ))
               ) : paginatedUsers.length === 0 ? (
@@ -586,31 +719,39 @@ export default function AdminCustomersPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-3.5 px-6 text-right pr-6 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          
+                          {/* Quick Inspect Profile */}
                           <button
                             type="button"
                             onClick={() => setInspectingUser(user)}
-                            className="h-8 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                            className="p-2 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-xl transition-colors cursor-pointer"
                             title="პროფილის გადახედვა"
                           >
-                            <span>პროფილი</span>
+                            <Users className="w-4 h-4" />
                           </button>
 
-                          {isSuperAdmin && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedUserForRole(user);
-                                setNewRole(user.role);
-                              }}
-                              className="h-8 px-3 bg-[#FFF5F2] hover:bg-[#FF5238] text-[#FF5238] hover:text-white border border-[#FED7CC] rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                              title="როლის შეცვლა"
-                            >
-                              <Settings className="w-3.5 h-3.5" />
-                              <span>როლი</span>
-                            </button>
-                          )}
+                          {/* Full Edit Profile */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(user)}
+                            className="p-2 text-zinc-400 hover:text-amber-600 hover:bg-zinc-100 rounded-xl transition-colors cursor-pointer"
+                            title="მონაცემების რედაქტირება"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+
+                          {/* Delete User (Admin protection) */}
+                          <button
+                            type="button"
+                            onClick={() => setUserToDelete(user)}
+                            className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                            title="მომხმარებლის წაშლა"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+
                         </div>
                       </td>
                     </tr>
@@ -748,19 +889,31 @@ export default function AdminCustomersPage() {
 
             {/* Footer Actions */}
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
-              {isSuperAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedUserForRole(inspectingUser);
-                    setNewRole(inspectingUser.role);
-                  }}
-                  className="px-4 py-2.5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>როლის შეცვლა</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const u = inspectingUser;
+                  setInspectingUser(null);
+                  handleOpenEdit(u);
+                }}
+                className="px-4 py-2.5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>რედაქტირება</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const u = inspectingUser;
+                  setInspectingUser(null);
+                  setUserToDelete(u);
+                }}
+                className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>წაშლა</span>
+              </button>
 
               <button
                 type="button"
@@ -775,86 +928,293 @@ export default function AdminCustomersPage() {
         </div>
       )}
 
-      {/* 7. Role & Permissions Assignment Modal */}
-      {selectedUserForRole && (
+      {/* 7. Create User Modal */}
+      {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setSelectedUserForRole(null)} />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsCreateModalOpen(false)} />
           <div className="relative bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 border border-zinc-100 shadow-2xl z-10 space-y-5 animate-in zoom-in-95 duration-150">
             
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
-                <h3 className="text-base text-zinc-900">როლის & უფლებების მინიჭება</h3>
-                <p className="text-xs text-zinc-500 font-mono">{selectedUserForRole.name} ({selectedUserForRole.email})</p>
+                <h3 className="text-base text-zinc-900">ახალი მომხმარებლის / ადმინის დამატება</h3>
+                <p className="text-xs text-zinc-500">შექმენით ახალი ანგარიში პირდაპირ MySQL ბაზაში</p>
               </div>
               <button 
                 type="button" 
-                onClick={() => setSelectedUserForRole(null)} 
+                onClick={() => setIsCreateModalOpen(false)} 
                 className="p-1.5 text-zinc-400 hover:text-zinc-900 rounded-xl hover:bg-zinc-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleRoleChangeSubmit} className="space-y-4">
-              <div className="space-y-2.5">
-                <label className="block text-xs text-zinc-500">
-                  აირჩიეთ თანამდებობა / როლი:
-                </label>
+            <form onSubmit={handleSaveCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1">სრული სახელი და გვარი *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="მაგ: გიორგი ბერიძე"
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                />
+              </div>
 
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {ROLES_INFO.map((r) => {
-                    const isSelected = newRole === r.key;
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1">ელ-ფოსტა *</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="user@spilo.ge"
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                />
+              </div>
 
-                    return (
-                      <label
-                        key={r.key}
-                        onClick={() => setNewRole(r.key)}
-                        className={`p-3.5 rounded-2xl border flex items-start gap-3 transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-[#FFF5F2] border-[#FF5238] shadow-2xs"
-                            : "bg-zinc-50 border-zinc-200/80 hover:bg-zinc-100"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="userRole"
-                          value={r.key}
-                          checked={isSelected}
-                          onChange={() => setNewRole(r.key)}
-                          className="mt-1 accent-[#FF5238]"
-                        />
-                        <div className="space-y-0.5 min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-900">{r.label}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] border ${r.badgeBg}`}>
-                              {r.key}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-zinc-500 leading-snug">{r.desc}</p>
-                        </div>
-                      </label>
-                    );
-                  })}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-zinc-700 mb-1">ტელეფონის ნომერი</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="599 00 00 00"
+                    className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 font-mono focus:outline-none focus:border-[#FF5238]"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-xs text-zinc-700 mb-1">პაროლი</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="მინიმუმ 6 სიმბოლო"
+                    className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1">მისამართი</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="თბილისი, რუსთაველის #1"
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1.5">როლი & უფლებები</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                >
+                  {ROLES_INFO.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label} ({r.key})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
                 <button
                   type="button"
-                  onClick={() => setSelectedUserForRole(null)}
+                  onClick={() => setIsCreateModalOpen(false)}
                   className="h-10 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs transition-colors cursor-pointer"
                 >
                   გაუქმება
                 </button>
                 <button
                   type="submit"
-                  disabled={isUpdating}
-                  className="h-10 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                  disabled={isSubmitting}
+                  className="h-10 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {isUpdating ? "ინახება..." : "შენახვა MySQL ბაზაში"}
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>შექმნა</span>
                 </button>
               </div>
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* 8. Edit User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setEditingUser(null)} />
+          <div className="relative bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 border border-zinc-100 shadow-2xl z-10 space-y-5 animate-in zoom-in-95 duration-150">
+            
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div>
+                <h3 className="text-base text-zinc-900">მომხმარებლის რედაქტირება</h3>
+                <p className="text-xs text-zinc-500 font-mono">ID: {editingUser.id}</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingUser(null)} 
+                className="p-1.5 text-zinc-400 hover:text-zinc-900 rounded-xl hover:bg-zinc-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1">სრული სახელი და გვარი *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1">ელ-ფოსტა *</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-zinc-700 mb-1">ტელეფონის ნომერი</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 font-mono focus:outline-none focus:border-[#FF5238]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-zinc-700 mb-1">ახალი პაროლი (სურვილისამებრ)</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="შეცვლის შემთხვევაში"
+                    className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1">მისამართი</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-700 mb-1.5">როლი & უფლებები</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#FF5238]"
+                >
+                  {ROLES_INFO.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label} ({r.key})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="h-10 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  გაუქმება
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-10 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>შენახვა</span>
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* 9. Safe Delete User Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setUserToDelete(null)} />
+          <div className="relative bg-white rounded-3xl max-w-md w-full p-6 md:p-8 border border-zinc-100 shadow-2xl z-10 space-y-4 animate-in zoom-in-95 duration-150">
+            
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-base text-zinc-900">მომხმარებლის წაშლის დადასტურება</h3>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                ნამდვილად გსურთ <strong>"{userToDelete.name}"</strong>-ს ({userToDelete.email}) წაშლა? ეს ქმედება შეუქცევადია და წაშლის მის მონაცემებს ბაზიდან.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-1 text-xs">
+              <div className="flex justify-between text-zinc-500">
+                <span>როლი:</span>
+                <span className="text-zinc-800">{userToDelete.role}</span>
+              </div>
+              <div className="flex justify-between text-zinc-500">
+                <span>შეკვეთები:</span>
+                <span className="text-zinc-800">{userToDelete.ordersCount}</span>
+              </div>
+              <div className="flex justify-between text-zinc-500">
+                <span>სულ დანახარჯი:</span>
+                <span className="text-zinc-800">₾{userToDelete.totalSpent.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                გაუქმება
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span>წაშლის დადასტურება</span>
+              </button>
+            </div>
 
           </div>
         </div>

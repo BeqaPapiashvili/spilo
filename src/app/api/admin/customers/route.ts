@@ -92,13 +92,91 @@ export async function GET(request: Request) {
 import { requireAdminSession } from "@/lib/jwt";
 import { recordAuditLog } from "@/lib/audit";
 
+import bcrypt from "bcryptjs";
+
+export async function POST(request: Request) {
+  try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
+    const body = await request.json();
+    const { name, email, phone, address, role = "CUSTOMER", password = "password123" } = body;
+
+    if (!email || !name) {
+      return NextResponse.json(
+        { success: false, error: "სახელი და ელ-ფოსტა აუცილებელია" },
+        { status: 400 }
+      );
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const hashedPassword = await bcrypt.hash(password.trim() || "password123", 10);
+
+    // Check if email exists
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: "მომხმარებელი ამ ელ-ფოსტით უკვე არსებობს" },
+        { status: 400 }
+      );
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: cleanEmail,
+        phone: phone ? phone.trim() : null,
+        address: address ? address.trim() : null,
+        role: role || "CUSTOMER",
+        password: hashedPassword,
+      },
+    });
+
+    const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER"].includes(role);
+    if (isAdminRole) {
+      await prisma.adminUser.upsert({
+        where: { email: cleanEmail },
+        update: { role, name: name.trim() },
+        create: {
+          name: name.trim(),
+          email: cleanEmail,
+          role,
+          password: hashedPassword,
+        },
+      });
+    }
+
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "USER_CREATE",
+      entity: "User",
+      target: cleanEmail,
+      details: `ადმინმა შექმნა ახალი მომხმარებელი/ადმინი (როლი: ${role})`,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: newUser,
+      message: "მომხმარებელი წარმატებით შეიქმნა",
+    });
+  } catch (error: any) {
+    console.error("POST /api/admin/customers error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to create user" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(request: Request) {
   try {
     const { session, errorResponse } = await requireAdminSession(request);
     if (errorResponse) return errorResponse;
 
     const body = await request.json();
-    const { userId, email, role } = body;
+    const { userId, email, role, name, phone, address, password } = body;
 
     if (!userId && !email) {
       return NextResponse.json(
@@ -107,46 +185,57 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (!role) {
-      return NextResponse.json(
-        { success: false, error: "როლი აუცილებელია" },
-        { status: 400 }
-      );
+    // Find existing user
+    let existing = null;
+    if (userId) {
+      existing = await prisma.user.findUnique({ where: { id: userId } });
+    }
+    if (!existing && email) {
+      existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
     }
 
-    // Update User table in MySQL
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (phone !== undefined) updateData.phone = phone.trim();
+    if (address !== undefined) updateData.address = address.trim();
+    if (role !== undefined) updateData.role = role;
+    if (password && password.trim()) {
+      updateData.password = await bcrypt.hash(password.trim(), 10);
+    }
+
     let updatedUser = null;
-    if (userId) {
+    if (existing) {
       updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: { role },
-      }).catch(() => null);
-    } else if (email) {
-      updatedUser = await prisma.user.update({
-        where: { email },
-        data: { role },
-      }).catch(() => null);
+        where: { id: existing.id },
+        data: updateData,
+      });
     }
 
     // Sync AdminUser table in MySQL
-    const targetEmail = email || updatedUser?.email;
+    const targetEmail = email || existing?.email;
+    const targetRole = role || existing?.role || "CUSTOMER";
+    const targetName = name || existing?.name || targetEmail?.split("@")[0] || "Admin";
+
     if (targetEmail) {
-      const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER"].includes(role);
+      const isAdminRole = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER"].includes(targetRole);
 
       if (isAdminRole) {
+        const adminData: any = { role: targetRole, name: targetName };
+        if (updateData.password) adminData.password = updateData.password;
+
         await prisma.adminUser.upsert({
-          where: { email: targetEmail },
-          update: { role, name: updatedUser?.name || targetEmail.split("@")[0] },
+          where: { email: targetEmail.toLowerCase() },
+          update: adminData,
           create: {
-            name: updatedUser?.name || targetEmail.split("@")[0],
-            email: targetEmail,
-            role,
-            password: updatedUser?.password || "admin123",
+            name: targetName,
+            email: targetEmail.toLowerCase(),
+            role: targetRole,
+            password: updateData.password || "admin123",
           },
         }).catch(() => {});
       } else {
         await prisma.adminUser.delete({
-          where: { email: targetEmail },
+          where: { email: targetEmail.toLowerCase() },
         }).catch(() => {});
       }
     }
@@ -155,20 +244,117 @@ export async function PUT(request: Request) {
       userId: session?.userId,
       adminEmail: session?.email,
       adminName: session?.name,
-      action: "USER_ROLE_UPDATE",
+      action: "USER_UPDATE",
       entity: "User",
       target: targetEmail || userId,
-      details: `მომხმარებლის როლი შეიცვალა: ${role}`,
+      details: `მომხმარებლის მონაცემები განახლდა (როლი: ${targetRole})`,
     });
 
     return NextResponse.json({
       success: true,
-      message: `მომხმარებლის როლი შეიცვალა: ${role}`,
+      data: updatedUser,
+      message: "მომხმარებლის მონაცემები წარმატებით განახლდა",
     });
   } catch (error: any) {
     console.error("PUT /api/admin/customers error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to update user role" },
+      { success: false, error: error.message || "Failed to update user" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const email = searchParams.get("email");
+
+    if (!id && !email) {
+      return NextResponse.json(
+        { success: false, error: "ID ან ელ-ფოსტა აუცილებელია წასაშლელად" },
+        { status: 400 }
+      );
+    }
+
+    // Find User
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          id ? { id } : undefined,
+          email ? { email } : undefined,
+        ].filter(Boolean) as any,
+      },
+    });
+
+    const targetEmail = email || user?.email;
+    const targetUserId = id || user?.id;
+
+    // Atomic cascading delete of all user records
+    await prisma.$transaction(async (tx) => {
+      if (targetUserId) {
+        // 1. Delete cart & cart items
+        const cart = await tx.cart.findUnique({ where: { userId: targetUserId } });
+        if (cart) {
+          await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+          await tx.cart.delete({ where: { id: cart.id } });
+        }
+
+        // 2. Delete reviews, price alerts, addresses
+        await tx.review.deleteMany({ where: { userId: targetUserId } });
+        await tx.priceAlert.deleteMany({ where: { userId: targetUserId } });
+        await tx.address.deleteMany({ where: { userId: targetUserId } });
+
+        // 3. Delete support tickets & messages
+        const tickets = await tx.supportTicket.findMany({ where: { customerId: targetUserId } });
+        for (const t of tickets) {
+          await tx.supportMessage.deleteMany({ where: { ticketId: t.id } });
+          await tx.supportTicket.delete({ where: { id: t.id } });
+        }
+
+        // 4. Unlink orders from userId (keep orders with customer name for accounting)
+        await tx.order.updateMany({
+          where: { userId: targetUserId },
+          data: { userId: null },
+        });
+
+        // 5. Unlink audit logs
+        await tx.auditLog.updateMany({
+          where: { userId: targetUserId },
+          data: { userId: null },
+        });
+
+        // 6. Delete user
+        await tx.user.delete({ where: { id: targetUserId } }).catch(() => {});
+      }
+
+      // Delete from AdminUser table if exists
+      if (targetEmail) {
+        await tx.adminUser.deleteMany({ where: { email: targetEmail.toLowerCase() } }).catch(() => {});
+      }
+    });
+
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "USER_DELETE",
+      entity: "User",
+      target: targetEmail || targetUserId || "User",
+      details: "მომხმარებელი სრულად წაიშალა მონაცემთა ბაზიდან",
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "მომხმარებელი წარმატებით წაიშალა",
+    });
+  } catch (error: any) {
+    console.error("DELETE /api/admin/customers error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to delete user" },
       { status: 500 }
     );
   }
