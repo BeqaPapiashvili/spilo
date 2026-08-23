@@ -243,8 +243,11 @@ export default function ProductCard({
 
         </div>
 
-        {/* Product Title */}
-        <h3 className="text-xs sm:text-[13px] text-zinc-700 group-hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 block min-h-[34px]">
+        {/* Product Title (Max 2 lines with ellipsis ...) */}
+        <h3
+          title={title}
+          className="text-xs sm:text-[13px] text-zinc-700 group-hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 overflow-hidden text-ellipsis break-words h-[34px]"
+        >
           {title}
         </h3>
 
