@@ -179,13 +179,13 @@ export function ProductGalleryPro({
       
       {/* Mode Switcher pill container (Photos / Video) */}
       {videoUrl && (
-        <div className="inline-flex items-center gap-1.5 p-1 bg-zinc-50 rounded-2xl border border-zinc-200/80 self-start shadow-2xs">
+        <div className="inline-flex items-center gap-1.5 p-1 bg-zinc-100/80 backdrop-blur-xs rounded-2xl border border-zinc-200/80 self-start shadow-2xs">
           <button
             type="button"
             onClick={() => setActiveMode("photos")}
-            className={`py-1.5 px-3 rounded-xl text-xs flex items-center gap-2 transition-all duration-200 cursor-pointer ${
+            className={`py-1.5 px-3.5 rounded-xl text-xs flex items-center gap-2 transition-all duration-200 cursor-pointer ${
               activeMode === "photos"
-                ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80"
+                ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
                 : "text-zinc-500 hover:text-zinc-900"
             }`}
           >
@@ -196,9 +196,9 @@ export function ProductGalleryPro({
           <button
             type="button"
             onClick={() => setActiveMode("video")}
-            className={`py-1.5 px-3 rounded-xl text-xs flex items-center gap-2 transition-all duration-200 cursor-pointer ${
+            className={`py-1.5 px-3.5 rounded-xl text-xs flex items-center gap-2 transition-all duration-200 cursor-pointer ${
               activeMode === "video"
-                ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80"
+                ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/80"
                 : "text-zinc-500 hover:text-zinc-900"
             }`}
           >
@@ -211,9 +211,9 @@ export function ProductGalleryPro({
       {/* Main Gallery Layout: Left Thumbnails + Right Swiper Slider */}
       <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start w-full">
 
-        {/* 1. Left Vertical Thumbnails Navigation (Scrollbar 100% hidden, smooth micro-arrows) */}
+        {/* 1. Left Vertical Thumbnails Navigation (Scrollbar 100% hidden, premium floating micro-arrows) */}
         {activeMode === "photos" && displayImages.length > 0 && (
-          <div className="relative flex flex-col items-center w-full md:w-[76px] lg:w-[84px] shrink-0 group/thumbs">
+          <div className="relative flex flex-col items-center w-full md:w-[78px] lg:w-[86px] shrink-0 group/thumbs">
             
             {/* Top Navigation Arrow (Desktop) */}
             {displayImages.length > 4 && (
@@ -221,10 +221,10 @@ export function ProductGalleryPro({
                 type="button"
                 onClick={() => handleScrollThumbnails("prev")}
                 disabled={selectedIndex === 0}
-                className="hidden md:flex mb-1.5 size-7 rounded-xl bg-white text-zinc-600 border border-zinc-200 items-center justify-center hover:bg-zinc-50 hover:text-[#FF5238] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer z-10"
+                className="hidden md:flex mb-1.5 size-8 rounded-full bg-white/95 text-zinc-700 border border-zinc-200/90 items-center justify-center hover:border-[#FF5238] hover:text-[#FF5238] hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:text-zinc-700 disabled:hover:border-zinc-200 transition-all shadow-xs cursor-pointer z-10"
                 title="წინა"
               >
-                <ChevronUp className="size-4" />
+                <ChevronUp className="size-4.5" />
               </button>
             )}
 
@@ -242,10 +242,10 @@ export function ProductGalleryPro({
                     type="button"
                     onMouseEnter={() => handleSelectThumbnail(idx)}
                     onClick={() => handleSelectThumbnail(idx)}
-                    className={`size-16 md:size-[68px] lg:size-[76px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer bg-white relative ${
+                    className={`size-16 md:size-[70px] lg:size-[78px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer bg-white relative ${
                       isSelected
-                        ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-2xs"
-                        : "border-zinc-200 hover:border-zinc-300 opacity-75 hover:opacity-100"
+                        ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-xs"
+                        : "border-zinc-200 hover:border-zinc-300 opacity-75 hover:opacity-100 hover:shadow-2xs"
                     }`}
                   >
                     <img
@@ -264,10 +264,10 @@ export function ProductGalleryPro({
                 type="button"
                 onClick={() => handleScrollThumbnails("next")}
                 disabled={selectedIndex === displayImages.length - 1}
-                className="hidden md:flex mt-1.5 size-7 rounded-xl bg-white text-zinc-600 border border-zinc-200 items-center justify-center hover:bg-zinc-50 hover:text-[#FF5238] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer z-10"
+                className="hidden md:flex mt-1.5 size-8 rounded-full bg-white/95 text-zinc-700 border border-zinc-200/90 items-center justify-center hover:border-[#FF5238] hover:text-[#FF5238] hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:text-zinc-700 disabled:hover:border-zinc-200 transition-all shadow-xs cursor-pointer z-10"
                 title="შემდეგი"
               >
-                <ChevronDown className="size-4" />
+                <ChevronDown className="size-4.5" />
               </button>
             )}
 
@@ -295,7 +295,7 @@ export function ProductGalleryPro({
           <button
             type="button"
             onClick={() => handleOpenLightbox(selectedIndex)}
-            className="absolute top-4 right-4 z-10 size-9 rounded-xl bg-white/90 text-zinc-600 border border-zinc-200/80 flex items-center justify-center shadow-2xs opacity-0 group-hover:opacity-100 hover:text-[#FF5238] hover:bg-white transition-all cursor-pointer"
+            className="absolute top-4 right-4 z-10 size-10 rounded-2xl bg-white/95 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shadow-md backdrop-blur-md opacity-0 group-hover:opacity-100 hover:bg-[#FF5238] hover:text-white hover:border-[#FF5238] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
             title="გადიდება"
           >
             <Maximize2 className="size-4" />
@@ -346,7 +346,7 @@ export function ProductGalleryPro({
             </div>
           )}
 
-          {/* Large Navigation Arrows on Hover */}
+          {/* Premium Floating Navigation Arrows on Hover */}
           {activeMode === "photos" && displayImages.length > 1 && (
             <>
               <button
@@ -355,10 +355,10 @@ export function ProductGalleryPro({
                   e.stopPropagation();
                   handleMainPrev();
                 }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200/80 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 cursor-pointer shadow-md"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 z-20 size-12 rounded-full bg-white/95 text-zinc-800 border border-zinc-200/90 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-[#FF5238] hover:text-white hover:border-[#FF5238] hover:scale-110 active:scale-95 cursor-pointer shadow-lg backdrop-blur-md"
                 title="წინა სურათი"
               >
-                <ChevronLeft className="size-6 text-zinc-700" />
+                <ChevronLeft className="size-6" />
               </button>
               <button
                 type="button"
@@ -366,10 +366,10 @@ export function ProductGalleryPro({
                   e.stopPropagation();
                   handleMainNext();
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200/80 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 cursor-pointer shadow-md"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 z-20 size-12 rounded-full bg-white/95 text-zinc-800 border border-zinc-200/90 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-[#FF5238] hover:text-white hover:border-[#FF5238] hover:scale-110 active:scale-95 cursor-pointer shadow-lg backdrop-blur-md"
                 title="შემდეგი სურათი"
               >
-                <ChevronRight className="size-6 text-zinc-700" />
+                <ChevronRight className="size-6" />
               </button>
             </>
           )}
@@ -381,7 +381,7 @@ export function ProductGalleryPro({
       {/* 3. Premium Lightbox Modal */}
       {mounted && isLightboxOpen && createPortal(
         <div
-          className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+          className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
           onClick={handleCloseLightbox}
         >
           {/* Floating Card Modal */}
@@ -402,7 +402,7 @@ export function ProductGalleryPro({
               <button
                 type="button"
                 onClick={handleCloseLightbox}
-                className="p-1.5 rounded-full hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
+                className="size-10 rounded-full bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-600 flex items-center justify-center transition-all cursor-pointer"
                 title="დახურვა (Esc)"
               >
                 <X className="size-5" />
@@ -420,10 +420,10 @@ export function ProductGalleryPro({
                     e.stopPropagation();
                     handleLightboxPrev();
                   }}
-                  className="absolute left-1 md:left-3 z-30 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                  className="absolute left-1 md:left-3 z-30 size-12 rounded-full bg-white/95 text-zinc-800 border border-zinc-200 flex items-center justify-center shadow-lg hover:bg-[#FF5238] hover:text-white hover:border-[#FF5238] hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   title="წინა ფოტო (←)"
                 >
-                  <ChevronLeft className="size-6 text-zinc-700" />
+                  <ChevronLeft className="size-6" />
                 </button>
               )}
 
@@ -466,10 +466,10 @@ export function ProductGalleryPro({
                     e.stopPropagation();
                     handleLightboxNext();
                   }}
-                  className="absolute right-1 md:right-3 z-30 size-11 rounded-full bg-white/95 text-zinc-800 border border-zinc-200 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                  className="absolute right-1 md:right-3 z-30 size-12 rounded-full bg-white/95 text-zinc-800 border border-zinc-200 flex items-center justify-center shadow-lg hover:bg-[#FF5238] hover:text-white hover:border-[#FF5238] hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   title="შემდეგი ფოტო (→)"
                 >
-                  <ChevronRight className="size-6 text-zinc-700" />
+                  <ChevronRight className="size-6" />
                 </button>
               )}
             </div>
@@ -486,7 +486,7 @@ export function ProductGalleryPro({
                       onClick={() => handleLightboxSelectThumbnail(idx)}
                       className={`size-14 md:size-16 rounded-2xl border p-1.5 bg-white flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-2xs"
+                          ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-xs"
                           : "border-zinc-200 hover:border-zinc-300 opacity-80 hover:opacity-100"
                       }`}
                     >
