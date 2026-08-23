@@ -45,14 +45,46 @@ export function ProductGalleryPro({
   const lightboxSwiperRef = useRef<any>(null);
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const scrollAnimRef = useRef<number | null>(null);
 
   const displayImages = images && images.length > 0 ? images : ["/placeholder.png"];
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      stopAutoScroll();
+    };
   }, []);
 
-  // Auto-scroll active thumbnail into view smoothly without any visible scrollbar
+  // Continuous Smooth Hover Auto-Scroll
+  const startAutoScroll = (direction: "up" | "down") => {
+    stopAutoScroll();
+
+    const scroll = () => {
+      if (thumbnailContainerRef.current) {
+        const isDesktop = window.innerWidth >= 768;
+        const delta = direction === "up" ? -5 : 5;
+
+        if (isDesktop) {
+          thumbnailContainerRef.current.scrollTop += delta;
+        } else {
+          thumbnailContainerRef.current.scrollLeft += delta;
+        }
+      }
+      scrollAnimRef.current = requestAnimationFrame(scroll);
+    };
+
+    scrollAnimRef.current = requestAnimationFrame(scroll);
+  };
+
+  const stopAutoScroll = () => {
+    if (scrollAnimRef.current !== null) {
+      cancelAnimationFrame(scrollAnimRef.current);
+      scrollAnimRef.current = null;
+    }
+  };
+
+  // Auto-scroll active thumbnail into view smoothly
   useEffect(() => {
     if (thumbnailRefs.current[selectedIndex]) {
       thumbnailRefs.current[selectedIndex]?.scrollIntoView({
@@ -63,7 +95,7 @@ export function ProductGalleryPro({
     }
   }, [selectedIndex]);
 
-  // Main Gallery Thumbnail Click
+  // Main Gallery Thumbnail Click / Hover
   const handleSelectThumbnail = (index: number) => {
     setSelectedIndex(index);
     if (mainSwiperRef.current) {
@@ -71,8 +103,8 @@ export function ProductGalleryPro({
     }
   };
 
-  // Scroll Thumbnails List Manually
-  const handleScrollThumbnails = (direction: "prev" | "next") => {
+  // Click scroll step
+  const handleClickScroll = (direction: "prev" | "next") => {
     if (!thumbnailContainerRef.current) return;
     const isDesktop = window.innerWidth >= 768;
     const scrollAmount = isDesktop ? 90 : 80;
@@ -211,27 +243,28 @@ export function ProductGalleryPro({
       {/* Main Gallery Layout: Left Thumbnails + Right Swiper Slider */}
       <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start w-full">
 
-        {/* 1. Left Vertical Thumbnails Navigation (Scrollbar 100% hidden, premium floating micro-arrows) */}
+        {/* 1. Left Vertical Thumbnails Navigation (Full-width hover-scroll bars) */}
         {activeMode === "photos" && displayImages.length > 0 && (
-          <div className="relative flex flex-col items-center w-full md:w-[78px] lg:w-[86px] shrink-0 group/thumbs">
+          <div className="relative flex flex-col items-center w-full md:w-[78px] lg:w-[86px] shrink-0">
             
-            {/* Top Navigation Arrow (Desktop) */}
+            {/* Top Full-Width Auto-Scroll Bar (Desktop) */}
             {displayImages.length > 4 && (
               <button
                 type="button"
-                onClick={() => handleScrollThumbnails("prev")}
-                disabled={selectedIndex === 0}
-                className="hidden md:flex mb-1.5 size-8 rounded-full bg-white/95 text-zinc-700 border border-zinc-200/90 items-center justify-center hover:border-[#FF5238] hover:text-[#FF5238] hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:text-zinc-700 disabled:hover:border-zinc-200 transition-all shadow-xs cursor-pointer z-10"
-                title="წინა"
+                onMouseEnter={() => startAutoScroll("up")}
+                onMouseLeave={stopAutoScroll}
+                onClick={() => handleClickScroll("prev")}
+                className="hidden md:flex w-full h-7 mb-1.5 rounded-xl bg-zinc-100/90 hover:bg-[#FFF5F2] text-zinc-500 hover:text-[#FF5238] border border-zinc-200/80 hover:border-[#FED7CC] items-center justify-center transition-all cursor-pointer shadow-2xs group/topbar active:scale-95"
+                title="მაუსის მიტანით ადის ზემოთ"
               >
-                <ChevronUp className="size-4.5" />
+                <ChevronUp className="size-4.5 group-hover/topbar:-translate-y-0.5 transition-transform" />
               </button>
             )}
 
-            {/* Thumbnails Track (Zero ugly scrollbar, perfectly centered & smooth) */}
+            {/* Thumbnails Track (Zero ugly scrollbar, clean and smooth) */}
             <div
               ref={thumbnailContainerRef}
-              className="flex flex-row md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto max-h-[500px] w-full md:w-full py-1 px-1 select-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              className="flex flex-row md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto max-h-[480px] w-full md:w-full py-1 px-0.5 select-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth"
             >
               {displayImages.map((img, idx) => {
                 const isSelected = selectedIndex === idx;
@@ -242,7 +275,7 @@ export function ProductGalleryPro({
                     type="button"
                     onMouseEnter={() => handleSelectThumbnail(idx)}
                     onClick={() => handleSelectThumbnail(idx)}
-                    className={`size-16 md:size-[70px] lg:size-[78px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer bg-white relative ${
+                    className={`size-16 md:size-[72px] lg:size-[80px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer bg-white relative ${
                       isSelected
                         ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-xs"
                         : "border-zinc-200 hover:border-zinc-300 opacity-75 hover:opacity-100 hover:shadow-2xs"
@@ -258,16 +291,17 @@ export function ProductGalleryPro({
               })}
             </div>
 
-            {/* Bottom Navigation Arrow (Desktop) */}
+            {/* Bottom Full-Width Auto-Scroll Bar (Desktop) */}
             {displayImages.length > 4 && (
               <button
                 type="button"
-                onClick={() => handleScrollThumbnails("next")}
-                disabled={selectedIndex === displayImages.length - 1}
-                className="hidden md:flex mt-1.5 size-8 rounded-full bg-white/95 text-zinc-700 border border-zinc-200/90 items-center justify-center hover:border-[#FF5238] hover:text-[#FF5238] hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:text-zinc-700 disabled:hover:border-zinc-200 transition-all shadow-xs cursor-pointer z-10"
-                title="შემდეგი"
+                onMouseEnter={() => startAutoScroll("down")}
+                onMouseLeave={stopAutoScroll}
+                onClick={() => handleClickScroll("next")}
+                className="hidden md:flex w-full h-7 mt-1.5 rounded-xl bg-zinc-100/90 hover:bg-[#FFF5F2] text-zinc-500 hover:text-[#FF5238] border border-zinc-200/80 hover:border-[#FED7CC] items-center justify-center transition-all cursor-pointer shadow-2xs group/botbar active:scale-95"
+                title="მაუსის მიტანით ჩამოდის ქვემოთ"
               >
-                <ChevronDown className="size-4.5" />
+                <ChevronDown className="size-4.5 group-hover/botbar:translate-y-0.5 transition-transform" />
               </button>
             )}
 
