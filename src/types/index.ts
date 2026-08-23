@@ -58,6 +58,7 @@ export interface Product {
   isNew?: boolean;
   isHot?: boolean;
   isFeatured?: boolean;
+  isFlashDeal?: boolean;
   warrantyMonths?: number;
   freeShipping?: boolean;
   storage?: string;
