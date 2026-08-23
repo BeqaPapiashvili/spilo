@@ -6,13 +6,10 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  ArrowRight,
-  Gift,
-  Flame,
-  Zap,
-  ShoppingBag
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { HeroSlideItem, DEFAULT_HERO_SLIDES } from "@/types/storefront";
 
 interface HeroBannerSectionProps {
@@ -50,6 +47,20 @@ export default function HeroBannerSection({
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const autoplay = config?.autoplay !== false;
+
+  // Preload all slide images into browser cache on mount to prevent any loading flash
+  useEffect(() => {
+    slides.forEach((s) => {
+      if (s.image) {
+        const img = new Image();
+        img.src = s.image;
+      }
+      if (s.mobileImage) {
+        const mImg = new Image();
+        mImg.src = s.mobileImage;
+      }
+    });
+  }, [slides]);
 
   // 5.5-second automatic progression
   useEffect(() => {
@@ -94,100 +105,121 @@ export default function HeroBannerSection({
             {slides.length > 1 && (
               <div
                 onClick={handlePrev}
-                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-50 hover:opacity-90 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-sm border border-zinc-200/80 group"
+                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-55 hover:opacity-95 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-md border border-zinc-800 bg-[#111111] group"
               >
                 <img
                   src={prevSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&q=80"}
                   alt={prevSlide.title}
+                  loading="eager"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                 
                 <div className="absolute bottom-6 left-5 right-5 text-white space-y-1.5">
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 inline-block">
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 inline-block font-sans">
                     {prevSlide.badge || "წინა"}
                   </span>
-                  <h4 className="text-sm text-white/95 line-clamp-2 leading-snug">
+                  <h4 className="text-sm text-white/95 line-clamp-2 leading-snug font-sans">
                     {prevSlide.title}
                   </h4>
                 </div>
 
-                <div className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <ChevronLeft size={18} />
                 </div>
               </div>
             )}
 
             {/* CENTER SPOTLIGHT CARD (Primary Hero Slide) */}
-            <div className="flex-1 max-w-[1000px] h-[420px] sm:h-[460px] md:h-[480px] rounded-[32px] sm:rounded-[36px] overflow-hidden relative shadow-lg border border-zinc-200/80 group">
+            <div className="flex-1 max-w-[1000px] h-[420px] sm:h-[460px] md:h-[480px] rounded-[32px] sm:rounded-[36px] overflow-hidden relative shadow-2xl border border-zinc-800 bg-[#111111] group">
               
-              {/* Slide Images with Ken Burns Transition */}
+              {/* Slide Background Images (Layered Cross-Fade without White Flashes) */}
               {slides.map((slide, idx) => {
                 const isCurrent = idx === activeIndex;
                 return (
                   <div
                     key={slide.id || idx}
-                    className={`absolute inset-0 transition-all duration-700 ease-out ${
-                      isCurrent
-                        ? "opacity-100 scale-100 z-0 pointer-events-auto"
-                        : "opacity-0 scale-105 -z-10 pointer-events-none"
+                    className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
+                      isCurrent ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
                     }`}
                   >
                     <img
                       src={slide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
                       alt={slide.title}
+                      loading="eager"
                       className="w-full h-full object-cover hidden sm:block"
                     />
                     <img
                       src={slide.mobileImage || slide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
                       alt={slide.title}
+                      loading="eager"
                       className="w-full h-full object-cover sm:hidden"
                     />
                     
                     {/* Deep Contrast Gradients for Crisp Typography */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30" />
                   </div>
                 );
               })}
 
-              {/* Foreground Content Stack */}
-              <div className="relative z-10 h-full flex flex-col justify-between p-6 sm:p-10 md:p-14 text-white">
+              {/* Foreground Animated Content Stack */}
+              <div className="relative z-20 h-full flex flex-col justify-between p-6 sm:p-10 md:p-14 text-white">
                 
                 {/* Top Row: Badge & Slide Index Counter */}
                 <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/25 backdrop-blur-md border border-white/25 px-3.5 py-1.2 rounded-full text-xs text-white shadow-2xs">
-                    <Sparkles className="w-3.5 h-3.5 text-[#FF5238]" />
-                    <span>{currentSlide.badge || "სპეციალური შეთავაზება"}</span>
-                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`badge-${activeIndex}`}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.25 }}
+                      className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/25 backdrop-blur-md border border-white/25 px-3.5 py-1.2 rounded-full text-xs text-white shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#FF5238]" />
+                      <span>{currentSlide.badge || "სპეციალური შეთავაზება"}</span>
+                    </motion.div>
+                  </AnimatePresence>
 
                   {slides.length > 1 && (
-                    <div className="text-xs text-white/80 font-mono bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                    <div className="text-xs text-white/90 font-mono bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/15">
                       0{activeIndex + 1} / 0{slides.length}
                     </div>
                   )}
                 </div>
 
-                {/* Center Content: Title & Subtitle */}
+                {/* Center Content: Title & Subtitle with Smooth Motion */}
                 <div className="max-w-xl space-y-3 sm:space-y-4 my-auto">
-                  <h2 className="text-2xl sm:text-4xl md:text-[42px] text-white leading-[1.15] tracking-tight font-sans">
-                    {currentSlide.title || "იპოვე იდეალური საჩუქარი ყველასთვის"}
-                  </h2>
-
-                  <p className="text-white/80 text-xs sm:text-base leading-relaxed line-clamp-2 max-w-md">
-                    {currentSlide.subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"}
-                  </p>
-
-                  {/* Action Button */}
-                  <div className="pt-2 sm:pt-4 flex items-center gap-3">
-                    <Link
-                      href={currentSlide.link || "/catalog"}
-                      className="inline-flex items-center gap-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-[#FF5238]/35 hover:shadow-xl hover:shadow-[#FF5238]/45 active:scale-[0.98] cursor-pointer group/btn"
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`content-${activeIndex}`}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -12 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="space-y-3 sm:space-y-4"
                     >
-                      <span>{currentSlide.buttonText || "შეარჩიე საჩუქარი"}</span>
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                    </Link>
-                  </div>
+                      <h2 className="text-2xl sm:text-4xl md:text-[42px] text-white leading-[1.15] tracking-tight font-sans">
+                        {currentSlide.title || "იპოვე იდეალური საჩუქარი ყველასთვის"}
+                      </h2>
+
+                      <p className="text-white/85 text-xs sm:text-base leading-relaxed line-clamp-2 max-w-md font-sans">
+                        {currentSlide.subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"}
+                      </p>
+
+                      {/* Action Button */}
+                      <div className="pt-2 sm:pt-4 flex items-center gap-3">
+                        <Link
+                          href={currentSlide.link || "/catalog"}
+                          className="inline-flex items-center gap-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-[#FF5238]/35 hover:shadow-xl hover:shadow-[#FF5238]/45 active:scale-[0.98] cursor-pointer group/btn"
+                        >
+                          <span>{currentSlide.buttonText || "შეარჩიე საჩუქარი"}</span>
+                          <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                        </Link>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
 
                 {/* Bottom Story-style Progress Indicator */}
@@ -225,7 +257,7 @@ export default function HeroBannerSection({
                   <button
                     type="button"
                     onClick={handlePrev}
-                    className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center border border-white/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
+                    className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center border border-white/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
                     title="წინა სლაიდი"
                   >
                     <ChevronLeft size={20} />
@@ -234,7 +266,7 @@ export default function HeroBannerSection({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center border border-white/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
+                    className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center border border-white/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
                     title="შემდეგი სლაიდი"
                   >
                     <ChevronRight size={20} />
@@ -248,25 +280,26 @@ export default function HeroBannerSection({
             {slides.length > 1 && (
               <div
                 onClick={handleNext}
-                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-50 hover:opacity-90 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-sm border border-zinc-200/80 group"
+                className="hidden xl:block w-[240px] 2xl:w-[280px] h-[400px] shrink-0 rounded-[32px] overflow-hidden relative opacity-55 hover:opacity-95 hover:scale-[1.02] transition-all duration-300 cursor-pointer shadow-md border border-zinc-800 bg-[#111111] group"
               >
                 <img
                   src={nextSlide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&q=80"}
                   alt={nextSlide.title}
+                  loading="eager"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                 
                 <div className="absolute bottom-6 left-5 right-5 text-white space-y-1.5">
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 inline-block">
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 inline-block font-sans">
                     {nextSlide.badge || "შემდეგი"}
                   </span>
-                  <h4 className="text-sm text-white/95 line-clamp-2 leading-snug">
+                  <h4 className="text-sm text-white/95 line-clamp-2 leading-snug font-sans">
                     {nextSlide.title}
                   </h4>
                 </div>
 
-                <div className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <ChevronRight size={18} />
                 </div>
               </div>
