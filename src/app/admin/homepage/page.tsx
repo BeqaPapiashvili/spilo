@@ -962,6 +962,10 @@ export default function AdminHomepageCMSPage() {
 
   // Active Items for Live Preview
   const activeHeroSlide = formHeroSlides[selectedHeroSlideIndex] || formHeroSlides[0] || DEFAULT_HERO_SLIDES[0];
+  const prevHeroSlideIndex = (selectedHeroSlideIndex - 1 + formHeroSlides.length) % (formHeroSlides.length || 1);
+  const nextHeroSlideIndex = (selectedHeroSlideIndex + 1) % (formHeroSlides.length || 1);
+  const prevHeroSlide = formHeroSlides[prevHeroSlideIndex] || activeHeroSlide;
+  const nextHeroSlide = formHeroSlides[nextHeroSlideIndex] || activeHeroSlide;
   const activePromoCard = formPromoCards[selectedPromoCardIndex] || formPromoCards[0] || DEFAULT_PROMO_CARDS[0];
   const activeTrustItem = formTrustItems[selectedTrustItemIndex] || formTrustItems[0] || DEFAULT_TRUST_ITEMS[0];
 
@@ -1571,12 +1575,12 @@ export default function AdminHomepageCMSPage() {
                               onClick={() => setSelectedHeroSlideIndex(idx)}
                               className={`px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer ${
                                 selectedHeroSlideIndex === idx
-                                  ? "bg-slate-900 text-white shadow-xs"
+                                  ? "bg-[#111111] text-white shadow-xs"
                                   : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"
                               }`}
                             >
-                              <Sparkles size={12} className={selectedHeroSlideIndex === idx ? "text-blue-400" : "text-slate-400"} />
-                              <span className="truncate max-w-[130px]">{slide.title || `სლაიდი #${idx + 1}`}</span>
+                              <Sparkles size={12} className={selectedHeroSlideIndex === idx ? "text-[#FF5238]" : "text-slate-400"} />
+                              <span className="truncate max-w-[130px] font-sans">{slide.title || `სლაიდი #${idx + 1}`}</span>
                             </button>
                           ))}
                         </div>
@@ -1585,7 +1589,7 @@ export default function AdminHomepageCMSPage() {
                           <button
                             type="button"
                             onClick={handleAddHeroSlide}
-                            className="px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-all"
+                            className="px-3 py-2 bg-[#FFF5F2] hover:bg-[#FFEAE5] text-[#FF5238] border border-[#FED7CC] rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
                           >
                             <Plus size={13} />
                             <span>სლაიდის დამატება</span>
@@ -1629,7 +1633,7 @@ export default function AdminHomepageCMSPage() {
                         {/* Left: Active Slide Controls */}
                         <div className="lg:col-span-5 space-y-3.5 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
                           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <h4 className="text-xs text-blue-600">სლაიდი #{selectedHeroSlideIndex + 1}-ის რედაქტირება</h4>
+                            <h4 className="text-xs text-[#FF5238]">სლაიდი #{selectedHeroSlideIndex + 1}-ის რედაქტირება</h4>
                             <span className="text-[11px] text-slate-400">რეალური დროის ცვლილება</span>
                           </div>
 
@@ -1657,7 +1661,7 @@ export default function AdminHomepageCMSPage() {
                                   onClick={() => handleUpdateHeroSlide(selectedHeroSlideIndex, "badge", b)}
                                   className={`px-2 py-0.5 rounded-full text-[10px] transition-all cursor-pointer ${
                                     activeHeroSlide.badge === b
-                                      ? "bg-blue-600 text-white shadow-2xs"
+                                      ? "bg-[#FF5238] text-white shadow-2xs"
                                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                                   }`}
                                 >
@@ -1681,7 +1685,7 @@ export default function AdminHomepageCMSPage() {
                               value={activeHeroSlide.title}
                               onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "title", e.target.value)}
                               placeholder="იპოვე იდეალური საჩუქარი ყველასთვის"
-                              className="adm-input w-full text-xs"
+                              className="adm-input w-full text-xs font-sans"
                             />
                           </div>
 
@@ -1691,8 +1695,8 @@ export default function AdminHomepageCMSPage() {
                               rows={2}
                               value={activeHeroSlide.subtitle || ""}
                               onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "subtitle", e.target.value)}
-                              placeholder="შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად spilo-თი"
-                              className="adm-input w-full text-xs resize-none"
+                              placeholder="შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"
+                              className="adm-input w-full text-xs resize-none font-sans"
                             />
                           </div>
 
@@ -1720,65 +1724,117 @@ export default function AdminHomepageCMSPage() {
                           </div>
                         </div>
 
-                        {/* Right: 1:1 Hero Banner Live Preview */}
+                        {/* Right: 1:1 Triple Showcase Carousel Live Preview */}
                         <div className="lg:col-span-7 space-y-3">
                           <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-200 space-y-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1.5">
-                                <Eye size={14} className="text-blue-600" />
-                                <h4 className="text-xs text-slate-900">მთავარი სლაიდერის 1:1 Live Preview (სლაიდი #{selectedHeroSlideIndex + 1})</h4>
+                                <Eye size={14} className="text-[#FF5238]" />
+                                <h4 className="text-xs text-slate-900">Triple Showcase კარუსელის 1:1 Live Preview (სლაიდი #{selectedHeroSlideIndex + 1})</h4>
                               </div>
                               <span className="text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
                                 მყისიერად აისახება
                               </span>
                             </div>
 
-                            {/* 1:1 Miniature Hero Section */}
-                            <div className="rounded-[24px] relative overflow-hidden min-h-[280px] flex items-center p-6 shadow-md border border-gray-200 group">
-                              <img
-                                src={activeHeroSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
-                                alt={activeHeroSlide.title}
-                                className="absolute inset-0 w-full h-full object-cover"
-                              />
-                              <div className="absolute inset-0 bg-black/20" />
-
-                              {/* Floating White Card */}
-                              <div className="relative z-10 bg-white/95 backdrop-blur-md p-5 rounded-[22px] max-w-xs shadow-xl border border-white/60 space-y-2.5 text-black">
-                                <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full text-[10px]">
-                                  <Sparkles className="w-3 h-3" />
-                                  <span>{activeHeroSlide.badge || "სპეციალური შეთავაზება"}</span>
-                                </div>
-                                <h3 className="text-base text-gray-900 leading-tight">
-                                  {activeHeroSlide.title || "იპოვე იდეალური საჩუქარი"}
-                                </h3>
-                                <p className="text-gray-600 text-[11px] leading-relaxed line-clamp-2">
-                                  {activeHeroSlide.subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად"}
-                                </p>
-                                <div className="pt-1 flex items-center justify-between">
-                                  <span className="bg-[#111111] text-white px-4 py-2 rounded-xl text-xs">
-                                    {activeHeroSlide.buttonText || "შეარჩიე საჩუქარი"}
-                                  </span>
-                                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xs">
-                                    <Gift className="w-4 h-4" />
+                            {/* 1:1 Triple Showcase Stage Preview */}
+                            <div className="relative flex items-center justify-center gap-2 select-none overflow-hidden py-1">
+                              
+                              {/* Left Preview Snippet */}
+                              {formHeroSlides.length > 1 && (
+                                <div
+                                  onClick={() => setSelectedHeroSlideIndex(prevHeroSlideIndex)}
+                                  className="w-[70px] sm:w-[90px] h-[260px] rounded-2xl overflow-hidden relative opacity-60 hover:opacity-100 transition-all cursor-pointer shrink-0 bg-[#111111]"
+                                >
+                                  <img
+                                    src={prevHeroSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&q=80"}
+                                    alt={prevHeroSlide.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+                                  <div className="absolute bottom-2 left-2 right-2 text-white text-[9px] truncate">
+                                    {prevHeroSlide.title}
                                   </div>
+                                </div>
+                              )}
+
+                              {/* Center Active Spotlight Card */}
+                              <div className="flex-1 h-[260px] rounded-[24px] overflow-hidden relative shadow-lg bg-[#111111] group">
+                                <img
+                                  src={activeHeroSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
+                                  alt={activeHeroSlide.title}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+
+                                {/* Foreground Content */}
+                                <div className="relative z-10 h-full flex flex-col justify-between p-4 sm:p-5 text-white">
+                                  
+                                  {/* Top Row: Badge & Slide Index */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-md border border-white/25 px-2.5 py-0.5 rounded-full text-[10px] text-white">
+                                      <Sparkles className="w-3 h-3 text-[#FF5238]" />
+                                      <span>{activeHeroSlide.badge || "სპეციალური შეთავაზება"}</span>
+                                    </div>
+                                    <div className="text-[10px] text-white/80 font-mono bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
+                                      0{selectedHeroSlideIndex + 1} / 0{formHeroSlides.length}
+                                    </div>
+                                  </div>
+
+                                  {/* Center: Title & Subtitle */}
+                                  <div className="space-y-1.5 my-auto max-w-[280px]">
+                                    <h3 className="text-base sm:text-lg text-white leading-tight font-sans line-clamp-2">
+                                      {activeHeroSlide.title || "იპოვე იდეალური საჩუქარი ყველასთვის"}
+                                    </h3>
+                                    <p className="text-white/80 text-[11px] leading-snug line-clamp-2 font-sans">
+                                      {activeHeroSlide.subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"}
+                                    </p>
+                                    <div className="pt-1">
+                                      <span className="inline-flex items-center gap-1 bg-[#FF5238] text-white px-3.5 py-1.5 rounded-xl text-[11px] shadow-sm">
+                                        <span>{activeHeroSlide.buttonText || "შეარჩიე საჩუქარი"}</span>
+                                        <ArrowRight className="w-3 h-3" />
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Bottom Progress Bars */}
+                                  {formHeroSlides.length > 1 && (
+                                    <div className="flex items-center gap-1.5 pt-1">
+                                      {formHeroSlides.map((_, dotIdx) => (
+                                        <button
+                                          key={dotIdx}
+                                          type="button"
+                                          onClick={() => setSelectedHeroSlideIndex(dotIdx)}
+                                          className={`h-1 rounded-full transition-all cursor-pointer ${
+                                            dotIdx === selectedHeroSlideIndex ? "w-6 bg-[#FF5238]" : "w-2 bg-white/40"
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+
                                 </div>
                               </div>
 
-                              {/* Navigation Dots in Preview */}
+                              {/* Right Preview Snippet */}
                               {formHeroSlides.length > 1 && (
-                                <div className="absolute bottom-3 right-4 z-20 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full">
-                                  {formHeroSlides.map((_, dotIdx) => (
-                                    <button
-                                      key={dotIdx}
-                                      type="button"
-                                      onClick={() => setSelectedHeroSlideIndex(dotIdx)}
-                                      className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                                        dotIdx === selectedHeroSlideIndex ? "w-4 bg-white" : "w-1.5 bg-white/50"
-                                      }`}
-                                    />
-                                  ))}
+                                <div
+                                  onClick={() => setSelectedHeroSlideIndex(nextHeroSlideIndex)}
+                                  className="w-[70px] sm:w-[90px] h-[260px] rounded-2xl overflow-hidden relative opacity-60 hover:opacity-100 transition-all cursor-pointer shrink-0 bg-[#111111]"
+                                >
+                                  <img
+                                    src={nextHeroSlide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&q=80"}
+                                    alt={nextHeroSlide.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+                                  <div className="absolute bottom-2 left-2 right-2 text-white text-[9px] truncate">
+                                    {nextHeroSlide.title}
+                                  </div>
                                 </div>
                               )}
+
                             </div>
 
                             {/* Slide Switcher Ribbon */}
@@ -1790,20 +1846,20 @@ export default function AdminHomepageCMSPage() {
                                     key={i}
                                     type="button"
                                     onClick={() => setSelectedHeroSlideIndex(i)}
-                                    className={`px-2 py-1 rounded-md text-[10px] cursor-pointer ${
-                                      selectedHeroSlideIndex === i ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                                    className={`px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-all ${
+                                      selectedHeroSlideIndex === i ? "bg-[#FF5238] text-white shadow-2xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                                     }`}
                                   >
                                     #{i + 1}
                                   </button>
                                 ))}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* 2. PROMO CAROUSEL / PASTEL CARDS LIVE STUDIO */}
                   {(formType === "PROMO_CAROUSEL" || formType === "PROMO_CARDS" || formType === "PASTEL_PROMO_CARDS") && (
