@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Check, GitCompare, Star } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -32,6 +33,7 @@ export default function ProductCard({
   rating,
   reviewsCount,
 }: ProductCardProps) {
+  const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
   const [isAdded, setIsAdded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -46,6 +48,16 @@ export default function ProductCard({
   // Deterministic rating fallback based on id hash if not provided
   const displayRating = rating || (4.2 + ((id.charCodeAt(0) + id.length) % 8) * 0.1).toFixed(1);
   const displayReviews = reviewsCount || (12 + ((id.charCodeAt(id.length - 1) || 5) * 17) % 350);
+
+  // Navigate to product page on entire card click
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Don't navigate if clicked on action buttons
+    if (target.closest("button")) {
+      return;
+    }
+    router.push(`/product/${id}`);
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -94,16 +106,18 @@ export default function ProductCard({
 
   return (
     <div
+      onClick={handleCardClick}
       onMouseLeave={() => setActiveImageIndex(0)}
       className="group relative flex flex-col h-[390px] w-full bg-white rounded-[24px] p-4 select-none cursor-pointer border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between"
     >
       
       {/* Top Section: Image Area with Floating Hover Actions */}
-      <div className="relative w-full h-[190px] flex items-center justify-center p-2 overflow-hidden rounded-2xl">
+      <div className="relative w-full h-[190px] flex items-center justify-center p-2 overflow-hidden rounded-2xl cursor-pointer">
         
-        {/* Top-Right Floating Actions: Wishlist & Compare (Stacked Vertically on Hover) */}
+        {/* Top-Right Floating Actions: Wishlist & Compare */}
         <div className="absolute top-1 right-1 z-30 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button
+            type="button"
             onClick={handleToggleFavorite}
             className={`p-2 rounded-full transition-all duration-150 cursor-pointer shadow-xs ${
               isLiked
@@ -116,6 +130,7 @@ export default function ProductCard({
           </button>
 
           <button
+            type="button"
             onClick={handleToggleCompare}
             className={`p-2 rounded-full transition-all duration-150 cursor-pointer shadow-xs ${
               isCompared
@@ -128,11 +143,8 @@ export default function ProductCard({
           </button>
         </div>
 
-        {/* Main Product Link & Active Image */}
-        <Link
-          href={`/product/${id}`}
-          className="w-full h-full flex items-center justify-center"
-        >
+        {/* Product Image Stage */}
+        <div className="w-full h-full flex items-center justify-center cursor-pointer pointer-events-none">
           <img
             src={currentDisplayImage}
             alt={title}
@@ -140,11 +152,11 @@ export default function ProductCard({
               isOutOfStock ? "opacity-40 grayscale-[40%]" : ""
             }`}
           />
-        </Link>
+        </div>
 
-        {/* Hover-triggered Segmented Hover Zones */}
+        {/* Hover-triggered Segmented Hover Zones (Switches preview on hover, enters page on click) */}
         {allImages.length > 1 && (
-          <div className="absolute inset-0 z-10 flex">
+          <div className="absolute inset-0 z-10 flex cursor-pointer">
             {allImages.map((_, idx) => (
               <div
                 key={idx}
@@ -175,7 +187,7 @@ export default function ProductCard({
       </div>
 
       {/* Lower Content: Discount Badge, Price with Hover Cart Button, Title, Rating */}
-      <div className="space-y-2 pt-1 flex-1 flex flex-col justify-end">
+      <div className="space-y-2 pt-1 flex-1 flex flex-col justify-end cursor-pointer">
         
         {/* Price & Action Row (With Discount Badge) */}
         <div className="flex items-center justify-between gap-2 min-h-[48px] relative">
@@ -202,7 +214,7 @@ export default function ProductCard({
             </div>
           </div>
 
-          {/* Red/Coral Cart Button (Appears on Hover like in screenshot) */}
+          {/* Red/Coral Cart Button (Appears on Hover) */}
           <div className="shrink-0">
             {isOutOfStock ? (
               <span className="text-[11px] text-zinc-400 bg-zinc-100 px-2 py-1 rounded-lg">
@@ -231,12 +243,9 @@ export default function ProductCard({
         </div>
 
         {/* Product Title */}
-        <Link
-          href={`/product/${id}`}
-          className="text-xs sm:text-[13px] text-zinc-700 hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 block min-h-[34px]"
-        >
+        <h3 className="text-xs sm:text-[13px] text-zinc-700 group-hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 block min-h-[34px]">
           {title}
-        </Link>
+        </h3>
 
         {/* Bottom Rating Row (Star + Rating + Count) */}
         <div className="flex items-center gap-1.5 pt-1 text-xs">
