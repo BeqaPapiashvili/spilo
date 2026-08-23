@@ -136,7 +136,7 @@ export default function AdminBrandsPage() {
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+          className="h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>ახალი ბრენდი</span>
@@ -198,7 +198,7 @@ export default function AdminBrandsPage() {
               <button
                 type="button"
                 onClick={handleOpenAdd}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>ბრენდის დამატება</span>
@@ -314,7 +314,7 @@ export default function AdminBrandsPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>შენახვა</span>

@@ -144,7 +144,7 @@ export function ProductGalleryPro({
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
-            <Camera className="size-3.5 text-blue-600" />
+            <Camera className="size-3.5 text-[#FF5238]" />
             <span>ფოტოები ({displayImages.length})</span>
           </button>
 
@@ -157,7 +157,7 @@ export function ProductGalleryPro({
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
-            <Play className="size-3.5 text-purple-600" />
+            <Play className="size-3.5 text-[#FF5238]" />
             <span>ვიდეო</span>
           </button>
         </div>
@@ -179,7 +179,7 @@ export function ProductGalleryPro({
                   onClick={() => handleSelectThumbnail(idx)}
                   className={`size-16 md:size-[72px] lg:size-[80px] rounded-2xl border p-1.5 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
                     isSelected
-                      ? "border-blue-600 ring-2 ring-blue-500/20 bg-white"
+                      ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 bg-white"
                       : "border-gray-200/80 hover:border-gray-300 bg-transparent"
                   }`}
                 >
@@ -200,12 +200,12 @@ export function ProductGalleryPro({
           {/* Status Badges */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
             {discountPercentage && discountPercentage > 0 && (
-              <span className="bg-red-600 text-white text-[11px] px-2.5 py-1 rounded-xl shadow-2xs tracking-tight">
+              <span className="bg-[#10B981] text-white text-[11px] px-2.5 py-1 rounded-xl shadow-2xs tracking-tight">
                 -{discountPercentage}% ფასდაკლება
               </span>
             )}
             {isHot && (
-              <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1.5">
+              <span className="bg-gradient-to-r from-amber-500 to-[#FF5238] text-white text-[11px] px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1.5">
                 <Sparkles className="size-3" /> პოპულარული
               </span>
             )}
@@ -303,7 +303,7 @@ export function ProductGalleryPro({
             <button
               type="button"
               onClick={handleCloseLightbox}
-              className="absolute -top-3 -right-3 md:-top-4 md:-right-4 size-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 z-30"
+              className="absolute -top-3 -right-3 md:-top-4 md:-right-4 size-10 rounded-full bg-[#FF5238] hover:bg-[#EA3A20] text-white shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 z-30"
               title="დახურვა (Esc)"
             >
               <X className="size-5" />
@@ -390,7 +390,7 @@ export function ProductGalleryPro({
                       onClick={() => handleLightboxSelectThumbnail(idx)}
                       className={`size-14 md:size-16 rounded-xl border p-1.5 bg-white flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? "border-blue-600 ring-2 ring-blue-500/20 shadow-2xs"
+                          ? "border-[#FF5238] ring-2 ring-[#FF5238]/20 shadow-2xs"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >

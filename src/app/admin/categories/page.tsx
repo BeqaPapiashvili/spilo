@@ -284,7 +284,7 @@ export default function AdminCategoriesPage() {
         <button
           type="button"
           onClick={handleOpenAddL1}
-          className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+          className="h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
         >
           <FolderPlus className="w-4 h-4" />
           <span>ახალი მთავარი კატეგორია</span>
@@ -295,7 +295,7 @@ export default function AdminCategoriesPage() {
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs relative">
         <div className="flex items-center justify-between gap-4 mb-3">
           <div className="flex items-center gap-2 text-xs text-slate-700">
-            <Folder className="w-4 h-4 text-blue-600" />
+            <Folder className="w-4 h-4 text-[#FF5238]" />
             <span>მთავარი კატეგორიები (დონე 1)</span>
           </div>
           <div className="flex items-center gap-1">
@@ -345,7 +345,7 @@ export default function AdminCategoriesPage() {
                     onClick={() => setSelectedL1Id(cat.id)}
                     className={`px-4 py-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${
                       isSelected
-                        ? "bg-blue-50 border-blue-300 text-blue-800 shadow-2xs"
+                        ? "bg-[#FFF5F2] border-[#FED7CC] text-[#FF5238] shadow-2xs"
                         : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
                     }`}
                   >
@@ -355,7 +355,7 @@ export default function AdminCategoriesPage() {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleOpenEditL1(cat); }}
-                        className="p-1 hover:text-blue-600 rounded"
+                        className="p-1 hover:text-[#FF5238] rounded"
                       >
                         <Edit3 className="w-3 h-3" />
                       </button>
@@ -529,7 +529,7 @@ export default function AdminCategoriesPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>შენახვა</span>

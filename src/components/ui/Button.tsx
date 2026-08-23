@@ -26,10 +26,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+      "inline-flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
 
     const variantStyles = {
-      primary: "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-xs",
+      primary: "bg-[#FF5238] text-white hover:bg-[#EA3A20] active:bg-[#EA3A20]/90 shadow-xs",
       secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300",
       outline: "border border-gray-200 text-gray-800 bg-white hover:bg-gray-50 hover:border-gray-300",
       ghost: "text-gray-700 hover:bg-gray-100 active:bg-gray-200",

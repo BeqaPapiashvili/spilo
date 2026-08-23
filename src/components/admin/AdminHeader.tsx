@@ -99,7 +99,7 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
           {/* Quick Add Product Button */}
           <Link
             href="/admin/products/new"
-            className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs hidden sm:flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+            className="h-10 px-4 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs hidden sm:flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
             <span>ახალი პროდუქტი</span>
@@ -113,14 +113,14 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
               className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center relative transition-colors cursor-pointer"
             >
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-blue-600 absolute top-2.5 right-2.5 ring-2 ring-white" />
+              <span className="w-2 h-2 rounded-full bg-[#FF5238] absolute top-2.5 right-2.5 ring-2 ring-white" />
             </button>
 
             {isNotificationsOpen && (
               <div className="absolute right-0 top-full mt-3 w-80 bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-200/90 shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-150 p-2">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between">
                   <span className="text-xs text-slate-900">შეტყობინებები & ლოგები</span>
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full font-mono">
+                  <span className="px-2 py-0.5 bg-[#FFF5F2] text-[#FF5238] text-[10px] rounded-full font-mono">
                     {auditLogs.length} ახალი
                   </span>
                 </div>
@@ -137,7 +137,7 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
                   <Link
                     href="/admin/audit-logs"
                     onClick={() => setIsNotificationsOpen(false)}
-                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                    className="text-xs text-[#FF5238] hover:underline inline-flex items-center gap-1"
                   >
                     <span>სრული ისტორიის ნახვა</span>
                     <ExternalLink className="w-3 h-3" />

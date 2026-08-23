@@ -129,7 +129,7 @@ export function ProductPurchasePanel({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             {product.brandName && (
-              <span className="text-xs text-[#059669] bg-[#ECFDF5] ring-1 ring-[#A7F3D0] px-3 py-1 rounded-full uppercase tracking-wider">
+              <span className="text-xs text-[#FF5238] bg-[#FFF5F2] ring-1 ring-[#FED7CC] px-3 py-1 rounded-full uppercase tracking-wider">
                 {product.brandName}
               </span>
             )}
@@ -152,12 +152,12 @@ export function ProductPurchasePanel({
               onClick={onToggleWishlist}
               className={`size-9 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
                 isLiked
-                  ? "bg-rose-50 text-rose-500 border-rose-200 shadow-2xs"
+                  ? "bg-[#FFF5F2] text-[#FF5238] border-[#FED7CC] shadow-2xs"
                   : "bg-white text-gray-500 border-gray-200/70 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50"
               }`}
               title={isLiked ? "ფავორიტებიდან წაშლა" : "ფავორიტებში დამატება"}
             >
-              <Heart className={`size-4 ${isLiked ? "fill-rose-500" : ""}`} />
+              <Heart className={`size-4 ${isLiked ? "fill-[#FF5238]" : ""}`} />
             </button>
 
             <button
@@ -165,7 +165,7 @@ export function ProductPurchasePanel({
               onClick={onToggleCompare}
               className={`size-9 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
                 isCompared
-                  ? "bg-blue-50 text-blue-600 border-blue-200 shadow-2xs"
+                  ? "bg-[#FFF5F2] text-[#FF5238] border-[#FED7CC] shadow-2xs"
                   : "bg-white text-gray-500 border-gray-200/70 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50"
               }`}
               title={isCompared ? "შედარებიდან წაშლა" : "შედარება"}
@@ -248,7 +248,7 @@ export function ProductPurchasePanel({
                           onClick={() => setSelectedVariants((prev) => ({ ...prev, [v.id]: opt.value }))}
                           className={`size-8.5 rounded-full p-0.5 border transition-all duration-200 cursor-pointer ${
                             isSelected
-                              ? "border-[#1D1D1F] ring-2 ring-black/20 scale-105 shadow-2xs"
+                              ? "border-[#FF5238] ring-2 ring-[#FF5238]/25 scale-105 shadow-2xs"
                               : "border-gray-200/90 hover:scale-105"
                           }`}
                           title={opt.label}
@@ -268,7 +268,7 @@ export function ProductPurchasePanel({
                         onClick={() => setSelectedVariants((prev) => ({ ...prev, [v.id]: opt.value }))}
                         className={`px-4 py-2 rounded-xl text-xs border transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                           isSelected
-                            ? "border-[#1D1D1F] bg-gray-50 text-[#1D1D1F] shadow-2xs"
+                            ? "border-[#FF5238] bg-[#FFF5F2] text-[#FF5238] shadow-2xs"
                             : "border-gray-200/90 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                         }`}
                       >
@@ -321,7 +321,7 @@ export function ProductPurchasePanel({
               <button
                 type="button"
                 onClick={handleAddToCartClick}
-                className="flex-1 h-12 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white rounded-2xl text-sm flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_4px_16px_rgba(29,29,31,0.22)] hover:shadow-[0_6px_22px_rgba(29,29,31,0.32)] transition-all duration-200"
+                className="flex-1 h-12 bg-[#FF5238] hover:bg-[#EA3A20] active:scale-[0.98] text-white rounded-2xl text-sm flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_4px_16px_rgba(255,82,56,0.25)] hover:shadow-[0_6px_22px_rgba(255,82,56,0.35)] transition-all duration-200"
               >
                 {isAdded ? (
                   <>
@@ -341,9 +341,9 @@ export function ProductPurchasePanel({
             <button
               type="button"
               onClick={handleBuyNowClick}
-              className="w-full h-12 bg-white hover:bg-gray-50 active:scale-[0.98] text-[#1D1D1F] border border-gray-300 hover:border-[#1D1D1F] rounded-2xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200"
+              className="w-full h-12 bg-white hover:bg-[#FFF5F2] active:scale-[0.98] text-[#FF5238] border border-[#FED7CC] hover:border-[#FF5238] rounded-2xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200"
             >
-              <Zap className="size-4 text-[#1D1D1F]" />
+              <Zap className="size-4 text-[#FF5238]" />
               <span>ყიდვა</span>
             </button>
           </>

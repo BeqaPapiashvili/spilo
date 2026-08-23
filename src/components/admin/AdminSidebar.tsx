@@ -262,7 +262,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       }`}
                       title={tab.label}
                     >
-                      <span className={isActive ? "text-blue-600" : "text-slate-400"}>
+                      <span className={isActive ? "text-[#FF5238]" : "text-slate-400"}>
                         {tab.icon}
                       </span>
                       {!isCollapsed && <span>{tab.label}</span>}
@@ -283,7 +283,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="სწრაფი ძიება..."
-                  className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
+                  className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#FF5238] focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -307,7 +307,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                           isCollapsed ? "justify-center" : "justify-between"
                         } transition-all ${
                           isActive
-                            ? "bg-blue-600 text-white shadow-xs"
+                            ? "bg-[#FF5238] text-white shadow-xs"
                             : "text-slate-700 hover:bg-slate-100"
                         }`}
                         title={isCollapsed ? item.title : undefined}
@@ -341,7 +341,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                           onClick={onClose}
                           className={`h-10 ${isCollapsed ? "px-0 justify-center" : "px-3.5 justify-between"} rounded-2xl text-xs flex items-center transition-all ${
                             isActive
-                              ? "bg-blue-600 text-white shadow-xs"
+                              ? "bg-[#FF5238] text-white shadow-xs"
                               : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                           }`}
                           title={isCollapsed ? item.title : undefined}
@@ -355,7 +355,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
                           {!isCollapsed && item.badge && (
                             <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                              isActive ? "bg-white/20 text-white" : "bg-blue-50 text-blue-600"
+                              isActive ? "bg-white/20 text-white" : "bg-[#FFF5F2] text-[#FF5238]"
                             }`}>
                               {item.badge}
                             </span>
@@ -379,7 +379,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               {!isCollapsed && (
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-slate-900 truncate">{userName}</p>
-                  <p className="text-[10px] text-blue-600 font-mono truncate">{userRole}</p>
+                  <p className="text-[10px] text-[#FF5238] font-mono truncate">{userRole}</p>
                 </div>
               )}
             </div>

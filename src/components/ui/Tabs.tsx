@@ -35,7 +35,7 @@ export const Tabs: React.FC<TabsProps> = ({
               onClick={() => onChange(tab.id)}
               className={`px-4 py-2 text-sm rounded-xl transition-all cursor-pointer ${
                 isActive
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-[#FF5238] text-white shadow-xs"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -43,7 +43,7 @@ export const Tabs: React.FC<TabsProps> = ({
               {tab.count !== undefined && (
                 <span
                   className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                    isActive ? "bg-blue-700 text-white" : "bg-gray-200 text-gray-700"
+                    isActive ? "bg-[#EA3A20] text-white" : "bg-gray-200 text-gray-700"
                   }`}
                 >
                   {tab.count}
@@ -59,7 +59,7 @@ export const Tabs: React.FC<TabsProps> = ({
             onClick={() => onChange(tab.id)}
             className={`relative py-3 px-4 text-sm transition-colors cursor-pointer border-b-2 -mb-[2px] ${
               isActive
-                ? "border-blue-600 text-blue-600"
+                ? "border-[#FF5238] text-[#FF5238]"
                 : "border-transparent text-gray-500 hover:text-gray-900"
             }`}
           >
@@ -67,7 +67,7 @@ export const Tabs: React.FC<TabsProps> = ({
             {tab.count !== undefined && (
               <span
                 className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                  isActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                  isActive ? "bg-[#FFF5F2] text-[#FF5238]" : "bg-gray-100 text-gray-600"
                 }`}
               >
                 {tab.count}

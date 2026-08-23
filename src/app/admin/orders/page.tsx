@@ -236,7 +236,7 @@ export default function AdminOrdersPage() {
           <button
             type="button"
             onClick={() => exportOrdersToCSV(displayOrders)}
-            className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
+            className="h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
           >
             <Download className="w-4 h-4" />
             <span>ექსპორტი (CSV)</span>
@@ -251,7 +251,7 @@ export default function AdminOrdersPage() {
         <div className="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500">სულ შეკვეთები</span>
-            <div className="w-8 h-8 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-2xl bg-[#FFF5F2] text-[#FF5238] flex items-center justify-center">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setSelectedStatusFilter(s)}
                 className={`h-10 px-4 rounded-2xl text-xs cursor-pointer transition-all border ${
                   selectedStatusFilter === s
-                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                    ? "bg-[#FF5238] text-white border-[#FF5238] shadow-xs"
                     : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                 }`}
               >
@@ -595,13 +595,13 @@ export default function AdminOrdersPage() {
             {/* Total Footer & Invoice Button */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs md:text-sm">
               <span className="text-slate-600">სულ ჯამი:</span>
-              <span className="text-blue-600 font-mono text-lg">{previewOrder.totalAmount} ₾</span>
+              <span className="text-[#FF5238] font-mono text-lg">{previewOrder.totalAmount} ₾</span>
             </div>
 
             <div className="flex gap-3 pt-2">
               <Link
                 href={`/admin/orders/${previewOrder.id}`}
-                className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
+                className="flex-1 h-12 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
               >
                 <FileText className="w-4 h-4" />
                 <span>სრული გვერდი & ინვოისი</span>

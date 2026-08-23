@@ -96,12 +96,12 @@ export default function CartDrawer() {
               <div className="p-6 border-t border-gray-100 bg-white space-y-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">სულ გადასახდელი:</span>
-                  <span className="text-xl md:text-2xl text-blue-600 tracking-tight">{total.toFixed(2)} ₾</span>
+                  <span className="text-xl md:text-2xl text-[#FF5238] tracking-tight">{total.toFixed(2)} ₾</span>
                 </div>
                 <Link
                   href="/checkout"
                   onClick={toggleCart}
-                  className="w-full bg-[#111111] hover:bg-black text-white text-sm md:text-base py-4 rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  className="w-full bg-[#FF5238] hover:bg-[#EA3A20] text-white text-sm md:text-base py-4 rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
                 >
                   <span>შეკვეთის გაფორმება</span>
                   <ArrowRight className="w-4 h-4" />
