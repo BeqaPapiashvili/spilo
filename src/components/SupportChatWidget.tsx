@@ -46,24 +46,21 @@ interface Message {
   attachment?: ChatAttachment;
 }
 
-/* Ultra-Modern Solid Messenger Chat SVG Icon */
-function CustomSpiloChatIcon({ className = "w-6 h-6", dotColor = "#111111" }: { className?: string; dotColor?: string }) {
+/* Requested Custom Chat SVG Icon */
+function CustomSpiloChatIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 24 24"
-      fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
       className={className}
+      aria-hidden="true"
     >
-      {/* Sleek Modern Solid Chat Bubble */}
       <path
-        d="M12 2.5C6.753 2.5 2.5 6.47 2.5 11.37C2.5 14.18 3.84 16.68 5.95 18.28C5.72 19.7 5.1 20.94 4.28 21.84C4.1 22.04 4.25 22.36 4.52 22.35C6.72 22.29 8.62 21.33 9.9 20.08C10.58 20.2 11.28 20.25 12 20.25C17.247 20.25 21.5 16.28 21.5 11.37C21.5 6.47 17.247 2.5 12 2.5Z"
-        fill="currentColor"
+        fillRule="evenodd"
+        d="M3 5.983C3 4.888 3.895 4 5 4h14c1.105 0 2 .888 2 1.983v8.923a1.992 1.992 0 0 1-2 1.983h-6.6l-2.867 2.7c-.955.899-2.533.228-2.533-1.08v-1.62H5c-1.105 0-2-.888-2-1.983V5.983Zm5.706 3.809a1 1 0 1 0-1.412 1.417 1 1 0 1 0 1.412-1.417Zm2.585.002a1 1 0 1 1 .003 1.414 1 1 0 0 1-.003-1.414Zm5.415-.002a1 1 0 1 0-1.412 1.417 1 1 0 1 0 1.412-1.417Z"
+        clipRule="evenodd"
       />
-      {/* 3 Modern Contrast Cutout Dots */}
-      <circle cx="8" cy="11.4" r="1.3" fill={dotColor} />
-      <circle cx="12" cy="11.4" r="1.3" fill={dotColor} />
-      <circle cx="16" cy="11.4" r="1.3" fill={dotColor} />
     </svg>
   );
 }
@@ -850,7 +847,7 @@ export default function SupportChatWidget() {
             <X className="w-5 h-5 text-white" />
           ) : (
             <>
-              <CustomSpiloChatIcon className="w-6 h-6 text-white" dotColor="#111111" />
+              <CustomSpiloChatIcon className="w-6 h-6 text-white" />
               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#FF5238] rounded-full ring-2 ring-[#111111] animate-pulse" />
             </>
           )}
