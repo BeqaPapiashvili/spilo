@@ -46,6 +46,38 @@ interface Message {
   attachment?: ChatAttachment;
 }
 
+/* Custom Spilo Original Chat SVG Icon */
+function CustomSpiloChatIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 28 28"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Primary Rounded Speech Bubble with Stylized Tail */}
+      <path
+        d="M14 3C8.477 3 4 7.03 4 12C4 14.54 5.17 16.8 7.06 18.35C6.78 19.88 6.1 21.35 5.01 22.42C4.8 22.63 4.93 23 5.23 23.03C7.38 23.23 9.5 22.37 11.05 21.11C12 21.37 13 21.5 14 21.5C19.523 21.5 24 17.47 24 12.5C24 7.53 19.523 3 14 3Z"
+        fill="currentColor"
+        fillOpacity="0.18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Three interactive audio / typing dots */}
+      <circle cx="10" cy="12.5" r="1.5" fill="currentColor" />
+      <circle cx="14" cy="12.5" r="1.5" fill="currentColor" />
+      <circle cx="18" cy="12.5" r="1.5" fill="currentColor" />
+      {/* Magic Sparkle Star on top-right */}
+      <path
+        d="M21 2L21.8 4.2L24 5L21.8 5.8L21 8L20.2 5.8L18 5L20.2 4.2L21 2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export default function SupportChatWidget() {
   const { user, compareList } = useStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -813,7 +845,7 @@ export default function SupportChatWidget() {
           )}
         </AnimatePresence>
 
-        {/* 3. Floating Trigger Button (White Icon with Brand Coral Theme) */}
+        {/* 3. Floating Trigger Button (Custom Spilo Chat Icon) */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
@@ -827,8 +859,8 @@ export default function SupportChatWidget() {
           {isOpen ? (
             <X className="w-5 h-5 text-white" />
           ) : (
-            <div className="relative">
-              <MessageSquare className="w-5 h-5 text-white" />
+            <div className="relative flex items-center justify-center">
+              <CustomSpiloChatIcon className="w-5.5 h-5.5 text-white" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#FF5238] rounded-full border border-[#111111] animate-pulse" />
             </div>
           )}
