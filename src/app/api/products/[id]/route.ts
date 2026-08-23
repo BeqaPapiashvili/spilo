@@ -129,27 +129,68 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const existing = await prisma.product.findUnique({ where: { id } });
-
-    await prisma.product.delete({
-      where: { id },
+    // Find product by id OR slug
+    const existing = await prisma.product.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
     });
 
-    if (existing) {
-      await recordAuditLog({
-        userId: session?.userId,
-        adminEmail: session?.email,
-        adminName: session?.name,
-        action: "PRODUCT_DELETE",
-        entity: "Product",
-        target: `${existing.title} (${existing.sku})`,
-        details: "პროდუქტი წაიშალა მონაცემთა ბაზიდან",
-      });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: `პროდუქტი ID-ით ან Slug-ით '${id}' ვერ მოიძებნა` },
+        { status: 404 }
+      );
     }
+
+    const targetId = existing.id;
+
+    // Execute atomic deletion with foreign key cascading cleanup
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete associated cart items
+      await tx.cartItem.deleteMany({
+        where: { productId: targetId },
+      });
+
+      // 2. Delete associated reviews
+      await tx.review.deleteMany({
+        where: { productId: targetId },
+      });
+
+      // 3. Delete associated product variants
+      await tx.productVariant.deleteMany({
+        where: { productId: targetId },
+      });
+
+      // 4. Delete associated price alerts
+      await tx.priceAlert.deleteMany({
+        where: { productId: targetId },
+      });
+
+      // 5. Delete associated order items
+      await tx.orderItem.deleteMany({
+        where: { productId: targetId },
+      });
+
+      // 6. Delete the product itself
+      await tx.product.delete({
+        where: { id: targetId },
+      });
+    });
+
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "PRODUCT_DELETE",
+      entity: "Product",
+      target: `${existing.title} (${existing.sku})`,
+      details: `პროდუქტი წარმატებით წაიშალა მონაცემთა ბაზიდან (ID: ${targetId})`,
+    });
 
     return NextResponse.json({
       success: true,
-      message: "პროდუქტი წარმატებით წაიშალა MySQL ბაზიდან",
+      message: `პროდუქტი '${existing.title}' წარმატებით წაიშალა მონაცემთა ბაზიდან`,
     });
   } catch (error: any) {
     console.error("DELETE /api/products/[id] error:", error);

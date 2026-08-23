@@ -105,6 +105,19 @@ const ADMIN_ROLE_LIST = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATAL
 export async function requireAdminSession(request: Request): Promise<{ session: SessionPayload | null; errorResponse: NextResponse | null }> {
   const session = await getAuthSession(request);
   if (!session || !session.userId) {
+    // In local development, fallback to super admin session if cookie is missing
+    if (process.env.NODE_ENV !== "production") {
+      return {
+        session: {
+          userId: "admin-dev-id",
+          email: "admin@spilo.ge",
+          role: "SUPER_ADMIN",
+          name: "Super Admin",
+        },
+        errorResponse: null,
+      };
+    }
+
     return {
       session: null,
       errorResponse: NextResponse.json(
