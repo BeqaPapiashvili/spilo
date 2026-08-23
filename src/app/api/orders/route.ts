@@ -369,3 +369,86 @@ export async function PUT(request: Request) {
     );
   }
 }
+
+/**
+ * DELETE /api/orders
+ * Safe order deletion by admin with order item cleanup
+ */
+export async function DELETE(request: Request) {
+  try {
+    const session = await getAuthSession(request);
+    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
+
+    if (!isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "წვდომა შეზღუდულია: მხოლოდ ადმინისტრატორს შეუძლია შეკვეთის წაშლა" },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "შეკვეთის ID აუცილებელია" },
+        { status: 400 }
+      );
+    }
+
+    let existingOrder = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    }).catch(() => null);
+
+    if (!existingOrder) {
+      existingOrder = await prisma.order.findFirst({
+        where: { orderNumber: id },
+        include: { items: true },
+      });
+    }
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        { success: false, error: "შეკვეთა ვერ მოიძებნა" },
+        { status: 404 }
+      );
+    }
+
+    const targetId = existingOrder.id;
+    const orderNum = existingOrder.orderNumber;
+
+    await prisma.$transaction(async (tx) => {
+      // Delete order items
+      await tx.orderItem.deleteMany({
+        where: { orderId: targetId },
+      });
+
+      // Delete order
+      await tx.order.delete({
+        where: { id: targetId },
+      });
+    });
+
+    await recordAuditLog({
+      userId: session?.userId,
+      adminEmail: session?.email,
+      adminName: session?.name,
+      action: "ORDER_DELETE",
+      entity: "Order",
+      target: `#${orderNum}`,
+      details: `შეკვეთა #${orderNum} წაიშალა მონაცემთა ბაზიდან`,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `შეკვეთა #${orderNum} წარმატებით წაიშალა`,
+    });
+  } catch (error: any) {
+    console.error("DELETE /api/orders error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to delete order" },
+      { status: 500 }
+    );
+  }
+}
