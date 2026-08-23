@@ -1,7 +1,37 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Headphones, Send, MessageSquare, Clock, CheckCircle2, XCircle, Trash2, Check, RefreshCw, X, Phone, Archive, User, Edit3, AlertTriangle, Lock, Folder, FolderOpen, FileText, Download } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { 
+  Headphones, 
+  Send, 
+  MessageSquare, 
+  Clock, 
+  CheckCircle2, 
+  Trash2, 
+  Check, 
+  RefreshCw, 
+  X, 
+  Phone, 
+  Mail,
+  Archive, 
+  User, 
+  Edit3, 
+  AlertTriangle, 
+  Lock, 
+  FolderOpen, 
+  FileText, 
+  Download,
+  Search,
+  Sparkles,
+  Zap,
+  CheckCheck,
+  ShieldAlert,
+  ArrowRight,
+  MoreVertical,
+  ExternalLink,
+  Paperclip,
+  Smile
+} from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 export interface ChatAttachment {
@@ -21,6 +51,7 @@ export interface ChatMessage {
   read?: boolean;
   liked?: boolean | null;
   attachment?: ChatAttachment;
+  createdAt?: string;
 }
 
 export interface SupportTicket {
@@ -44,13 +75,25 @@ export interface SupportTicket {
   createdAt?: string;
 }
 
+const QUICK_REPLIES = [
+  "გამარჯობა! რით შემიძლია დაგეხმაროთ?",
+  "თქვენი შეკვეთის ნომერი მომწერეთ, გთხოვთ.",
+  "მოთხოვნა მიღებულია, ვამოწმებ ინფორმაციას.",
+  "პროდუქტი მარაგშია და მზადაა გასაგზავნად.",
+  "გმადლობთ დაკავშირებისთვის! სასიამოვნო დღეს გისურვებთ! 😊",
+];
+
 export default function AdminSupportPage() {
   const { adminUser, user } = useStore();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<"OPEN" | "RESOLVED" | "ALL">("OPEN");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingTicket, setIsDeletingTicket] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatFeedRef = useRef<HTMLDivElement>(null);
   const prevMsgCountRef = useRef<number>(0);
@@ -72,11 +115,11 @@ export default function AdminSupportPage() {
 
   useEffect(() => {
     fetchTickets();
-    const pollInterval = setInterval(fetchTickets, 2000);
+    const pollInterval = setInterval(fetchTickets, 2500);
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Smart auto-scroll: Only when activeTicketId changes or new message arrives while user is near bottom
+  // Smart auto-scroll
   useEffect(() => {
     if (activeTicketId) {
       setTimeout(() => {
@@ -94,9 +137,19 @@ export default function AdminSupportPage() {
     (user?.email ? user.email.split("@")[0] : "") ||
     "ოპერატორი";
 
-  const activeTicket = tickets.find((t) => t.id === activeTicketId);
-  const isAnotherAdminTyping = Boolean(activeTicket?.isAdminTyping && activeTicket?.typingAdminName && activeTicket.typingAdminName !== currentOperatorName);
-  const isAssignedToOther = Boolean(activeTicket?.assignedToName && activeTicket.assignedToName !== currentOperatorName);
+  const activeTicket = useMemo(() => {
+    return tickets.find((t) => t.id === activeTicketId) || null;
+  }, [tickets, activeTicketId]);
+
+  const isAnotherAdminTyping = Boolean(
+    activeTicket?.isAdminTyping &&
+    activeTicket?.typingAdminName &&
+    activeTicket.typingAdminName !== currentOperatorName
+  );
+  const isAssignedToOther = Boolean(
+    activeTicket?.assignedToName &&
+    activeTicket.assignedToName !== currentOperatorName
+  );
   const isLockedForOtherOperator = isAnotherAdminTyping || isAssignedToOther;
   const lockOwnerName = activeTicket?.typingAdminName || activeTicket?.assignedToName || "სხვა ოპერატორი";
 
@@ -107,7 +160,7 @@ export default function AdminSupportPage() {
       if (currentMsgCount > prevMsgCountRef.current) {
         if (chatFeedRef.current) {
           const { scrollTop, scrollHeight, clientHeight } = chatFeedRef.current;
-          const isUserNearBottom = scrollHeight - scrollTop - clientHeight < 160;
+          const isUserNearBottom = scrollHeight - scrollTop - clientHeight < 180;
           if (isUserNearBottom) {
             chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
           }
@@ -117,17 +170,36 @@ export default function AdminSupportPage() {
     prevMsgCountRef.current = currentMsgCount;
   }, [currentMsgCount]);
 
-  const filteredTickets = tickets.filter((t) => {
-    if (selectedFilter === "OPEN") return t.status === "OPEN";
-    if (selectedFilter === "RESOLVED") return t.status === "RESOLVED" || t.status === "CLOSED";
-    return true;
-  });
+  // Filter and Search Tickets
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((t) => {
+      // 1. Status Filter
+      if (selectedFilter === "OPEN" && t.status !== "OPEN") return false;
+      if (selectedFilter === "RESOLVED" && (t.status !== "RESOLVED" && t.status !== "CLOSED")) return false;
 
-  const handleSendReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLockedForOtherOperator || !activeTicketId || !replyText.trim()) return;
+      // 2. Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = t.customerName?.toLowerCase().includes(q);
+        const matchPhone = t.customerPhone?.toLowerCase().includes(q);
+        const matchEmail = t.customerEmail?.toLowerCase().includes(q);
+        const matchTopic = t.topic?.toLowerCase().includes(q);
+        const matchMsg = t.messages.some((m) => m.text?.toLowerCase().includes(q));
+        return matchName || matchPhone || matchEmail || matchTopic || matchMsg;
+      }
+      return true;
+    });
+  }, [tickets, selectedFilter, searchQuery]);
 
-    const text = replyText.trim();
+  // Counts for Badges
+  const openCount = useMemo(() => tickets.filter((t) => t.status === "OPEN").length, [tickets]);
+  const resolvedCount = useMemo(() => tickets.filter((t) => t.status === "RESOLVED" || t.status === "CLOSED").length, [tickets]);
+
+  const handleSendReply = async (e?: React.FormEvent, customText?: string) => {
+    if (e) e.preventDefault();
+    const text = (customText || replyText).trim();
+    if (isLockedForOtherOperator || !activeTicketId || !text) return;
+
     setReplyText("");
 
     try {
@@ -153,7 +225,7 @@ export default function AdminSupportPage() {
       if (chatFeedRef.current) {
         chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
       }
-    }, 30);
+    }, 40);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,21 +275,6 @@ export default function AdminSupportPage() {
     }
   };
 
-  const handleFilterChange = (filter: "OPEN" | "RESOLVED" | "ALL") => {
-    setSelectedFilter(filter);
-    if (activeTicketId) {
-      const activeInNewFilter = tickets.some((t) => {
-        if (t.id !== activeTicketId) return false;
-        if (filter === "OPEN") return t.status === "OPEN";
-        if (filter === "RESOLVED") return t.status === "RESOLVED" || t.status === "CLOSED";
-        return true;
-      });
-      if (!activeInNewFilter) {
-        setActiveTicketId(null);
-      }
-    }
-  };
-
   const handleCloseTicket = async (ticketId: string) => {
     try {
       const res = await fetch("/api/admin/support", {
@@ -234,10 +291,6 @@ export default function AdminSupportPage() {
       }
     } catch (err) {
       console.error("handleCloseTicket error:", err);
-    }
-
-    if (selectedFilter === "OPEN" && activeTicketId === ticketId) {
-      setActiveTicketId(null);
     }
   };
 
@@ -258,338 +311,384 @@ export default function AdminSupportPage() {
     } catch (err) {
       console.error("handleReopenTicket error:", err);
     }
+  };
 
-    if (selectedFilter === "RESOLVED" && activeTicketId === ticketId) {
-      setActiveTicketId(null);
+  const handleConfirmDelete = async () => {
+    if (!ticketToDelete) return;
+    setIsDeletingTicket(true);
+    try {
+      const res = await fetch(`/api/admin/support?id=${encodeURIComponent(ticketToDelete.id)}`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        setTickets((prev) => prev.filter((t) => t.id !== ticketToDelete.id));
+        if (activeTicketId === ticketToDelete.id) {
+          setActiveTicketId(null);
+        }
+      }
+    } catch (err) {
+      console.error("handleDeleteTicket error:", err);
+    } finally {
+      setIsDeletingTicket(false);
+      setTicketToDelete(null);
     }
   };
 
-  const handleDeleteTicket = async (ticketId: string) => {
-    if (confirm("დარწმუნებული ხართ, რომ გსურთ ამ ჩათის წაშლა?")) {
-      try {
-        await fetch(`/api/admin/support?id=${encodeURIComponent(ticketId)}`, { method: "DELETE" });
-        setTickets((prev) => prev.filter((t) => t.id !== ticketId));
-      } catch (err) {
-        console.error("handleDeleteTicket error:", err);
-      }
-      if (activeTicketId === ticketId) {
-        setActiveTicketId(null);
-      }
-    }
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
-      {/* Header */}
-      <div className="adm-card" style={{ padding: "1.5rem 1.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}>
-            <Headphones size={13} /> რეალურ დროში მხარდაჭერა
+    <div className="space-y-5 pb-16">
+      
+      {/* 1. Header Banner */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-zinc-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] rounded-full text-xs">
+            <Headphones className="w-3.5 h-3.5" />
+            <span>რეალურ დროში მხარდაჭერა</span>
           </div>
-          <h1 className="adm-page-title">მხარდაჭერის ჩათი (Live Support Desk)</h1>
-          <p className="adm-page-desc">აქტიური ჩათები და დახურული ჩათების არქივი ცალკე ტაბებში.</p>
+          <h1 className="text-2xl md:text-3xl text-zinc-900 tracking-tight">
+            მხარდაჭერის ჩათი ({openCount} აქტიური)
+          </h1>
+          <p className="text-xs md:text-sm text-zinc-500">
+            მართეთ მომხმარებლების მოთხოვნები, ონლაინ კონსულტაციები და არქივი
+          </p>
         </div>
 
-        {/* Segmented Filter Tabs */}
-        <div style={{ display: "flex", gap: "0.375rem", background: "#f1f5f9", padding: "0.25rem", borderRadius: "0.5rem" }}>
-          <button
-            type="button"
-            onClick={() => handleFilterChange("OPEN")}
-            style={{
-              fontSize: "0.75rem",
-              padding: "0.45rem 0.875rem",
-              borderRadius: "0.375rem",
-              border: "none",
-              cursor: "pointer",
-              background: selectedFilter === "OPEN" ? "#ffffff" : "transparent",
-              color: selectedFilter === "OPEN" ? "#0f172a" : "#64748b",
-              boxShadow: selectedFilter === "OPEN" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e" }} />
-            აქტიური ჩათები ({tickets.filter(t => t.status === "OPEN").length})
-          </button>
+        {/* Live Counters & Refresh */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200/80 rounded-2xl p-1.5">
+            <div className="px-3 py-1.5 rounded-xl bg-white border border-zinc-200/60 text-xs text-zinc-800 shadow-2xs flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{openCount} ღია</span>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl text-xs text-zinc-500">
+              {resolvedCount} დახურული
+            </div>
+          </div>
 
           <button
             type="button"
-            onClick={() => handleFilterChange("RESOLVED")}
-            style={{
-              fontSize: "0.75rem",
-              padding: "0.45rem 0.875rem",
-              borderRadius: "0.375rem",
-              border: "none",
-              cursor: "pointer",
-              background: selectedFilter === "RESOLVED" ? "#ffffff" : "transparent",
-              color: selectedFilter === "RESOLVED" ? "#0f172a" : "#64748b",
-              boxShadow: selectedFilter === "RESOLVED" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-              transition: "all 0.15s ease",
-            }}
+            onClick={fetchTickets}
+            disabled={isLoading}
+            className="h-11 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-colors"
+            title="განახლება"
           >
-            <Archive size={13} style={{ color: selectedFilter === "RESOLVED" ? "#2563eb" : "#64748b" }} />
-            დახურული / არქივი ({tickets.filter(t => t.status === "RESOLVED" || t.status === "CLOSED").length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleFilterChange("ALL")}
-            style={{
-              fontSize: "0.75rem",
-              padding: "0.45rem 0.875rem",
-              borderRadius: "0.375rem",
-              border: "none",
-              cursor: "pointer",
-              background: selectedFilter === "ALL" ? "#ffffff" : "transparent",
-              color: selectedFilter === "ALL" ? "#0f172a" : "#64748b",
-              boxShadow: selectedFilter === "ALL" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-              transition: "all 0.15s ease",
-            }}
-          >
-            ყველა ({tickets.length})
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-[#FF5238]" : ""}`} />
+            <span className="hidden sm:inline">განახლება</span>
           </button>
         </div>
       </div>
 
-      {/* Main Support Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "1rem", height: "calc(100vh - 180px)", minHeight: "550px", maxHeight: "720px" }}>
+      {/* 2. Main Two-Column Chat Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-210px)] min-h-[640px] max-h-[840px]">
         
-        {/* Left Column: Tickets List */}
-        <div className="adm-card" style={{ display: "flex", flexDirection: "column", overflow: "hidden", height: "100%" }}>
-          <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
-            <h2 style={{ fontSize: "0.82rem", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              {selectedFilter === "OPEN" && (
-                <>
-                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-                  აქტიური ჩათები ({filteredTickets.length})
-                </>
+        {/* Left Column: Tickets Queue & Search (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col overflow-hidden">
+          
+          {/* Search & Filter Header */}
+          <div className="p-4 border-b border-zinc-100 space-y-3 bg-zinc-50/50">
+            
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ძებნა: სახელი, ნომერი, ტექსტი..."
+                className="w-full h-10 pl-9 pr-8 bg-white border border-zinc-200 rounded-xl text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-0.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               )}
-              {selectedFilter === "RESOLVED" && (
-                <>
-                  <Archive size={14} style={{ color: "#2563eb" }} />
-                  დახურული ჩათების არქივი ({filteredTickets.length})
-                </>
-              )}
-              {selectedFilter === "ALL" && (
-                <>
-                  <FolderOpen size={14} style={{ color: "#64748b" }} />
-                  ყველა ჩატი ({filteredTickets.length})
-                </>
-              )}
-            </h2>
+            </div>
+
+            {/* Segmented Filter Pills */}
+            <div className="flex p-1 bg-zinc-100/80 rounded-2xl gap-1">
+              <button
+                type="button"
+                onClick={() => setSelectedFilter("OPEN")}
+                className={`flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  selectedFilter === "OPEN"
+                    ? "bg-white text-zinc-900 shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>ღია ({openCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedFilter("RESOLVED")}
+                className={`flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  selectedFilter === "RESOLVED"
+                    ? "bg-white text-zinc-900 shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                <Archive className="w-3.5 h-3.5 opacity-60" />
+                <span>არქივი ({resolvedCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedFilter("ALL")}
+                className={`flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  selectedFilter === "ALL"
+                    ? "bg-white text-zinc-900 shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                <span>ყველა ({tickets.length})</span>
+              </button>
+            </div>
+
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {/* Ticket Cards List */}
+          <div className="flex-1 overflow-y-auto divide-y divide-zinc-100 p-2 space-y-1">
             {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="animate-pulse" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ width: "50%", height: "0.82rem", background: "#e2e8f0", borderRadius: "0.25rem" }} />
-                    <div style={{ width: "20%", height: "0.68rem", background: "#f1f5f9", borderRadius: "0.25rem" }} />
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="p-3.5 rounded-2xl animate-pulse space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-28 bg-zinc-200 rounded" />
+                    <div className="h-3 w-12 bg-zinc-100 rounded" />
                   </div>
-                  <div style={{ width: "35%", height: "0.72rem", background: "#f1f5f9", borderRadius: "0.25rem" }} />
-                  <div style={{ width: "80%", height: "0.75rem", background: "#f8fafc", borderRadius: "0.25rem" }} />
+                  <div className="h-3 w-20 bg-zinc-100 rounded" />
+                  <div className="h-3 w-4/5 bg-zinc-100 rounded" />
                 </div>
               ))
             ) : filteredTickets.length === 0 ? (
-              <div style={{ padding: "3rem 1.5rem", textAlign: "center", color: "#94a3b8", fontSize: "0.78rem" }}>
-                ჩათები არ არის
+              <div className="p-8 text-center space-y-2">
+                <div className="w-12 h-12 bg-zinc-100 text-zinc-400 rounded-2xl flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <p className="text-xs text-zinc-500">ჩათები არ მოიძებნა</p>
               </div>
             ) : (
               filteredTickets.map((t) => {
                 const isActive = t.id === activeTicketId;
                 const lastMsg = t.messages[t.messages.length - 1];
+                const isOpen = t.status === "OPEN";
 
                 return (
                   <div
                     key={t.id}
                     onClick={() => setActiveTicketId(t.id)}
-                    style={{
-                      padding: "1rem 1.25rem",
-                      borderBottom: "1px solid #f1f5f9",
-                      cursor: "pointer",
-                      background: isActive ? "#eff6ff" : "transparent",
-                      borderLeft: isActive ? "3px solid #2563eb" : "3px solid transparent",
-                      transition: "all 0.15s ease",
-                    }}
+                    className={`p-3.5 rounded-2xl transition-all cursor-pointer relative group ${
+                      isActive
+                        ? "bg-[#FFF5F2] border border-[#FED7CC] shadow-2xs"
+                        : "hover:bg-zinc-50 border border-transparent"
+                    }`}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                      <span style={{ fontSize: "0.82rem", color: "#0f172a" }}>{t.customerName}</span>
-                      <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>{t.time}</span>
-                    </div>
+                    <div className="flex items-start gap-3">
+                      
+                      {/* Avatar */}
+                      <div className="relative shrink-0">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs ${
+                          isActive ? "bg-[#FF5238] text-white" : "bg-zinc-100 text-zinc-700"
+                        }`}>
+                          {getInitials(t.customerName)}
+                        </div>
+                        {isOpen && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white absolute -bottom-0.5 -right-0.5" />
+                        )}
+                      </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.375rem", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>{t.customerPhone}</span>
-                      {t.status === "OPEN" ? (
-                        <span className="adm-badge adm-badge-blue" style={{ fontSize: "0.6rem", padding: "0.1rem 0.4rem" }}>ღია</span>
-                      ) : (
-                        <span className="adm-badge adm-badge-green" style={{ fontSize: "0.6rem", padding: "0.1rem 0.4rem" }}>დახურული</span>
-                      )}
-                      {t.assignedToName && (
-                        <span className="adm-badge" style={{ fontSize: "0.6rem", padding: "0.1rem 0.4rem", background: "#e0f2fe", color: "#0369a1", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                          <User size={10} /> {t.assignedToName}
-                        </span>
-                      )}
-                      {t.isAdminTyping && t.typingAdminName && t.typingAdminName !== currentOperatorName && (
-                        <span className="adm-badge" style={{ fontSize: "0.6rem", padding: "0.1rem 0.4rem", background: "#fef3c7", color: "#92400e", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                          <Edit3 size={10} /> {t.typingAdminName} ბეჭდავს
-                        </span>
-                      )}
-                    </div>
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <h4 className={`text-xs truncate ${isActive ? "text-[#FF5238]" : "text-zinc-900"}`}>
+                            {t.customerName}
+                          </h4>
+                          <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
+                            {t.time}
+                          </span>
+                        </div>
 
-                    {lastMsg && (
-                      <p style={{ fontSize: "0.75rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {lastMsg.sender === "admin" ? "თქვენ: " : ""}{lastMsg.text}
-                      </p>
-                    )}
+                        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                          {t.customerPhone && (
+                            <span className="text-[11px] text-zinc-500 font-mono">
+                              {t.customerPhone}
+                            </span>
+                          )}
+                          {t.assignedToName && (
+                            <span className="text-[10px] bg-sky-50 text-sky-700 px-1.5 py-0.2 rounded-md flex items-center gap-1">
+                              <User className="w-2.5 h-2.5" />
+                              <span className="truncate max-w-[80px]">{t.assignedToName}</span>
+                            </span>
+                          )}
+                          {t.isAdminTyping && t.typingAdminName && t.typingAdminName !== currentOperatorName && (
+                            <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded-md animate-pulse">
+                              {t.typingAdminName} ბეჭდავს...
+                            </span>
+                          )}
+                        </div>
+
+                        {lastMsg && (
+                          <p className="text-[11px] text-zinc-500 truncate">
+                            {lastMsg.sender === "admin" ? "თქვენ: " : ""}{lastMsg.text}
+                          </p>
+                        )}
+                      </div>
+
+                    </div>
                   </div>
                 );
               })
             )}
           </div>
+
         </div>
 
-        {/* Right Column: Active Chat Feed & Messaging */}
-        <div className="adm-card" style={{ display: "flex", flexDirection: "column", overflow: "hidden", height: "100%" }}>
+        {/* Right Column: Active Conversation Feed (8 Cols) */}
+        <div className="lg:col-span-8 bg-white rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col overflow-hidden">
           {activeTicket ? (
             <>
               {/* Chat Header */}
-              <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #f1f5f9", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <h2 style={{ fontSize: "0.9rem", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    {activeTicket.customerName}
-                    <span style={{ fontSize: "0.72rem", color: "#64748b" }}>({activeTicket.customerPhone})</span>
-                  </h2>
-                  <p style={{ fontSize: "0.72rem", color: "#64748b", marginTop: "0.125rem" }}>
-                    თემა: {activeTicket.topic}
-                  </p>
+              <div className="p-4 md:px-6 md:py-4 border-b border-zinc-100 flex items-center justify-between gap-3 bg-zinc-50/50">
+                
+                {/* User Info */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-2xl bg-[#FF5238] text-white flex items-center justify-center text-xs shrink-0 shadow-xs">
+                    {getInitials(activeTicket.customerName)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm text-zinc-900 truncate">{activeTicket.customerName}</h3>
+                      {activeTicket.status === "OPEN" ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                          ღია
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-600">
+                          დახურული
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-zinc-500 mt-0.5">
+                      {activeTicket.customerPhone && (
+                        <a href={`tel:${activeTicket.customerPhone}`} className="hover:text-[#FF5238] flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          <span>{activeTicket.customerPhone}</span>
+                        </a>
+                      )}
+                      {activeTicket.customerEmail && (
+                        <a href={`mailto:${activeTicket.customerEmail}`} className="hover:text-[#FF5238] flex items-center gap-1 hidden sm:flex">
+                          <Mail className="w-3 h-3" />
+                          <span className="truncate max-w-[140px]">{activeTicket.customerEmail}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {/* Header Actions */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  
+                  {/* Claim Button */}
                   {activeTicket.assignedToName !== currentOperatorName && (
                     <button
                       type="button"
                       onClick={() => handleClaimTicket(activeTicket.id)}
-                      className="adm-btn-secondary"
-                      style={{ fontSize: "0.72rem", padding: "0.35rem 0.75rem", background: "#eff6ff", color: "#1d4ed8" }}
+                      className="h-9 px-3 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <Check size={13} /> {activeTicket.assignedToName ? "ჩატის გადაბარება" : "ჩატის მიღება"}
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{activeTicket.assignedToName ? "გადაბარება" : "ჩატის აღება"}</span>
                     </button>
                   )}
 
+                  {/* Close / Reopen */}
                   {activeTicket.status === "OPEN" ? (
                     <button
                       type="button"
                       onClick={() => handleCloseTicket(activeTicket.id)}
-                      className="adm-btn-secondary"
-                      style={{ fontSize: "0.72rem", padding: "0.35rem 0.75rem" }}
+                      className="h-9 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <CheckCircle2 size={13} /> ჩათის დახურვა
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">დახურვა</span>
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleReopenTicket(activeTicket.id)}
-                      className="adm-btn-secondary"
-                      style={{ fontSize: "0.72rem", padding: "0.35rem 0.75rem" }}
+                      className="h-9 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <RefreshCw size={13} /> ხელახლა გახსნა
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">გახსნა</span>
                     </button>
                   )}
 
+                  {/* Delete Button */}
                   <button
                     type="button"
-                    onClick={() => handleDeleteTicket(activeTicket.id)}
-                    className="adm-btn-danger"
-                    style={{ fontSize: "0.72rem", padding: "0.35rem 0.6rem" }}
+                    onClick={() => setTicketToDelete(activeTicket)}
+                    className="h-9 w-9 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
                     title="ჩათის წაშლა"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 className="w-4 h-4" />
                   </button>
+
                 </div>
+
               </div>
 
-              {/* Closed Archive Banner */}
-              {(activeTicket.status === "RESOLVED" || activeTicket.status === "CLOSED") && (
-                <div style={{ padding: "0.6rem 1.25rem", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                    <Archive size={14} style={{ color: "#94a3b8" }} />
-                    <span>ეს ჩატი დახურულია და შენახულია არქივში.</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleReopenTicket(activeTicket.id)}
-                    className="adm-btn-secondary"
-                    style={{ fontSize: "0.68rem", padding: "0.25rem 0.65rem" }}
-                  >
-                    <RefreshCw size={12} /> ხელახლა გახსნა
-                  </button>
+              {/* Locked Notice if other operator is typing */}
+              {isAnotherAdminTyping && (
+                <div className="px-4 py-2 bg-amber-50 border-b border-amber-200/80 text-amber-800 text-xs flex items-center gap-2 animate-in fade-in duration-150">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>ყურადღება: ოპერატორი <strong>"{activeTicket.typingAdminName}"</strong> ამ მომენტში ბეჭდავს პასუხს.</span>
                 </div>
               )}
 
               {/* Chat Feed */}
-              <div ref={chatFeedRef} style={{ flex: 1, padding: "1.25rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.875rem", background: "#fafafa", minHeight: 0, position: "relative" }}>
+              <div 
+                ref={chatFeedRef} 
+                className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-zinc-50/30"
+              >
                 {activeTicket.messages.map((msg, idx) => {
                   const isAdmin = msg.sender === "admin";
                   return (
                     <div
                       key={idx}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: isAdmin ? "flex-end" : "flex-start",
-                      }}
+                      className={`flex flex-col ${isAdmin ? "items-end" : "items-start"} space-y-1`}
                     >
                       <div
-                        style={{
-                          maxWidth: "75%",
-                          padding: "0.75rem 1rem",
-                          borderRadius: isAdmin ? "1rem 1rem 0 1rem" : "1rem 1rem 1rem 0",
-                          background: isAdmin ? "#2563eb" : "#ffffff",
-                          color: isAdmin ? "#ffffff" : "#1e293b",
-                          fontSize: "0.82rem",
-                          lineHeight: "1.5",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                          border: isAdmin ? "none" : "1px solid #e2e8f0",
-                        }}
+                        className={`max-w-[80%] md:max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed shadow-2xs ${
+                          isAdmin
+                            ? "bg-[#FF5238] text-white rounded-tr-xs"
+                            : "bg-white text-zinc-900 border border-zinc-200/80 rounded-tl-xs"
+                        }`}
                       >
-                        <div>{msg.text}</div>
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
 
-                        {/* Attachment Rendering in Admin Chat */}
+                        {/* Attachments */}
                         {msg.attachment && (
-                          <div style={{ marginTop: "0.5rem" }}>
+                          <div className="mt-2.5 pt-2 border-t border-white/20">
                             {msg.attachment.type === "image" && (
                               <a
                                 href={msg.attachment.url}
                                 target="_blank"
                                 rel="noreferrer"
-                                style={{ display: "block", borderRadius: "0.75rem", overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)", maxWidth: "240px" }}
+                                className="block rounded-xl overflow-hidden border border-black/10 max-w-[240px]"
                               >
                                 <img
                                   src={msg.attachment.url}
                                   alt={msg.attachment.name}
-                                  style={{ width: "100%", maxHeight: "200px", objectFit: "cover", display: "block" }}
+                                  className="w-full max-h-48 object-cover"
                                 />
                               </a>
-                            )}
-
-                            {msg.attachment.type === "video" && (
-                              <div style={{ borderRadius: "0.75rem", overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)", maxWidth: "260px" }}>
-                                <video
-                                  src={msg.attachment.url}
-                                  controls
-                                  style={{ width: "100%", maxHeight: "200px", objectFit: "cover", display: "block" }}
-                                />
-                              </div>
                             )}
 
                             {msg.attachment.type === "file" && (
@@ -598,47 +697,38 @@ export default function AdminSupportPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 download={msg.attachment.name}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.5rem",
-                                  padding: "0.5rem 0.75rem",
-                                  borderRadius: "0.5rem",
-                                  background: isAdmin ? "rgba(255,255,255,0.15)" : "#f8fafc",
-                                  border: isAdmin ? "1px solid rgba(255,255,255,0.3)" : "1px solid #e2e8f0",
-                                  color: isAdmin ? "#ffffff" : "#1e293b",
-                                  textDecoration: "none",
-                                  fontSize: "0.75rem",
-                                }}
+                                className={`flex items-center gap-2 p-2 rounded-xl text-xs ${
+                                  isAdmin ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-800"
+                                }`}
                               >
-                                <FileText size={16} />
-                                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                                  <span>{msg.attachment.name}</span>
-                                  {msg.attachment.size && (
-                                    <span style={{ display: "block", fontSize: "0.65rem", opacity: 0.75 }}>{msg.attachment.size}</span>
-                                  )}
-                                </div>
-                                <Download size={13} style={{ opacity: 0.75 }} />
+                                <FileText className="w-4 h-4 shrink-0" />
+                                <span className="truncate flex-1">{msg.attachment.name}</span>
+                                <Download className="w-3.5 h-3.5 shrink-0 opacity-70" />
                               </a>
                             )}
                           </div>
                         )}
                       </div>
 
-                      <span style={{ fontSize: "0.65rem", color: "#94a3b8", marginTop: "0.25rem", padding: "0 0.25rem" }}>
-                        {isAdmin ? (msg.adminName || "ოპერატორი") : activeTicket.customerName} • {msg.time}
+                      {/* Timestamp & Sender */}
+                      <div className="flex items-center gap-1.5 px-1 text-[10px] text-zinc-400">
+                        <span>{isAdmin ? (msg.adminName || "ოპერატორი") : activeTicket.customerName}</span>
+                        <span>•</span>
+                        <span className="font-mono">{msg.time}</span>
                         {isAdmin && (
-                          <span style={{ marginLeft: "0.4rem", color: msg.read ? "#2563eb" : "#94a3b8" }}>
-                            {msg.read ? "✓✓ წაკითხულია" : "✓ გაგზავნილია"}
-                          </span>
+                          <CheckCheck className="w-3 h-3 text-[#FF5238]" />
                         )}
-                      </span>
+                      </div>
                     </div>
                   );
                 })}
 
+                {/* Customer typing indicator */}
                 {activeTicket.isUserTyping && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.5rem", color: "#2563eb", fontSize: "0.75rem", fontStyle: "italic" }}>
+                  <div className="flex items-center gap-2 text-xs text-[#FF5238] italic bg-[#FFF5F2] border border-[#FED7CC] px-3 py-1.5 rounded-xl w-fit">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF5238] animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF5238] animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF5238] animate-bounce [animation-delay:0.4s]" />
                     <span>{activeTicket.customerName} ბეჭდავს...</span>
                   </div>
                 )}
@@ -646,33 +736,29 @@ export default function AdminSupportPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Operator Conflict / Assignment Warning Banners */}
-              {isAnotherAdminTyping && (
-                <div style={{ padding: "0.6rem 1.25rem", background: "#fef3c7", borderTop: "1px solid #fde68a", color: "#92400e", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <AlertTriangle size={14} style={{ color: "#d97706" }} />
-                  <span><strong>ყურადღება:</strong> ოპერატორი <strong>"{activeTicket.typingAdminName}"</strong> ამ წამს ბეჭდავს პასუხს ამ მომხმარებლისთვის!</span>
-                </div>
-              )}
-
-              {isAssignedToOther && (
-                <div style={{ padding: "0.6rem 1.25rem", background: "#eff6ff", borderTop: "1px solid #bfdbfe", color: "#1e40af", fontSize: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                    <Lock size={13} style={{ color: "#2563eb" }} />
-                    <span>ამ ჩატს ემსახურება ოპერატორი: <strong>"{activeTicket.assignedToName}"</strong></span>
-                  </div>
+              {/* Canned Quick Replies Chips */}
+              <div className="px-4 py-2 border-t border-zinc-100 bg-white flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <span className="text-[11px] text-zinc-400 shrink-0 flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-[#FF5238]" /> სწრაფი:
+                </span>
+                {QUICK_REPLIES.map((reply, i) => (
                   <button
+                    key={i}
                     type="button"
-                    onClick={() => handleClaimTicket(activeTicket.id)}
-                    className="adm-btn-secondary"
-                    style={{ fontSize: "0.68rem", padding: "0.25rem 0.65rem" }}
+                    onClick={() => handleSendReply(undefined, reply)}
+                    disabled={isLockedForOtherOperator}
+                    className="px-2.5 py-1 bg-zinc-100 hover:bg-[#FFF5F2] hover:text-[#FF5238] text-zinc-700 rounded-lg text-[11px] whitespace-nowrap transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                   >
-                    გადაბარება
+                    {reply}
                   </button>
-                </div>
-              )}
+                ))}
+              </div>
 
-              {/* Chat Reply Form */}
-              <form onSubmit={handleSendReply} style={{ padding: "1rem", borderTop: "1px solid #f1f5f9", background: isLockedForOtherOperator ? "#f8fafc" : "#ffffff", display: "flex", gap: "0.5rem" }}>
+              {/* Reply Form */}
+              <form
+                onSubmit={handleSendReply}
+                className="p-3 md:p-4 border-t border-zinc-100 bg-white flex items-center gap-2"
+              >
                 <input
                   type="text"
                   value={replyText}
@@ -683,39 +769,29 @@ export default function AdminSupportPage() {
                       ? `ჩატი დაკავებულია (${lockOwnerName}-ს მიერ)...`
                       : "ჩაწერეთ პასუხი მომხმარებლისთვის..."
                   }
-                  className="adm-input"
-                  style={{
-                    flex: 1,
-                    height: "2.5rem",
-                    fontSize: "0.82rem",
-                    background: isLockedForOtherOperator ? "#f1f5f9" : undefined,
-                    cursor: isLockedForOtherOperator ? "not-allowed" : "text",
-                  }}
+                  className="flex-1 h-11 px-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all disabled:bg-zinc-100 disabled:cursor-not-allowed"
                 />
+
                 <button
                   type="submit"
                   disabled={isLockedForOtherOperator || !replyText.trim()}
-                  className="adm-btn-primary"
-                  style={{
-                    height: "2.5rem",
-                    padding: "0 1.25rem",
-                    opacity: isLockedForOtherOperator ? 0.5 : 1,
-                    cursor: isLockedForOtherOperator ? "not-allowed" : "pointer",
-                  }}
+                  className="h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed"
                 >
-                  <Send size={14} /> გაგზავნა
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">გაგზავნა</span>
                 </button>
               </form>
             </>
           ) : (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem", textAlign: "center" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.875rem", maxWidth: "300px" }}>
-                <div style={{ width: "3.75rem", height: "3.75rem", borderRadius: "1rem", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <MessageSquare size={26} />
-                </div>
-                <h3 style={{ fontSize: "0.95rem", color: "#0f172a", margin: 0 }}>ჩატი არ არის არჩეული</h3>
-                <p style={{ fontSize: "0.78rem", color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-                  მომხმარებელთან მიმოწერის სანახავად და სასაუბროდ გთხოვთ დააჭიროთ სასურველ ჩატს მარცხენა სიიდან.
+            /* Empty State when no ticket selected */
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
+              <div className="w-16 h-16 rounded-3xl bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] flex items-center justify-center">
+                <MessageSquare className="w-8 h-8" />
+              </div>
+              <div className="space-y-1 max-w-sm">
+                <h3 className="text-base text-zinc-900">ჩატი არ არის არჩეული</h3>
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  მომხმარებელთან სასაუბროდ ან ისტორიის სანახავად გთხოვთ აირჩიოთ სასურველი ჩატი მარცხენა სიიდან.
                 </p>
               </div>
             </div>
@@ -723,6 +799,44 @@ export default function AdminSupportPage() {
         </div>
 
       </div>
+
+      {/* 3. Safe Delete Ticket Confirmation Modal */}
+      {ticketToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-zinc-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-base text-zinc-900">ჩათის წაშლის დადასტურება</h3>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                ნამდვილად გსურთ <strong>"{ticketToDelete.customerName}"</strong>-ს ჩათისა და მთლიანი მიმოწერის წაშლა?
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setTicketToDelete(null)}
+                className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                გაუქმება
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingTicket}
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+              >
+                {isDeletingTicket ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>წაშლის დადასტურება</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

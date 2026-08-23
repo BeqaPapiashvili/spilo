@@ -192,9 +192,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: "ID is required" }, { status: 400 });
     }
 
-    await prisma.supportTicket.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.supportMessage.deleteMany({ where: { ticketId: id } });
+      await tx.supportTicket.delete({ where: { id } });
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error("Support ticket delete error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
