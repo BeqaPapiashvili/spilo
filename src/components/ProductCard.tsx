@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Check, GitCompare } from "lucide-react";
@@ -33,15 +33,20 @@ export default function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
+  const [mounted, setMounted] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const rawImages = (images && images.length > 0) ? images.filter(Boolean) : [image].filter(Boolean);
   const allImages = rawImages.length > 0 ? rawImages : ["/placeholder.png"];
 
   const isOutOfStock = stock !== undefined && stock <= 0;
-  const isLiked = isInWishlist(id);
-  const isCompared = compareList.includes(id);
+  const isLiked = mounted ? isInWishlist(id) : false;
+  const isCompared = mounted ? compareList.includes(id) : false;
 
   // Installment calculation fallback
   const currentPrice = discountPrice || price;
@@ -243,7 +248,7 @@ export default function ProductCard({
           {title}
         </h3>
 
-        {/* Clean Installment & Stock Row (Replaced cluttered rating) */}
+        {/* Clean Installment & Stock Row */}
         <div className="flex items-center justify-between pt-1 border-t border-zinc-100 text-[11px]">
           {calculatedMonthly > 0 && currentPrice >= 50 ? (
             <span className="text-zinc-500 font-mono">

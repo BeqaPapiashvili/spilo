@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ArrowLeft } from "lucide-react";
+import { ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Product } from "@/types";
 import { RecentlyViewedCarousel } from "@/components/RecentlyViewedCarousel";
@@ -33,7 +33,11 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
   const [product, setProduct] = useState<Product | null>(initialProduct || null);
   const [isLoading, setIsLoading] = useState(!initialProduct);
-  const [isAdded, setIsAdded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch product live from database if not initially provided
   useEffect(() => {
@@ -64,12 +68,13 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
     };
 
     fetchProduct();
+
     return () => {
       isMounted = false;
     };
   }, [id, initialProduct]);
 
-  // Track product in recently viewed
+  // Track recently viewed
   useEffect(() => {
     if (product) {
       addRecentlyViewed({
@@ -77,26 +82,26 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
         title: product.title,
         price: product.price,
         discountPrice: product.discountPrice,
-        monthlyInstallment: product.monthlyInstallment,
         image: product.images?.[0] || product.image || "",
         discountPercentage: product.discountPercentage,
       });
     }
   }, [product, addRecentlyViewed]);
 
+  const [isAdded, setIsAdded] = useState(false);
+
   if (isLoading) {
-    return (
-      <main className="min-h-screen bg-gray-50/50 py-8">
-        <ProductDetailSkeleton />
-      </main>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] py-20">
-        <div className="container mx-auto px-4 text-center space-y-4">
-          <h1 className="text-2xl text-gray-900">პროდუქტი ვერ მოიძებნა</h1>
+      <main className="min-h-[70vh] flex items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <h1 className="text-xl sm:text-2xl text-gray-900 tracking-tight">პროდუქტი ვერ მოიძებნა</h1>
           <p className="text-xs sm:text-sm text-gray-500">მოცემული პროდუქტი არ არსებობს ან წაშლილია</p>
           <Link
             href="/catalog"
@@ -110,8 +115,8 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
     );
   }
 
-  const isLiked = isInWishlist(product.id);
-  const isCompared = compareList.includes(product.id);
+  const isLiked = mounted ? isInWishlist(product.id) : false;
+  const isCompared = mounted ? compareList.includes(product.id) : false;
   const currentPrice = product.discountPrice || product.price;
 
   // Add to cart without opening cart drawer
