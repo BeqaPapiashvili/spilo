@@ -56,7 +56,7 @@ export function ProductGalleryPro({
     };
   }, []);
 
-  // Continuous Smooth Hover Auto-Scroll with dynamic responsive speed
+  // Continuous Smooth Hover Auto-Scroll with dynamic velocity
   const startAutoScroll = (direction: "up" | "down") => {
     stopAutoScroll();
 
@@ -250,21 +250,21 @@ export function ProductGalleryPro({
       {/* Main Gallery Layout: Left Thumbnails + Right Swiper Slider */}
       <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start w-full">
 
-        {/* 1. Left Vertical Thumbnails Navigation (Full-width responsive hover-scroll bars) */}
+        {/* 1. Left Vertical Thumbnails Navigation (Refined, elegant glassmorphic hover-scroll bars) */}
         {activeMode === "photos" && displayImages.length > 0 && (
-          <div className="relative flex flex-col items-center w-full md:w-[78px] lg:w-[86px] shrink-0">
+          <div className="relative flex flex-col items-center w-full md:w-[78px] lg:w-[86px] shrink-0 group/track">
             
-            {/* Top Full-Width Auto-Scroll Bar (Desktop) */}
+            {/* Top Sleek Elegant Hover Bar (Desktop) */}
             {displayImages.length > 4 && (
               <button
                 type="button"
                 onMouseEnter={() => startAutoScroll("up")}
                 onMouseLeave={stopAutoScroll}
                 onClick={() => handleClickScroll("prev")}
-                className="hidden md:flex w-full h-8 mb-1.5 rounded-xl bg-zinc-100 hover:bg-[#FFF5F2] text-zinc-600 hover:text-[#FF5238] border border-zinc-200/90 hover:border-[#FED7CC] items-center justify-center transition-all cursor-pointer shadow-2xs group/topbar active:scale-95"
+                className="hidden md:flex w-full py-1.5 mb-1.5 rounded-xl bg-white/95 hover:bg-[#FFF5F2] text-zinc-400 hover:text-[#FF5238] border border-zinc-200/80 hover:border-[#FED7CC] items-center justify-center transition-all cursor-pointer shadow-2xs group/topbar backdrop-blur-xs active:scale-95"
                 title="მაუსის მიტანით ადის ზემოთ"
               >
-                <ChevronUp className="size-5 group-hover/topbar:-translate-y-0.5 transition-transform" />
+                <ChevronUp className="size-4 group-hover/topbar:-translate-y-0.5 transition-transform" />
               </button>
             )}
 
@@ -298,17 +298,17 @@ export function ProductGalleryPro({
               })}
             </div>
 
-            {/* Bottom Full-Width Auto-Scroll Bar (Desktop) */}
+            {/* Bottom Sleek Elegant Hover Bar (Desktop) */}
             {displayImages.length > 4 && (
               <button
                 type="button"
                 onMouseEnter={() => startAutoScroll("down")}
                 onMouseLeave={stopAutoScroll}
                 onClick={() => handleClickScroll("next")}
-                className="hidden md:flex w-full h-8 mt-1.5 rounded-xl bg-zinc-100 hover:bg-[#FFF5F2] text-zinc-600 hover:text-[#FF5238] border border-zinc-200/90 hover:border-[#FED7CC] items-center justify-center transition-all cursor-pointer shadow-2xs group/botbar active:scale-95"
+                className="hidden md:flex w-full py-1.5 mt-1.5 rounded-xl bg-white/95 hover:bg-[#FFF5F2] text-zinc-400 hover:text-[#FF5238] border border-zinc-200/80 hover:border-[#FED7CC] items-center justify-center transition-all cursor-pointer shadow-2xs group/botbar backdrop-blur-xs active:scale-95"
                 title="მაუსის მიტანით ჩამოდის ქვემოთ"
               >
-                <ChevronDown className="size-5 group-hover/botbar:translate-y-0.5 transition-transform" />
+                <ChevronDown className="size-4 group-hover/botbar:translate-y-0.5 transition-transform" />
               </button>
             )}
 
