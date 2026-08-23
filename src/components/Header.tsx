@@ -8,6 +8,9 @@ import {
   Minus,
   ChevronDown,
   ShieldCheck,
+  LogOut,
+  Package,
+  User as UserIcon,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
@@ -67,7 +70,7 @@ function CustomUserIcon({ className = "w-5 h-5" }: { className?: string }) {
 
 function CategoriesGridIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
-    <div className={`${className} rounded-lg bg-[#1D1D1F] text-white flex items-center justify-center p-1 shadow-2xs shrink-0`}>
+    <div className={`${className} rounded-lg bg-[#FF5238] text-white flex items-center justify-center p-1 shadow-2xs shrink-0`}>
       <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
         <rect x="2" y="2" width="4.5" height="4.5" rx="1.2" />
         <rect x="9.5" y="2" width="4.5" height="4.5" rx="1.2" />
@@ -80,7 +83,7 @@ function CategoriesGridIcon({ className = "w-6 h-6" }: { className?: string }) {
 
 function DiscountsBadgeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
-    <div className={`${className} rounded-full bg-[#FFE4E6] text-[#E11D48] flex items-center justify-center shrink-0`}>
+    <div className={`${className} rounded-full bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] flex items-center justify-center shrink-0`}>
       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
         <line x1="19" y1="5" x2="5" y2="19" />
         <circle cx="6.5" cy="6.5" r="2.5" />
@@ -92,7 +95,7 @@ function DiscountsBadgeIcon({ className = "w-6 h-6" }: { className?: string }) {
 
 function BrandsBadgeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
-    <div className={`${className} rounded-full bg-[#CCFBF1] text-[#0D9488] flex items-center justify-center shrink-0`}>
+    <div className={`${className} rounded-full bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD] flex items-center justify-center shrink-0`}>
       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
         <line x1="3" y1="6" x2="21" y2="6" />
@@ -104,7 +107,7 @@ function BrandsBadgeIcon({ className = "w-6 h-6" }: { className?: string }) {
 
 function PickupPointBadgeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
-    <div className={`${className} rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0`}>
+    <div className={`${className} rounded-full bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0] flex items-center justify-center shrink-0`}>
       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
         <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
@@ -116,7 +119,7 @@ function PickupPointBadgeIcon({ className = "w-6 h-6" }: { className?: string })
 
 function CompareBadgeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
-    <div className={`${className} rounded-full bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0`}>
+    <div className={`${className} rounded-full bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] flex items-center justify-center shrink-0`}>
       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="18" y1="20" x2="18" y2="10" />
         <line x1="12" y1="20" x2="12" y2="4" />
@@ -141,7 +144,9 @@ export default function Header() {
     user,
     setUser,
     adminUser,
-    toggleAuthModal
+    toggleAuthModal,
+    logout,
+    addToast
   } = useStore();
 
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -230,12 +235,12 @@ export default function Header() {
             {/* Wishlist Button (48x48) */}
             <Link
               href="/wishlist"
-              className="w-12 h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-black transition-colors relative cursor-pointer"
+              className="w-12 h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
               title="სურვილების სია"
             >
               <CustomHeartIcon className="w-5 h-5 text-[#212121]" />
               {wishlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#1D1D1F] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-[#FF5238] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs">
                   {wishlist.length}
                 </span>
               )}
@@ -249,12 +254,12 @@ export default function Header() {
             >
               <Link
                 href="/cart"
-                className="w-12 h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-black transition-colors relative cursor-pointer"
+                className="w-12 h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
                 title="კალათა"
               >
                 <CustomCartIcon className="w-5 h-5 text-[#212121]" />
                 {cartItemsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#1D1D1F] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs">
+                  <span className="absolute -top-1 -right-1 bg-[#FF5238] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs">
                     {cartItemsCount}
                   </span>
                 )}
@@ -279,9 +284,9 @@ export default function Header() {
                     {/* Cart Items List or Empty State */}
                     {cart.length === 0 ? (
                       <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
-                        <div className="relative w-20 h-20 bg-[#F1F3F6] rounded-full flex items-center justify-center text-gray-400">
-                          <CustomCartIcon className="w-10 h-10 text-gray-400" />
-                          <span className="absolute top-0 left-0 bg-blue-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-mono">
+                        <div className="relative w-20 h-20 bg-[#FFF5F2] rounded-full flex items-center justify-center text-[#FF5238]">
+                          <CustomCartIcon className="w-10 h-10 text-[#FF5238]" />
+                          <span className="absolute top-0 left-0 bg-[#FF5238] text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-mono">
                             0
                           </span>
                         </div>
@@ -321,7 +326,7 @@ export default function Header() {
                               </button>
 
                               {/* Quantity Control Pill */}
-                              <div className="flex items-center gap-2 bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs">
+                              <div className="flex items-center gap-2 bg-[#FF5238] text-white px-2.5 py-1 rounded-full text-xs">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -360,7 +365,7 @@ export default function Header() {
                     <Link
                       href="/cart"
                       onClick={() => setIsCartHovered(false)}
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs sm:text-sm flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+                      className="w-full h-12 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-xs sm:text-sm flex items-center justify-center cursor-pointer transition-colors shadow-xs"
                     >
                       <span>კალათის გახსნა</span>
                     </Link>
@@ -369,7 +374,7 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
-            {/* User Auth / Profile Pill Button (Height 48px, Clean refined border, no harsh shadow) */}
+            {/* User Auth / Profile Pill Button */}
             {user ? (
               <Link
                 href="/profile"
@@ -398,7 +403,7 @@ export default function Header() {
                 className="hidden xl:flex items-center gap-1.5 bg-[#0F172A] hover:bg-slate-800 text-white px-4 h-12 rounded-full border border-slate-700/60 shadow-2xs transition-colors cursor-pointer text-xs shrink-0"
                 title="ადმინპანელში გადასვლა"
               >
-                <ShieldCheck className="w-4 h-4 text-blue-400" />
+                <ShieldCheck className="w-4 h-4 text-[#F59E0B]" />
                 <span>ადმინი</span>
               </Link>
             )}
@@ -418,12 +423,12 @@ export default function Header() {
                 type="button"
                 onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
                 className={`flex items-center gap-2 transition-colors cursor-pointer text-[13px] shrink-0 py-0.5 ${
-                  isMegaMenuOpen ? "text-[#1D1D1F]" : "text-[#1F2937] hover:text-[#1D1D1F]"
+                  isMegaMenuOpen ? "text-[#FF5238]" : "text-[#1F2937] hover:text-[#FF5238]"
                 }`}
               >
                 <CategoriesGridIcon className="w-6 h-6" />
                 <span>კატეგორიები</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isMegaMenuOpen ? "rotate-180 text-[#1D1D1F]" : ""}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isMegaMenuOpen ? "rotate-180 text-[#FF5238]" : ""}`} />
               </button>
 
               {/* Vertical Separator */}
@@ -432,7 +437,7 @@ export default function Header() {
               {/* Fast Link 1: Discounts */}
               <Link
                 href="/catalog"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#E11D48] transition-colors shrink-0 py-0.5"
+                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
               >
                 <DiscountsBadgeIcon className="w-6 h-6" />
                 <span>ფასდაკლებები</span>
@@ -441,7 +446,7 @@ export default function Header() {
               {/* Fast Link 2: Brands */}
               <Link
                 href="/catalog"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#0D9488] transition-colors shrink-0 py-0.5"
+                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
               >
                 <BrandsBadgeIcon className="w-6 h-6" />
                 <span>ბრენდები</span>
@@ -450,7 +455,7 @@ export default function Header() {
               {/* Fast Link 3: Pick-up Point */}
               <Link
                 href="/catalog"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#D97706] transition-colors shrink-0 py-0.5"
+                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
               >
                 <PickupPointBadgeIcon className="w-6 h-6" />
                 <span>გატანის წერტილი</span>
@@ -459,12 +464,12 @@ export default function Header() {
               {/* Fast Link 4: Compare */}
               <Link
                 href="/compare"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#0284C7] transition-colors shrink-0 py-0.5"
+                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
               >
                 <CompareBadgeIcon className="w-6 h-6" />
                 <span>შედარება</span>
                 {compareList.length > 0 && (
-                  <span className="bg-[#E0F2FE] text-[#0284C7] text-[10px] rounded-full px-1.5 py-0.2 font-mono">
+                  <span className="bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] text-[10px] rounded-full px-1.5 py-0.2 font-mono">
                     {compareList.length}
                   </span>
                 )}

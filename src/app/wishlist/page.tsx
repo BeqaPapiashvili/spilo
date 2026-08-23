@@ -43,7 +43,7 @@ export default function WishlistPage() {
                 onClick={handleMoveAllToCart}
                 className="bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-colors"
               >
-                <ShoppingBag className="w-4 h-4 text-blue-400" />
+                <ShoppingBag className="w-4 h-4 text-[#60A5FA]" />
                 <span>ყველას კალათაში გადატანა</span>
               </button>
               <button

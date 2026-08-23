@@ -4,6 +4,7 @@ import { getAuthSession } from "@/lib/jwt";
 import { ADMIN_ROLES } from "@/lib/permissions";
 import { OrderStatus } from "@prisma/client";
 import { recordAuditLog } from "@/lib/audit";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 /**
  * GET /api/orders
@@ -212,6 +213,24 @@ export async function POST(request: Request) {
 
       return createdOrder;
     });
+
+    // Dispatch transactional order confirmation email asynchronously
+    const targetEmail = (customer.email || session?.email || "").trim();
+    if (targetEmail && targetEmail.includes("@")) {
+      sendOrderConfirmationEmail({
+        to: targetEmail,
+        name,
+        orderNumber: newOrder.orderNumber,
+        totalAmount: newOrder.totalAmount,
+        paymentMethod: newOrder.paymentMethod,
+        items: newOrder.items.map((i: any) => ({
+          title: i.title,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+        shippingAddress: newOrder.shippingAddress,
+      }).catch((err) => console.warn("[Order Email Background Error]:", err));
+    }
 
     return NextResponse.json({
       success: true,

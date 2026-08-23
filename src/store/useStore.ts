@@ -73,10 +73,11 @@ interface StoreState {
   setHasHydrated: (state: boolean) => void;
   hydrateUserData: (userId: string) => Promise<void>;
 
-  // Admin Auth Actions
+  // Admin & User Auth Actions
   setAdminSession: (admin: { id: string; name: string; email: string; role: string } | null, token: string | null) => void;
   updateUserRole: (email: string, role: string) => void;
   logoutAdmin: () => void;
+  logout: () => void;
 
   // Cart Actions
   addToCart: (item: Omit<CartItem, 'quantity'>, openCart?: boolean) => void;
@@ -157,9 +158,10 @@ export const useStore = create<StoreState>()(
 
       hydrateUserData: async (userId: string) => {
         try {
-          const [cartRes, wishlistRes] = await Promise.all([
+          const [cartRes, wishlistRes, compareRes] = await Promise.all([
             fetch(`/api/cart?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
             fetch(`/api/wishlist?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
+            fetch(`/api/compare?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
           ]);
 
           if (cartRes && cartRes.success && Array.isArray(cartRes.items) && cartRes.items.length > 0) {
@@ -206,6 +208,17 @@ export const useStore = create<StoreState>()(
               return { wishlist: merged };
             });
           }
+
+          if (compareRes && compareRes.success && Array.isArray(compareRes.items)) {
+            const dbCompareIds: string[] = compareRes.items
+              .map((ci: any) => ci.product?.id || ci.productId)
+              .filter((id: any): id is string => typeof id === "string" && Boolean(id));
+
+            set((state) => {
+              const merged = Array.from(new Set([...state.compareList, ...dbCompareIds]));
+              return { compareList: merged.slice(0, 3) };
+            });
+          }
         } catch (err) {
           console.warn("Hydration error:", err);
         }
@@ -235,6 +248,13 @@ export const useStore = create<StoreState>()(
           fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
         }
         set({ adminUser: null, adminToken: null, user: null });
+      },
+      logout: () => {
+        if (typeof window !== "undefined") {
+          fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+          localStorage.removeItem("spilo_session_id");
+        }
+        set({ user: null, adminUser: null, adminToken: null });
       },
 
       // Cart
@@ -385,10 +405,17 @@ export const useStore = create<StoreState>()(
           return { compareList: [...state.compareList, id] };
         }),
 
-      removeFromCompare: (id) =>
+      removeFromCompare: (id) => {
         set((state) => ({
           compareList: state.compareList.filter((i) => i !== id),
-        })),
+        }));
+
+        const userId = get().user?.id || "";
+        const sessionId = get().getSessionId();
+        fetch(`/api/compare?productId=${encodeURIComponent(id)}&userId=${encodeURIComponent(userId)}&sessionId=${encodeURIComponent(sessionId)}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      },
 
       toggleCompare: (id) => {
         set((state) => {
@@ -427,7 +454,15 @@ export const useStore = create<StoreState>()(
         }).catch(() => {});
       },
 
-      clearCompare: () => set({ compareList: [] }),
+      clearCompare: () => {
+        set({ compareList: [] });
+
+        const userId = get().user?.id || "";
+        const sessionId = get().getSessionId();
+        fetch(`/api/compare?userId=${encodeURIComponent(userId)}&sessionId=${encodeURIComponent(sessionId)}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      },
       toggleHighlightDifferences: () =>
         set((state) => ({ highlightDifferencesOnly: !state.highlightDifferencesOnly })),
       toggleAuthModal: (open) => 

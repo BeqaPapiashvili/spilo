@@ -94,24 +94,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 5. Handle /profile/* page routes (Redirects to homepage / login prompt)
-  if (pathname.startsWith("/profile")) {
-    if (!token) {
-      const homeUrl = new URL("/", request.url);
-      homeUrl.searchParams.set("auth", "login");
-      return NextResponse.redirect(homeUrl);
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload || !payload.userId) {
-      const homeUrl = new URL("/", request.url);
-      homeUrl.searchParams.set("auth", "login");
-      return NextResponse.redirect(homeUrl);
-    }
-
-    return NextResponse.next();
-  }
-
   // 6. Handle standalone mutating API routes (Defense-in-depth for POST/PUT/PATCH/DELETE on admin resources)
   const isMutatingMethod = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
   const standaloneAdminPrefixes = [
@@ -176,7 +158,6 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
-    "/profile/:path*",
     "/api/products/:path*",
     "/api/products",
     "/api/categories/:path*",

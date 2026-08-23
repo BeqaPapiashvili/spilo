@@ -28,13 +28,13 @@ export default function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 text-[11px] transition-colors relative cursor-pointer px-3 py-1 ${isActive ? "text-blue-600" : "text-gray-500 hover:text-gray-900"
+            className={`flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 text-[11px] transition-colors relative ${isActive ? "text-[#FF5238]" : "text-gray-500 hover:text-gray-900"
               }`}
           >
             <div className="relative">
               <Icon className="w-5 h-5" />
-              {!!item.badge && item.badge > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-mono shadow-xs">
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-[#FF5238] text-white text-[9px] min-w-3.5 h-3.5 px-0.5 rounded-full flex items-center justify-center font-mono">
                   {item.badge}
                 </span>
               )}

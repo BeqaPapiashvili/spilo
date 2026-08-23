@@ -102,7 +102,7 @@ function NavigationProgressBarInner() {
       aria-hidden="true"
     >
       <div
-        className="h-full bg-linear-to-r from-[#2563EB] via-[#60A5FA] to-[#2563EB] shadow-[0_0_12px_rgba(37,99,235,0.85)] transition-all duration-300 ease-out"
+        className="h-full bg-linear-to-r from-[#FF5238] via-[#FF7A00] to-[#FF5238] shadow-[0_0_10px_rgba(255,82,56,0.5)] transition-all duration-300 ease-out"
         style={{
           width: `${progress}%`,
           opacity: progress === 100 ? 0 : 1,

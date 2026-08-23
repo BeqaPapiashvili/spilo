@@ -60,11 +60,24 @@ export default function ComparePage() {
     };
   }, []);
 
-  // 2. Determine active compared products
+  // 2. Determine active compared products & sync with database
   const activeProducts = useMemo(() => {
     if (allProducts.length === 0 || compareList.length === 0) return [];
     return allProducts.filter((p) => compareList.includes(p.id)).slice(0, 4);
   }, [allProducts, compareList]);
+
+  // Synchronize and auto-prune stale/non-existent IDs from compareList once products are loaded
+  useEffect(() => {
+    if (!isLoading && allProducts.length > 0 && compareList.length > 0) {
+      const validProductIds = allProducts.map((p) => p.id);
+      const validList = compareList.filter((id) => validProductIds.includes(id));
+      if (validList.length === 0) {
+        clearCompare();
+      } else if (validList.length !== compareList.length) {
+        useStore.setState({ compareList: validList });
+      }
+    }
+  }, [isLoading, allProducts, compareList, clearCompare]);
 
   const primaryCategory = activeProducts[0]?.categoryName || "ყველა პროდუქტი";
 
@@ -262,7 +275,7 @@ export default function ComparePage() {
         <div className="py-3.5 bg-white mb-6">
           <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
             <nav className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
-              <Link href="/" className="hover:text-blue-600 transition-colors">
+              <Link href="/" className="hover:text-[#059669] transition-colors">
                 მთავარი
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
@@ -272,7 +285,7 @@ export default function ComparePage() {
         </div>
 
         <div className="container mx-auto px-4 py-16 max-w-lg text-center space-y-6">
-          <div className="w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-2xs">
+          <div className="w-20 h-20 rounded-3xl bg-[#FFF5F2] text-[#FF5238] flex items-center justify-center mx-auto shadow-2xs">
             <GitCompare className="w-9 h-9" />
           </div>
           <div className="space-y-2">
@@ -285,7 +298,7 @@ export default function ComparePage() {
           </div>
           <Link
             href="/catalog"
-            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-3.5 rounded-2xl text-xs md:text-sm shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white px-7 py-3.5 rounded-2xl text-xs md:text-sm shadow-xs transition-colors cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4" />
             <span>კატალოგის დათვალიერება</span>
@@ -302,7 +315,7 @@ export default function ComparePage() {
       <div className="py-3.5 bg-white mb-6">
         <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
           <nav className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
-            <Link href="/" className="hover:text-blue-600 transition-colors">
+            <Link href="/" className="hover:text-[#FF5238] transition-colors">
               მთავარი
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
@@ -319,7 +332,7 @@ export default function ComparePage() {
             <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
               პროდუქტების შედარება
             </h1>
-            <span className="bg-blue-50 text-blue-700 text-xs md:text-sm px-3.5 py-1.5 rounded-xl">
+            <span className="bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] text-xs md:text-sm px-3.5 py-1.5 rounded-xl">
               კატეგორია: {primaryCategory}
             </span>
           </div>
@@ -339,7 +352,7 @@ export default function ComparePage() {
             <button
               type="button"
               onClick={handleShare}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#FF5238] hover:bg-[#EA3A20] text-white text-xs md:text-sm px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               <Share2 className="w-4 h-4" />
               <span>გაზიარება</span>
@@ -367,8 +380,8 @@ export default function ComparePage() {
                 <div
                   className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
                     showOnlyDifferences
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "bg-white border border-gray-200 group-hover:border-blue-400"
+                      ? "bg-[#FF5238] text-white shadow-xs"
+                      : "bg-white border border-gray-200 group-hover:border-[#FF5238]"
                   }`}
                 >
                   {showOnlyDifferences && <Check className="w-3.5 h-3.5" />}
@@ -411,11 +424,11 @@ export default function ComparePage() {
                     <div className="min-w-0 pr-4">
                       <Link
                         href={`/product/${product.id}`}
-                        className="text-xs md:text-sm text-gray-900 leading-snug line-clamp-2 hover:text-blue-600 transition-colors"
+                        className="text-xs md:text-sm text-gray-900 leading-snug line-clamp-2 hover:text-[#FF5238] transition-colors"
                       >
                         {product.title}
                       </Link>
-                      <p className="text-xs md:text-sm text-blue-600 mt-1">
+                      <p className="text-xs md:text-sm text-[#FF5238] mt-1">
                         {product.discountPrice ? `${product.discountPrice} ₾` : `${product.price} ₾`}
                       </p>
                     </div>
@@ -427,15 +440,14 @@ export default function ComparePage() {
               {activeProducts.length < 4 && (
                 <div
                   onClick={() => setIsSearchModalOpen(true)}
-                  className="bg-white hover:bg-[#F1F5F9] rounded-xl p-4 flex items-center justify-center gap-2 text-xs md:text-sm text-blue-600 cursor-pointer transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.015)] min-h-[76px]"
+                  className="bg-white hover:bg-[#FFF5F2] rounded-xl p-4 flex items-center justify-center gap-2 text-xs md:text-sm text-[#FF5238] border border-dashed border-[#FED7CC] hover:border-[#FF5238] cursor-pointer transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.015)] min-h-[76px]"
                 >
-                  <Plus className="w-4 h-4 text-blue-600" />
+                  <Plus className="w-4 h-4 text-[#FF5238]" />
                   <span>დაამატეთ</span>
                 </div>
               )}
 
             </div>
-
           </div>
 
           {/* Dynamic Spec Table Sections */}
@@ -508,7 +520,7 @@ export default function ComparePage() {
                   value={modalSearchQuery}
                   onChange={(e) => setModalSearchQuery(e.target.value)}
                   placeholder="მოძებნეთ პროდუქტი მონაცემთა ბაზიდან..."
-                  className="w-full bg-[#F8FAFD] rounded-full py-3.5 pl-11 pr-4 text-xs md:text-sm text-gray-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all"
+                  className="w-full bg-[#F8FAFD] rounded-full py-3.5 pl-11 pr-4 text-xs md:text-sm text-gray-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#FF5238]/20 transition-all"
                   autoFocus
                 />
               </div>
@@ -531,7 +543,7 @@ export default function ComparePage() {
                   return (
                     <div
                       key={product.id}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-[#F8FAFD] hover:bg-[#F1F5F9] transition-colors group cursor-pointer"
+                      className="flex items-center justify-between p-3.5 rounded-2xl bg-[#F8FAFD] hover:bg-[#FFF5F2] transition-colors group cursor-pointer"
                       onClick={() => {
                         addToCompare(product.id);
                         setIsSearchModalOpen(false);
@@ -547,7 +559,7 @@ export default function ComparePage() {
                           <h4 className="text-xs md:text-sm text-gray-900 leading-tight">
                             {product.title}
                           </h4>
-                          <p className="text-xs md:text-sm text-blue-600 mt-0.5">
+                          <p className="text-xs md:text-sm text-[#FF5238] mt-0.5">
                             {product.discountPrice ? `${product.discountPrice} ₾` : `${product.price} ₾`}
                           </p>
                         </div>
@@ -555,7 +567,7 @@ export default function ComparePage() {
 
                       <button
                         type="button"
-                        className="w-9 h-9 rounded-xl bg-blue-900 hover:bg-blue-800 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-xs transition-colors"
+                        className="w-9 h-9 rounded-xl bg-[#FF5238] hover:bg-[#EA3A20] text-white flex items-center justify-center shrink-0 cursor-pointer shadow-xs transition-colors"
                       >
                         <GitCompare className="w-4 h-4" />
                       </button>

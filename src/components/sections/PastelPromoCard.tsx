@@ -16,42 +16,42 @@ export default function PastelPromoCard({
   asLink = true,
   className = "",
 }: PastelPromoCardProps) {
-  const bgColor = card.bgColor || "#FFC5E3";
+  const bgColor = card.bgColor || "#FEF08A";
 
   const content = (
     <div
-      className={`relative h-[160px] md:h-[175px] w-full rounded-[24px] overflow-hidden select-none border border-black/5 shadow-2xs group transition-all duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer ${className}`}
+      className={`relative h-[155px] md:h-[165px] w-full rounded-[24px] overflow-hidden select-none border border-black/5 shadow-xs group cursor-pointer ${className}`}
       style={{ backgroundColor: bgColor }}
     >
       {/* Top-Left Badge (ფასდაკლების პილულა) */}
       {card.badge && (
-        <div className="absolute top-4 left-4 z-10 bg-white/95 rounded-full px-3.5 py-1.5 shadow-sm flex items-center gap-1.5">
-          <Flame className="w-4 h-4 text-orange-500 fill-orange-500 shrink-0" />
-          <span className="text-xs md:text-sm text-gray-900 tracking-tight">
+        <div className="absolute top-3.5 left-3.5 z-10 bg-white/95 rounded-full px-3 py-1 shadow-2xs flex items-center gap-1.5 border border-black/5">
+          <Flame className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B] shrink-0" />
+          <span className="text-xs text-gray-950 tracking-tight">
             {card.badge}
           </span>
         </div>
       )}
 
-      {/* Bottom-Left Title (სათაური) */}
-      <div className="absolute bottom-4 left-4 max-w-[55%] z-10">
-        <h3 className="text-base md:text-lg text-gray-950 leading-tight line-clamp-2">
+      {/* Bottom-Left Title & Subtitle */}
+      <div className="absolute bottom-3.5 left-3.5 max-w-[55%] z-10 space-y-0.5">
+        <h3 className="text-sm md:text-base text-gray-950 leading-snug line-clamp-2">
           {card.title || "სათაური"}
         </h3>
         {card.subtitle && (
-          <p className="text-xs text-gray-700 mt-0.5 line-clamp-1 opacity-80">
+          <p className="text-[11px] text-gray-800 line-clamp-1 opacity-85">
             {card.subtitle}
           </p>
         )}
       </div>
 
-      {/* Right-Aligned Product Image (პროდუქტის სურათი) */}
+      {/* Right-Aligned Product Image */}
       {card.bgImageUrl && (
-        <div className="absolute right-0 bottom-0 top-0 w-[48%] flex items-end justify-end pointer-events-none z-0 p-2">
+        <div className="absolute right-1 bottom-0 top-0 w-[45%] flex items-end justify-end pointer-events-none z-0 p-1.5">
           <img
             src={card.bgImageUrl}
             alt={card.title || "Promo"}
-            className="object-contain object-bottom h-[90%] max-h-[160px] drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+            className="object-contain object-bottom h-[88%] max-h-[145px] drop-shadow-md"
           />
         </div>
       )}

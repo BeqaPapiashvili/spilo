@@ -110,7 +110,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                             : "text-[#374151] hover:bg-[#F9FAFB] hover:text-[#111827]"
                         }`}
                       >
-                        <span className={`shrink-0 transition-colors ${isSelected ? "text-[#1D1D1F]" : "text-[#0D9488]"}`}>
+                        <span className={`shrink-0 transition-colors ${isSelected ? "text-[#FF5238]" : "text-[#71717A]"}`}>
                           {iconElement}
                         </span>
                         <span className="truncate">{category.name}</span>
@@ -132,7 +132,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                       <Link
                         href={`/catalog?category=${sub.slug || activeCategory.slug}`}
                         onClick={onClose}
-                        className="text-[15px] text-[#111827] hover:text-[#1D1D1F] transition-colors block tracking-tight"
+                        className="text-[15px] text-[#111827] hover:text-[#FF5238] transition-colors block tracking-tight"
                       >
                         {sub.name}
                       </Link>
@@ -147,7 +147,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                                 key={item.id}
                                 href={href}
                                 onClick={onClose}
-                                className="text-[13.5px] text-[#4B5563] hover:text-[#1D1D1F] transition-colors block leading-relaxed"
+                                className="text-[13.5px] text-[#4B5563] hover:text-[#FF5238] transition-colors block leading-relaxed"
                               >
                                 {item.name}
                               </Link>
@@ -158,7 +158,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                           <Link
                             href={`/catalog?category=${sub.slug || activeCategory.slug}`}
                             onClick={onClose}
-                            className="text-[12.5px] text-[#0284C7] hover:underline transition-colors pt-1 block"
+                            className="text-[12.5px] text-[#FF5238] hover:underline transition-colors pt-1 block"
                           >
                             მეტი
                           </Link>
@@ -170,14 +170,14 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 <div className="py-24 flex flex-col items-center justify-center text-center text-gray-500 space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-gray-100 text-[#1D1D1F] flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-2xl bg-[#FFF5F2] text-[#FF5238] flex items-center justify-center">
                     {activeCategory ? getCategoryIcon(activeCategory) : <Sparkles className="w-7 h-7" />}
                   </div>
                   <p className="text-[15px] text-gray-800">{activeCategory?.name || "კატეგორია"}</p>
                   <Link
                     href={`/catalog?category=${activeCategory?.slug || ""}`}
                     onClick={onClose}
-                    className="text-xs text-[#0284C7] hover:underline"
+                    className="text-xs text-[#FF5238] hover:underline"
                   >
                     ყველა პროდუქტის ნახვა
                   </Link>

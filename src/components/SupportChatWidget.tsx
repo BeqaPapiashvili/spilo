@@ -464,9 +464,9 @@ export default function SupportChatWidget() {
           className="relative bg-[#111111] hover:bg-black text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 border border-white/20"
           title="პროდუქტების შედარება"
         >
-          <GitCompare className="w-5 h-5 text-blue-400" />
+          <GitCompare className="w-5 h-5 text-[#10B981]" />
           {compareList.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#111111]">
+            <span className="absolute -top-1 -right-1 bg-[#059669] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#111111]">
               {compareList.length}
             </span>
           )}
@@ -870,7 +870,7 @@ export default function SupportChatWidget() {
                         type="button"
                         onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
                         className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer ${isAttachmentMenuOpen
-                            ? "bg-blue-600 text-white rotate-45 shadow-sm shadow-blue-500/25"
+                            ? "bg-[#FF5238] text-white rotate-45 shadow-sm shadow-coral-500/25"
                             : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                           }`}
                         title="ფაილის, სურათის ან ვიდეოს გაგზავნა"
@@ -883,13 +883,13 @@ export default function SupportChatWidget() {
                         value={inputMsg}
                         onChange={handleInputChange}
                         placeholder="ჩაწერეთ შეკითხვა..."
-                        className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all placeholder:text-slate-400"
+                        className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/25 focus:border-[#FF5238] transition-all placeholder:text-slate-400"
                       />
 
                       <button
                         type="submit"
                         disabled={isUploading || !inputMsg.trim()}
-                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-blue-500/20"
+                        className="w-10 h-10 bg-[#FF5238] hover:bg-[#EA3A20] disabled:opacity-40 disabled:hover:bg-[#FF5238] text-white rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all shadow-sm shadow-[#FF5238]/20"
                       >
                         {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       </button>
@@ -904,12 +904,12 @@ export default function SupportChatWidget() {
           )}
         </AnimatePresence>
 
-        {/* Floating Trigger Button in Spilo Deep Slate / Blue Theme */}
+        {/* Floating Trigger Button in Spilo Deep Slate / Bright Coral Theme */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border ${isOpen
-              ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-400/40 shadow-blue-500/30"
+              ? "bg-[#FF5238] hover:bg-[#EA3A20] text-white border-[#FF7A00]/40 shadow-[#FF5238]/30"
               : "bg-[#111111] hover:bg-black text-white border-white/20"
             }`}
           title={isOpen ? "ჩათის დახურვა" : "დახმარება & ჩატი"}
@@ -918,7 +918,7 @@ export default function SupportChatWidget() {
             <X className="w-5 h-5 text-white" />
           ) : (
             <div className="relative">
-              <MessageSquare className="w-5 h-5 text-blue-400" />
+              <MessageSquare className="w-5 h-5 text-[#10B981]" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
             </div>
           )}

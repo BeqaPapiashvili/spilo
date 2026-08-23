@@ -152,7 +152,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                   </p>
                   {isSearching ? (
                     <div className="flex items-center justify-center py-8 gap-2 text-xs text-gray-400">
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                      <Loader2 className="w-4 h-4 animate-spin text-[#FF5238]" />
                       <span>იძებნება მონაცემთა ბაზაში...</span>
                     </div>
                   ) : filteredProducts.length > 0 ? (
@@ -177,7 +177,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                             <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-900 truncate">{product.title}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-blue-600">
+                                <span className="text-xs text-[#FF5238]">
                                   ₾{product.discountPrice || product.price}
                                 </span>
                                 {product.discountPrice && (
@@ -200,7 +200,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       <button
                         type="button"
                         onClick={() => handleSearchSubmit()}
-                        className="mt-2 w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                        className="mt-2 w-full py-2.5 bg-[#FFF5F2] hover:bg-[#FED7CC] text-[#FF5238] rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
                       >
                         ყველა შედეგის ნახვა ({filteredProducts.length})
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -249,7 +249,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                   {/* Popular Searches */}
                   <div>
                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+                      <TrendingUp className="w-3.5 h-3.5 text-[#FF5238]" />
                       პოპულარული ძიებები
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -259,7 +259,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                             type="button"
                             key={popular}
                             onClick={() => handleSearchSubmit(popular)}
-                            className="px-3 py-1.5 bg-blue-50/70 hover:bg-blue-100 text-blue-700 rounded-xl text-xs transition-colors cursor-pointer"
+                            className="px-3 py-1.5 bg-[#FFF5F2] hover:bg-[#FED7CC] text-[#FF5238] rounded-xl text-xs transition-colors cursor-pointer"
                           >
                             {popular}
                           </button>
@@ -282,7 +282,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                             onClose();
                             router.push(`/catalog?category=${cat.slug}`);
                           }}
-                          className="p-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between"
+                          className="p-3 rounded-xl border border-gray-100 hover:border-[#FED7CC] hover:bg-[#FFF5F2]/50 cursor-pointer transition-all flex items-center justify-between"
                         >
                           <span className="text-xs text-gray-800">{cat.name}</span>
                           <ArrowRight className="w-3.5 h-3.5 text-gray-300" />

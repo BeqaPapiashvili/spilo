@@ -129,10 +129,10 @@ function CheckoutContent() {
   const [recipientIdNumber, setRecipientIdNumber] = useState(user?.idNumber || "");
   const [recipientPhone, setRecipientPhone] = useState(user?.phone || "");
 
-  // Step 2: Payment Details state
+  // Step 2: Payment Details state (defaulting to COD)
   const [paymentCategory, setPaymentCategory] = useState<
-    "card" | "installment" | "cod" | "transfer" | "points" | "keepz" | "crypto"
-  >("card");
+    "cod" | "transfer" | "card" | "installment" | "points" | "keepz" | "crypto"
+  >("cod");
   const [selectedInstallmentBank, setSelectedInstallmentBank] = useState<
     "bog" | "tbc" | "tbc_ganatsileba" | "credo"
   >("bog");
@@ -302,8 +302,12 @@ function CheckoutContent() {
 
     setIsSubmitting(true);
 
-    let paymentMethodLabel = "ონლაინ განვადება";
-    if (paymentCategory === "installment") {
+    let paymentMethodLabel = "კურიერთან ანგარიშსწორება (ადგილზე გადახდა)";
+    if (paymentCategory === "cod") {
+      paymentMethodLabel = "კურიერთან ანგარიშსწორება (ადგილზე გადახდა)";
+    } else if (paymentCategory === "transfer") {
+      paymentMethodLabel = "საბანკო გადარიცხვა (Bank Transfer)";
+    } else if (paymentCategory === "installment") {
       const bankNames: Record<string, string> = {
         bog: "საქართველოს ბანკი (0% განვადება)",
         tbc: "TBC ბანკი (0% განვადება)",
@@ -315,8 +319,6 @@ function CheckoutContent() {
       paymentMethodLabel = `ბარათით გადახდა (${expandedCardGateway.toUpperCase()} - ${selectedCardOption === "applepay" ? "Apple Pay" : "Visa/Mastercard"})`;
     } else if (paymentCategory === "points") {
       paymentMethodLabel = "ქულებით შეძენა";
-    } else if (paymentCategory === "transfer") {
-      paymentMethodLabel = "საბანკო გადარიცხვა";
     } else if (paymentCategory === "keepz") {
       paymentMethodLabel = "Keepz - ონლაინ ბანკით შეძენა";
     } else if (paymentCategory === "crypto") {
@@ -331,6 +333,7 @@ function CheckoutContent() {
       customer: {
         name: fullRecipientName,
         phone: recipientPhone,
+        email: user?.email || "",
         idNumber: recipientIdNumber,
         personType,
       },
@@ -421,7 +424,7 @@ function CheckoutContent() {
                   if (step === 2) setStep(1);
                   else router.push("/cart");
                 }}
-                className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 cursor-pointer transition-colors"
+                className="inline-flex items-center gap-2 text-gray-700 hover:text-[#FF5238] cursor-pointer transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 text-gray-500" />
                 <span>უკან დაბრუნება</span>
@@ -432,12 +435,12 @@ function CheckoutContent() {
                   <select
                     value={personType}
                     onChange={(e) => setPersonType(e.target.value as any)}
-                    className="appearance-none bg-transparent pr-6 text-blue-600 font-sans text-xs md:text-sm focus:outline-none cursor-pointer"
+                    className="appearance-none bg-transparent pr-6 text-[#FF5238] font-sans text-xs md:text-sm focus:outline-none cursor-pointer"
                   >
                     <option value="physical">ფიზიკური პირი</option>
                     <option value="legal">იურიდიული პირი</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-blue-600 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[#FF5238] absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               )}
             </div>
@@ -455,7 +458,7 @@ function CheckoutContent() {
                       onClick={() => setDeliveryMethod("delivery")}
                       className={`px-5 py-3 rounded-full text-xs md:text-sm transition-all cursor-pointer border ${
                         deliveryMethod === "delivery"
-                          ? "border-blue-600 bg-blue-50/50 text-blue-600 ring-1 ring-blue-600"
+                          ? "border-[#FF5238] bg-[#FFF5F2] text-[#FF5238] ring-1 ring-[#FF5238]"
                           : "border-transparent bg-[#F1F3F6] text-gray-600 hover:bg-gray-200"
                       }`}
                     >
@@ -466,7 +469,7 @@ function CheckoutContent() {
                       onClick={() => setDeliveryMethod("pickup")}
                       className={`px-5 py-3 rounded-full text-xs md:text-sm transition-all cursor-pointer border ${
                         deliveryMethod === "pickup"
-                          ? "border-blue-600 bg-blue-50/50 text-blue-600 ring-1 ring-blue-600"
+                          ? "border-[#FF5238] bg-[#FFF5F2] text-[#FF5238] ring-1 ring-[#FF5238]"
                           : "border-transparent bg-[#F1F3F6] text-gray-600 hover:bg-gray-200"
                       }`}
                     >
@@ -496,8 +499,8 @@ function CheckoutContent() {
                       <div className="fixed inset-0 z-30" onClick={() => setIsCityOpen(false)} />
                       <div className="absolute top-full left-0 right-0 z-40 bg-white p-3 rounded-2xl shadow-xl border border-gray-100 space-y-2 mt-1.5 animate-in fade-in duration-150">
                         {/* Search Input Box */}
-                        <div className="border border-blue-600 bg-white rounded-2xl h-12 px-4 flex items-center gap-2 shadow-2xs">
-                          <Search className="w-4 h-4 text-blue-600 shrink-0" />
+                        <div className="border border-[#FF5238] bg-white rounded-2xl h-12 px-4 flex items-center gap-2 shadow-2xs">
+                          <Search className="w-4 h-4 text-[#FF5238] shrink-0" />
                           <input
                             type="text"
                             value={citySearchQuery}
@@ -526,7 +529,7 @@ function CheckoutContent() {
                                 }}
                                 className={`w-full h-13 px-5 flex items-center text-left text-xs md:text-sm transition-colors cursor-pointer ${
                                   city === cityName
-                                    ? "bg-blue-50 text-blue-600"
+                                    ? "bg-[#FFF5F2] text-[#FF5238]"
                                     : "text-gray-900 hover:bg-gray-200/60"
                                 }`}
                               >
@@ -544,7 +547,7 @@ function CheckoutContent() {
                 <div className="space-y-2">
                   <div
                     onClick={() => {}}
-                    className="border-2 border-blue-600 bg-blue-50/20 rounded-2xl p-5 flex items-center justify-between cursor-pointer shadow-2xs"
+                    className="border-2 border-[#FF5238] bg-[#FFF5F2]/40 rounded-2xl p-5 flex items-center justify-between cursor-pointer shadow-2xs"
                   >
                     <div className="space-y-1 pr-4">
                       <div className="flex items-center gap-2">
@@ -555,7 +558,7 @@ function CheckoutContent() {
                             e.stopPropagation();
                             setIsAddAddressOpen(true);
                           }}
-                          className="text-gray-400 hover:text-blue-600 p-0.5 transition-colors"
+                          className="text-gray-400 hover:text-[#FF5238] p-0.5 transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -565,9 +568,9 @@ function CheckoutContent() {
                       </span>
                     </div>
 
-                    {/* Radio Selected Blue Circle */}
-                    <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center shrink-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    {/* Radio Selected Circle */}
+                    <div className="w-5 h-5 rounded-full border-2 border-[#FF5238] flex items-center justify-center shrink-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />
                     </div>
                   </div>
 
@@ -575,9 +578,9 @@ function CheckoutContent() {
                   <button
                     type="button"
                     onClick={() => setIsAddAddressOpen(true)}
-                    className="flex items-center gap-2 text-xs md:text-sm text-gray-900 pt-2 cursor-pointer hover:text-blue-600 transition-colors"
+                    className="flex items-center gap-2 text-xs md:text-sm text-gray-900 pt-2 cursor-pointer hover:text-[#FF5238] transition-colors"
                   >
-                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
+                    <div className="w-6 h-6 rounded-full bg-[#FF5238] text-white flex items-center justify-center text-xs">
                       <Plus className="w-4 h-4" />
                     </div>
                     <span>ახალი მისამართის დამატება</span>
@@ -599,7 +602,7 @@ function CheckoutContent() {
                           if (errors.recipientFirstName) setErrors((prev) => ({ ...prev, recipientFirstName: "" }));
                         }}
                         placeholder="მიმღების სახელი"
-                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                       />
                       {errors.recipientFirstName && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientFirstName}</p>}
                     </div>
@@ -614,7 +617,7 @@ function CheckoutContent() {
                           if (errors.recipientLastName) setErrors((prev) => ({ ...prev, recipientLastName: "" }));
                         }}
                         placeholder="მიმღების გვარი"
-                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                       />
                       {errors.recipientLastName && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientLastName}</p>}
                     </div>
@@ -626,7 +629,7 @@ function CheckoutContent() {
                         value={recipientIdNumber}
                         onChange={(e) => setRecipientIdNumber(e.target.value)}
                         placeholder="მიმღების პირადი ნომერი"
-                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                       />
                     </div>
 
@@ -640,7 +643,7 @@ function CheckoutContent() {
                           if (errors.recipientPhone) setErrors((prev) => ({ ...prev, recipientPhone: "" }));
                         }}
                         placeholder="მიმღების ტელეფონის ნომერი"
-                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                       />
                       {errors.recipientPhone && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientPhone}</p>}
                     </div>
@@ -658,27 +661,29 @@ function CheckoutContent() {
                 <div className="space-y-3">
                   <h3 className="text-sm text-gray-900">გადახდის მეთოდები</h3>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                     {[
-                      { id: "card", label: "ბარათით გადახდა" },
-                      { id: "installment", label: "0% განვადება" },
-                      { id: "cod", label: "ადგილზე გადახდა (COD)" },
-                      { id: "transfer", label: "საბანკო გადარიცხვა" },
-                      { id: "points", label: "ქულებით შეძენა" },
-                      { id: "keepz", label: "Keepz - ონლაინ ბანკი" },
-                      { id: "crypto", label: "კრიპტოთი შეძენა" },
+                      { id: "cod", label: "ადგილზე გადახდა (COD)", active: true },
+                      { id: "transfer", label: "საბანკო გადარიცხვა", active: true },
+                      { id: "card", label: "ბარათით გადახდა", badge: "მალე" },
+                      { id: "installment", label: "0% განვადება", badge: "მალე" },
                     ].map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         onClick={() => setPaymentCategory(item.id as any)}
-                        className={`h-12 px-3 rounded-2xl text-xs transition-all cursor-pointer border text-center flex items-center justify-center ${
+                        className={`min-h-12 py-2 px-3 rounded-2xl text-xs transition-all cursor-pointer border text-center flex flex-col items-center justify-center gap-0.5 ${
                           paymentCategory === item.id
-                            ? "border-blue-600 bg-blue-50/60 text-blue-600 ring-1 ring-blue-600"
-                            : "border-transparent bg-[#F1F3F6] text-gray-600 hover:bg-gray-200"
+                            ? "border-[#FF5238] bg-[#FFF5F2] text-[#FF5238] ring-1 ring-[#FF5238]"
+                            : "border-transparent bg-[#F1F3F6] text-gray-700 hover:bg-gray-200"
                         }`}
                       >
                         <span>{item.label}</span>
+                        {item.badge && (
+                          <span className="text-[9px] text-[#FF5238] bg-[#FED7CC] px-1.5 py-0.2 rounded-md">
+                            {item.badge}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -689,7 +694,7 @@ function CheckoutContent() {
                   <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2 border border-gray-200/60">
                     <p className="text-gray-900 text-sm">ადგილზე გადახდა კურიერთან (Cash on Delivery)</p>
                     <p>შეკვეთის საფასურს გადაიხდით ნივთის ჩაბარებისას კურიერთან ნაღდი ანგარიშსწორებით ან საბანკო ბარათით (POS ტერმინალით).</p>
-                    <p className="text-emerald-700">✓ წინასწარი გადახდა არ მოითხოვება. შეკვეთა დაუყოვნებლივ გადაეცემა კურიერს.</p>
+                    <p className="text-[#FF5238]">✓ წინასწარი გადახდა არ მოითხოვება. შეკვეთა დაუყოვნებლივ გადაეცემა კურიერს.</p>
                   </div>
                 )}
 
@@ -702,7 +707,7 @@ function CheckoutContent() {
                       <p>მიმღები: შპს სპილო (Spilo LLC)</p>
                       <p>TBC Bank: GE89TB7749102938102938</p>
                       <p>Bank of Georgia: GE12BG0000000889201928</p>
-                      <p className="text-blue-600">დანიშნულება: მიუთითეთ შეკვეთის ნომერი</p>
+                      <p className="text-[#FF5238]">დანიშნულება: მიუთითეთ შეკვეთის ნომერი</p>
                     </div>
                   </div>
                 )}
@@ -714,7 +719,7 @@ function CheckoutContent() {
                     <div
                       onClick={() => setSelectedInstallmentBank("bog")}
                       className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "bog" ? "border-blue-600 bg-white" : "border-transparent"
+                        selectedInstallmentBank === "bog" ? "border-[#FF5238] bg-white" : "border-transparent"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -724,9 +729,9 @@ function CheckoutContent() {
                         <span className="text-xs md:text-sm text-gray-900">საქართველოს ბანკი</span>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "bog" ? "border-blue-600" : "border-gray-300"
+                        selectedInstallmentBank === "bog" ? "border-[#FF5238]" : "border-gray-300"
                       }`}>
-                        {selectedInstallmentBank === "bog" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                        {selectedInstallmentBank === "bog" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                       </div>
                     </div>
 
@@ -734,7 +739,7 @@ function CheckoutContent() {
                     <div
                       onClick={() => setSelectedInstallmentBank("tbc")}
                       className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "tbc" ? "border-blue-600 bg-white" : "border-transparent"
+                        selectedInstallmentBank === "tbc" ? "border-[#FF5238] bg-white" : "border-transparent"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -744,9 +749,9 @@ function CheckoutContent() {
                         <span className="text-xs md:text-sm text-gray-900">თიბისი ბანკი</span>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "tbc" ? "border-blue-600" : "border-gray-300"
+                        selectedInstallmentBank === "tbc" ? "border-[#FF5238]" : "border-gray-300"
                       }`}>
-                        {selectedInstallmentBank === "tbc" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                        {selectedInstallmentBank === "tbc" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                       </div>
                     </div>
 
@@ -754,7 +759,7 @@ function CheckoutContent() {
                     <div
                       onClick={() => setSelectedInstallmentBank("tbc_ganatsileba")}
                       className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-blue-600 bg-white" : "border-transparent"
+                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-[#FF5238] bg-white" : "border-transparent"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -764,9 +769,9 @@ function CheckoutContent() {
                         <span className="text-xs md:text-sm text-gray-900">თიბისი <span className="text-gray-500 pl-1">განაწილება</span></span>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-blue-600" : "border-gray-300"
+                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-[#FF5238]" : "border-gray-300"
                       }`}>
-                        {selectedInstallmentBank === "tbc_ganatsileba" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                        {selectedInstallmentBank === "tbc_ganatsileba" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                       </div>
                     </div>
 
@@ -774,7 +779,7 @@ function CheckoutContent() {
                     <div
                       onClick={() => setSelectedInstallmentBank("credo")}
                       className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "credo" ? "border-blue-600 bg-white" : "border-transparent"
+                        selectedInstallmentBank === "credo" ? "border-[#FF5238] bg-white" : "border-transparent"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -784,9 +789,9 @@ function CheckoutContent() {
                         <span className="text-xs md:text-sm text-gray-900">კრედო ბანკი</span>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "credo" ? "border-blue-600" : "border-gray-300"
+                        selectedInstallmentBank === "credo" ? "border-[#FF5238]" : "border-gray-300"
                       }`}>
-                        {selectedInstallmentBank === "credo" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                        {selectedInstallmentBank === "credo" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                       </div>
                     </div>
                   </div>
@@ -820,8 +825,8 @@ function CheckoutContent() {
                             className="flex items-center justify-between p-3 bg-white rounded-xl cursor-pointer"
                           >
                             <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა (Visa / Mastercard)</span>
-                            <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center">
-                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                            <div className="w-5 h-5 rounded-full border-2 border-[#FF5238] flex items-center justify-center">
+                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                             </div>
                           </div>
                         </div>
@@ -830,7 +835,7 @@ function CheckoutContent() {
 
                     {/* Bank of Georgia Gateway Accordion */}
                     <div className={`rounded-2xl overflow-hidden border-2 transition-colors ${
-                      expandedCardGateway === "bog" ? "border-blue-600 bg-[#F1F3F6]" : "border-transparent bg-[#F1F3F6]"
+                      expandedCardGateway === "bog" ? "border-[#FF5238] bg-[#F1F3F6]" : "border-transparent bg-[#F1F3F6]"
                     }`}>
                       <button
                         type="button"
@@ -858,11 +863,11 @@ function CheckoutContent() {
                             className="flex items-center justify-between p-3 cursor-pointer"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="text-xs tracking-widest text-blue-900">VISA</span>
+                              <span className="text-xs tracking-widest text-[#18181B]">VISA</span>
                               <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა</span>
                             </div>
-                            <div className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center">
-                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                            <div className="w-5 h-5 rounded-full border-2 border-[#FF5238] flex items-center justify-center">
+                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                             </div>
                           </div>
 
@@ -876,7 +881,7 @@ function CheckoutContent() {
                               <span className="text-xs md:text-sm text-gray-900">Apple Pay</span>
                             </div>
                             <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                              {selectedCardOption === "applepay" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                              {selectedCardOption === "applepay" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
                             </div>
                           </div>
                         </div>
@@ -935,13 +940,13 @@ function CheckoutContent() {
                 )}
                 <div className="flex justify-between text-gray-600">
                   <span>მიწოდების ღირებულება</span>
-                  <span className="text-[#10B981] font-mono">უფასო (0 ₾)</span>
+                  <span className="text-[#FF5238] font-mono">უფასო (0 ₾)</span>
                 </div>
               </div>
 
               <div className="pt-3 border-t border-gray-200/60 flex justify-between items-center">
                 <span className="text-xs md:text-sm text-gray-600">გადასახდელი თანხა</span>
-                <span className="text-lg md:text-xl text-blue-600 font-mono">{totalAmount.toFixed(2)} ₾</span>
+                <span className="text-lg md:text-xl text-[#FF5238] font-mono">{totalAmount.toFixed(2)} ₾</span>
               </div>
             </div>
 
@@ -953,7 +958,7 @@ function CheckoutContent() {
                   id="terms"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 accent-blue-600 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 accent-[#FF5238] cursor-pointer"
                 />
                 <label htmlFor="terms" className="text-[11px] text-gray-600 hover:text-gray-900 leading-tight cursor-pointer">
                   წავიკითხე და ვეთანხმები წესებს, პირობებს და პერსონალურ მონაცემთა დაცვის პოლიტიკას
@@ -961,7 +966,7 @@ function CheckoutContent() {
               </div>
             )}
 
-            {/* Primary Blue Action Button "შემდეგი" */}
+            {/* Primary Action Button "შემდეგი" */}
             <button
               type="button"
               disabled={isSubmitting}
@@ -969,7 +974,7 @@ function CheckoutContent() {
                 if (step === 1) handleProceedToStep2();
                 else handleFinalOrderSubmit();
               }}
-              className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white rounded-2xl text-xs md:text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
+              className="w-full h-14 bg-[#FF5238] hover:bg-[#EA3A20] disabled:opacity-70 text-white rounded-2xl text-xs md:text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
             >
               {isSubmitting ? (
                 <>
@@ -1008,13 +1013,13 @@ function CheckoutContent() {
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   placeholder="შეიყვანე პრომო კოდი"
-                  className="flex-1 h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 uppercase font-mono"
+                  className="flex-1 h-12 px-4 bg-[#F1F3F6] rounded-2xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#059669]/30 uppercase font-mono"
                 />
                 <button
                   type="button"
                   disabled={isValidatingPromo}
                   onClick={handleApplyCoupon}
-                  className="px-5 h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white rounded-2xl text-xs cursor-pointer transition-colors shrink-0 shadow-xs flex items-center justify-center gap-1"
+                  className="px-5 h-12 bg-[#059669] hover:bg-[#047857] disabled:opacity-70 text-white rounded-2xl text-xs cursor-pointer transition-colors shrink-0 shadow-xs flex items-center justify-center gap-1"
                 >
                   {isValidatingPromo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "გააქტიურება"}
                 </button>

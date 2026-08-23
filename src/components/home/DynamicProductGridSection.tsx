@@ -53,19 +53,19 @@ export default function DynamicProductGridSection({
   return (
     <section className="py-2">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <h2 className="text-xl md:text-2xl text-gray-900 tracking-tight">
                 {title || "პროდუქტების კატალოგი"}
               </h2>
               {config?.isFlash && (
-                <span className="bg-red-50 text-red-600 text-[10px] px-2 py-0.5 rounded-full border border-red-100">
+                <span className="bg-red-50 text-red-600 border border-red-200/80 text-[10px] px-2.5 py-0.5 rounded-full">
                   HOT DEALS
                 </span>
               )}
               {config?.isFeatured && (
-                <span className="bg-gray-100 text-[#1D1D1F] text-[10px] px-2 py-0.5 rounded-full border border-gray-200">
+                <span className="bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A] text-[10px] px-2.5 py-0.5 rounded-full">
                   FEATURED
                 </span>
               )}
@@ -74,12 +74,13 @@ export default function DynamicProductGridSection({
               <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
             )}
           </div>
+          
           <Link
             href={targetLink}
-            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-[#1D1D1F] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-xs md:text-sm text-gray-600 hover:text-[#FF5238] transition-colors cursor-pointer"
           >
             <span>სრულად ნახვა</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 

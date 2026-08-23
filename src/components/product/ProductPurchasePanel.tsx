@@ -129,7 +129,7 @@ export function ProductPurchasePanel({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             {product.brandName && (
-              <span className="text-xs text-blue-600 bg-blue-50/80 ring-1 ring-blue-600/15 px-3 py-1 rounded-full uppercase tracking-wider">
+              <span className="text-xs text-[#059669] bg-[#ECFDF5] ring-1 ring-[#A7F3D0] px-3 py-1 rounded-full uppercase tracking-wider">
                 {product.brandName}
               </span>
             )}

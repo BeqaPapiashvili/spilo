@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { expandSearchTerms } from "@/lib/transliteration";
 
 export async function GET(request: Request) {
   try {
@@ -33,16 +34,20 @@ export async function GET(request: Request) {
     }
 
     if (query.trim()) {
-      const q = query.trim();
-      andConditions.push({
-        OR: [
-          { title: { contains: q } },
-          { description: { contains: q } },
-          { sku: { contains: q } },
-          { brand: { name: { contains: q } } },
-          { category: { name: { contains: q } } },
-        ],
-      });
+      const searchTerms = expandSearchTerms(query.trim());
+      const queryOrs: any[] = [];
+      for (const term of searchTerms) {
+        queryOrs.push(
+          { title: { contains: term } },
+          { description: { contains: term } },
+          { sku: { contains: term } },
+          { brand: { name: { contains: term } } },
+          { category: { name: { contains: term } } }
+        );
+      }
+      if (queryOrs.length > 0) {
+        andConditions.push({ OR: queryOrs });
+      }
     }
 
     if (categoryParam) {

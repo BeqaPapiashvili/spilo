@@ -44,7 +44,7 @@ export default function FeaturedCategories({
           </div>
           <Link
             href="/categories"
-            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-[#FF5238] transition-colors cursor-pointer"
           >
             <span>ყველა კატეგორია</span>
             <ArrowRight className="w-4 h-4" />
@@ -60,10 +60,10 @@ export default function FeaturedCategories({
                 href={`/categories/${cat.slug}`}
                 className="group flex flex-col items-center justify-center p-4 rounded-2xl bg-[#F8FAFC] hover:bg-white border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all text-center gap-2.5 h-28"
               >
-                <div className="w-10 h-10 rounded-xl bg-white group-hover:bg-blue-50 text-gray-700 group-hover:text-blue-600 flex items-center justify-center transition-colors shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-white group-hover:bg-[#FFF5F2] text-gray-700 group-hover:text-[#FF5238] flex items-center justify-center transition-colors shadow-xs">
                   <Icon className="w-5 h-5" />
                 </div>
-                <span className="text-xs text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1">
+                <span className="text-xs text-gray-800 group-hover:text-[#FF5238] transition-colors line-clamp-1">
                   {cat.name}
                 </span>
               </Link>

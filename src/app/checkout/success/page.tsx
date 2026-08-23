@@ -2,17 +2,18 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Package, Home, ShoppingBag, FileText } from "lucide-react";
+import { CheckCircle2, Package, Home, ShoppingBag, FileText, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import OrderInvoiceModal from "@/components/OrderInvoiceModal";
 import { useStore } from "@/store/useStore";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId") || "SPL-92841";
-  const { orders, setOrders } = useStore();
+  const orderId = searchParams.get("orderId") || "SP-92841";
+  const { orders, addToast } = useStore();
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [dbOrder, setDbOrder] = useState<any | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -39,7 +40,7 @@ function SuccessContent() {
                   : "მუშავდება",
               items: Array.isArray(o.items) ? o.items : [],
               totalAmount: o.totalAmount,
-              paymentMethod: o.paymentMethod || "ბარათით გადახდა",
+              paymentMethod: o.paymentMethod || "კურიერთან ანგარიშსწორება",
               address: o.shippingAddress || "",
             };
             setDbOrder(mapped);
@@ -56,17 +57,33 @@ function SuccessContent() {
     status: "მუშავდება" as const,
     items: [],
     totalAmount: 0,
-    paymentMethod: "საბანკო ბარათი",
+    paymentMethod: "საბანკო გადარიცხვა",
     address: "თბილისი, საქართველო",
+  };
+
+  const isBankTransfer =
+    activeOrder.paymentMethod?.includes("გადარიცხვა") ||
+    activeOrder.paymentMethod?.toLowerCase().includes("transfer");
+
+  const copyToClipboard = (text: string, fieldKey: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldKey);
+    addToast({
+      title: "დაკოპირებულია",
+      message: `${text}`,
+      type: "info",
+      duration: 2000,
+    });
+    setTimeout(() => setCopiedField(null), 2500);
   };
 
   return (
     <>
-      <div className="bg-white rounded-[32px] p-8 md:p-12 max-w-lg w-full text-center space-y-6 shadow-xs border border-gray-100 animate-in zoom-in-95">
+      <div className="bg-white rounded-[32px] p-6 md:p-10 max-w-xl w-full text-center space-y-6 shadow-xs border border-gray-100 animate-in zoom-in-95">
         
         {/* Success Icon */}
-        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs">
-          <CheckCircle2 className="w-10 h-10" />
+        <div className="w-16 h-16 md:w-20 md:h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs">
+          <CheckCircle2 className="w-8 h-8 md:w-10 md:h-10" />
         </div>
 
         {/* Text Details */}
@@ -90,6 +107,76 @@ function SuccessContent() {
           </div>
           <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg">მუშავდება</span>
         </div>
+
+        {/* Bank Transfer Details Block if Bank Transfer was selected */}
+        {isBankTransfer && (
+          <div className="bg-blue-50/50 border border-blue-200/80 rounded-2xl p-5 text-left space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs text-blue-900">საბანკო რეკვიზიტები გადარიცხვისთვის</h2>
+              <span className="text-[11px] text-blue-600 font-mono">
+                თანხა: {Number(activeOrder.totalAmount || 0).toLocaleString()} ₾
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs text-gray-800">
+              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
+                <div>
+                  <span className="text-[10px] text-gray-400 block">მიმღები</span>
+                  <span>შპს სპილო (Spilo LLC)</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
+                <div>
+                  <span className="text-[10px] text-gray-400 block">TBC Bank IBAN</span>
+                  <span className="font-mono">GE89TB7749102938102938</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard("GE89TB7749102938102938", "tbc")}
+                  className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  title="დაკოპირება"
+                >
+                  {copiedField === "tbc" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
+                <div>
+                  <span className="text-[10px] text-gray-400 block">Bank of Georgia IBAN</span>
+                  <span className="font-mono">GE12BG0000000889201928</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard("GE12BG0000000889201928", "bog")}
+                  className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  title="დაკოპირება"
+                >
+                  {copiedField === "bog" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
+                <div>
+                  <span className="text-[10px] text-gray-400 block">დანიშნულება (აუცილებელი)</span>
+                  <span className="font-mono text-blue-600">#{orderId}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(`#${orderId}`, "ref")}
+                  className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  title="დაკოპირება"
+                >
+                  {copiedField === "ref" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+            
+            <p className="text-[11px] text-blue-700/80 leading-relaxed">
+              თანხის ასახვის შემდეგ შეკვეთა გადაეცემა საკურიერო სამსახურს.
+            </p>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="pt-2 space-y-3">

@@ -131,7 +131,7 @@ export default function CartPage() {
 
         {cart.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center space-y-4 max-w-md mx-auto shadow-2xs border border-gray-100 my-12">
-            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-[#FFF5F2] text-[#FF5238] rounded-full flex items-center justify-center mx-auto">
               <ShoppingBag className="w-10 h-10" />
             </div>
             <h2 className="text-xl text-gray-900">კალათა ცარიელია</h2>
@@ -140,7 +140,7 @@ export default function CartPage() {
             </p>
             <Link
               href="/catalog"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-xs sm:text-sm cursor-pointer transition-colors shadow-xs"
+              className="inline-flex items-center gap-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white px-6 py-3 rounded-2xl text-xs sm:text-sm cursor-pointer transition-colors shadow-xs"
             >
               <span>შოპინგის დაწყება</span>
               <ArrowRight className="w-4 h-4" />
@@ -154,7 +154,7 @@ export default function CartPage() {
               <div className="bg-white rounded-2xl p-4 shadow-2xs border border-gray-100 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 text-gray-700">
-                    <Truck className="w-4 h-4 text-blue-600" />
+                    <Truck className="w-4 h-4 text-[#FF5238]" />
                     <span>
                       {remainingForFreeShipping > 0
                         ? `დაამატეთ ${remainingForFreeShipping.toFixed(2)} ₾ უფასო მიწოდებისთვის`
@@ -165,7 +165,7 @@ export default function CartPage() {
                 </div>
                 <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                    className="h-full bg-[#FF5238] rounded-full transition-all duration-300"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -188,7 +188,7 @@ export default function CartPage() {
                       <div className="flex-1 min-w-0 space-y-1">
                         <Link
                           href={`/product/${item.id}`}
-                          className="text-xs sm:text-sm text-gray-900 hover:text-blue-600 transition-colors line-clamp-1 block"
+                          className="text-xs sm:text-sm text-gray-900 hover:text-[#FF5238] transition-colors line-clamp-1 block"
                         >
                           {item.title}
                         </Link>
@@ -243,7 +243,7 @@ export default function CartPage() {
               <div className="flex justify-between items-center pt-2">
                 <Link
                   href="/catalog"
-                  className="inline-flex items-center gap-2 text-xs text-gray-600 hover:text-blue-600 transition-colors"
+                  className="inline-flex items-center gap-2 text-xs text-gray-600 hover:text-[#FF5238] transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>შოპინგის გაგრძელება</span>
@@ -288,7 +288,7 @@ export default function CartPage() {
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                         placeholder="შეიყვანეთ კოდი"
-                        className="w-full h-10 pl-9 pr-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-blue-600 uppercase font-mono"
+                        className="w-full h-10 pl-9 pr-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-[#FF5238] uppercase font-mono"
                       />
                     </div>
                     <button
@@ -320,13 +320,13 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm text-gray-900 pt-3 border-t border-gray-100">
                   <span>სულ გადასახდელი:</span>
-                  <span className="text-xl text-blue-600">{finalTotal.toFixed(2)} ₾</span>
+                  <span className="text-xl text-[#FF5238]">{finalTotal.toFixed(2)} ₾</span>
                 </div>
               </div>
 
               <Link
                 href="/checkout"
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
+                className="w-full py-3.5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
               >
                 <span>შეკვეთის გაფორმება</span>
                 <ArrowRight className="w-4 h-4" />

@@ -3,7 +3,6 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { requireAdminSession } from "@/lib/jwt";
-import { recordAuditLog } from "@/lib/audit";
 
 // 10 MB Maximum file size limit
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -20,12 +19,53 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
   "video/webm": ".webm",
 };
 
+/**
+ * Uploads media buffer directly to Cloudinary if credentials exist in .env
+ */
+async function uploadToCloudinary(buffer: Buffer, mimeType: string, folder = "spilo"): Promise<string | null> {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    return null;
+  }
+
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const signaturePayload = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    const signature = crypto.createHash("sha1").update(signaturePayload).digest("hex");
+
+    const base64Data = `data:${mimeType};base64,${buffer.toString("base64")}`;
+    const formData = new FormData();
+    formData.append("file", base64Data);
+    formData.append("api_key", apiKey);
+    formData.append("timestamp", timestamp.toString());
+    formData.append("signature", signature);
+    formData.append("folder", folder);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (res.ok && data?.secure_url) {
+      return data.secure_url;
+    }
+    console.warn("[Cloudinary Upload Warning]:", data);
+    return null;
+  } catch (err) {
+    console.error("[Cloudinary Upload Error]:", err);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Enforce verified admin session
     const { session, errorResponse } = await requireAdminSession(request);
     if (errorResponse) return errorResponse;
-
 
     const data = await request.formData();
     const files: File[] = data.getAll("files") as File[];
@@ -85,7 +125,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 4. Sanitize and randomize filename (prevents directory traversal and file overwrites)
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // 4. Try Cloudinary upload first if configured in environment
+      const cloudinaryUrl = await uploadToCloudinary(buffer, mimeType);
+      if (cloudinaryUrl) {
+        urls.push(cloudinaryUrl);
+        continue;
+      }
+
+      // 5. Local Fallback: Sanitize and randomize filename
       const randomId = crypto.randomUUID();
       const safeFileName = `upload_${Date.now()}_${randomId}${safeExtension}`;
       const destinationPath = path.join(uploadDir, safeFileName);
@@ -97,9 +147,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
 
       await writeFile(destinationPath, buffer);
       urls.push(`/uploads/${safeFileName}`);

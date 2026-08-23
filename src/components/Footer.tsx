@@ -93,11 +93,11 @@ export default function Footer() {
             <h5 className="text-lg mb-4 text-white">კონტაქტი</h5>
             <ul className="space-y-3 text-sm text-gray-400">
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#B9D175]" />
+                <Phone className="w-4 h-4 text-[#60A5FA]" />
                 <span>+995 32 2 00 00 00</span>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#B9D175]" />
+                <Mail className="w-4 h-4 text-[#60A5FA]" />
                 <span>info@spilo.ge</span>
               </li>
             </ul>
