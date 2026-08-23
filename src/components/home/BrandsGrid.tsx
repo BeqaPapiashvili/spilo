@@ -5,11 +5,8 @@ import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, FreeMode, Mousewheel } from "swiper/modules";
 import {
-  Award,
   ChevronLeft,
   ChevronRight,
-  ArrowRight,
-  Sparkles,
   ShieldCheck
 } from "lucide-react";
 import { ResolvedBrandItem } from "@/lib/storefrontFeed";
@@ -70,45 +67,10 @@ export default function BrandsGrid({
               {subtitle || "მსოფლიო დონის მწარმოებლები ოფიციალური გარანტიით"}
             </p>
           </div>
-
-          <Link
-            href="/catalog"
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#FF5238] hover:text-[#EA3A20] transition-colors group cursor-pointer pb-1"
-          >
-            <span>ყველა ბრენდი</span>
-            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-          </Link>
         </div>
 
-        {/* Carousel & Lead Card Track */}
-        <div className="flex items-center gap-3.5 relative">
-
-          {/* Lead Card: All Brands */}
-          <Link
-            href="/catalog"
-            className="group shrink-0 w-[130px] sm:w-[145px] h-[155px] sm:h-[165px] bg-[#111111] hover:bg-black text-white rounded-[22px] p-4 flex flex-col justify-between items-center text-center cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 z-10 border border-zinc-800 relative overflow-hidden"
-          >
-            {/* Ambient Coral Glow on Hover */}
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#FF5238]/20 rounded-full blur-xl group-hover:bg-[#FF5238]/35 transition-all" />
-
-            <div className="flex-1 flex flex-col items-center justify-center pt-1 z-10">
-              <div className="w-12 h-12 rounded-2xl bg-[#FF5238] flex items-center justify-center mb-1 text-white shadow-md shadow-[#FF5238]/30 group-hover:scale-110 transition-transform duration-200">
-                <Award className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            
-            <div className="z-10 pb-0.5">
-              <h4 className="text-xs sm:text-[13px] text-white leading-tight">
-                ყველა ბრენდი
-              </h4>
-              <span className="text-[10px] text-zinc-400 font-mono mt-0.5 inline-block group-hover:text-[#FF5238] transition-colors">
-                დათვალიერება →
-              </span>
-            </div>
-          </Link>
-
-          {/* Swiper Track */}
-          <div className="flex-1 relative overflow-hidden">
+        {/* Swiper Track */}
+        <div className="w-full relative overflow-hidden">
             
             {/* Left Navigation Arrow */}
             {!isBeginning && (
@@ -186,9 +148,7 @@ export default function BrandsGrid({
             )}
 
           </div>
-
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
+    );
+  }
