@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="http://schemas.android.com/tools">
+    <color name="brand_bg">#FFFFFF</color>
+    <color name="brand_border">#E5E7EB</color>
+    <color name="brand_dark">#1D1D1F</color>
+    <color name="brand_orange">#FF5238</color>
+    <color name="brand_orange_dark">#E04028</color>
+    <color name="brand_surface">#F9FAFB</color>
+    <color name="brand_text_main">#111827</color>
+    <color name="brand_text_muted">#6B7280</color>
+    <string name="app_name">Spilo</string>
+    <string name="btn_retry">თავიდან ცდა</string>
+    <string name="file_chooser_title">აირჩიეთ ფაილი / სურათი</string>
+    <string name="offline_message">გთხოვთ შეამოწმოთ ინტერნეტთან კავშირი და სცადოთ თავიდან.</string>
+    <string name="offline_title">ინტერნეტი არ არის</string>
+    <string name="web_url">https://v3.animeb.ge</string>
+    <style name="Theme.Spilo" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand_orange</item>
+        <item name="colorSecondary">@color/brand_dark</item>
+        <item name="android:statusBarColor">@color/brand_bg</item>
+        <item name="android:windowLightStatusBar" ns1:targetApi="23">true</item>
+        <item name="android:navigationBarColor">@color/brand_bg</item>
+        <item name="android:windowLightNavigationBar" ns1:targetApi="27">true</item>
+    </style>
+    <style name="Theme.Spilo.Splash" parent="Theme.Spilo">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+</resources>

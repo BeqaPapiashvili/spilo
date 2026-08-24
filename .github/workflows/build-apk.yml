@@ -1,0 +1,48 @@
+name: Build Android APK & AAB
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: |
+          cd spilo-android
+          chmod +x gradlew || true
+
+      - name: Build Debug APK
+        run: |
+          cd spilo-android
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Build Release Bundle (AAB for Google Play)
+        run: |
+          cd spilo-android
+          ./gradlew bundleRelease --stacktrace || true
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spilo-Debug-APK
+          path: spilo-android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Release AAB (Google Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spilo-Google-Play-AAB
+          path: spilo-android/app/build/outputs/bundle/release/*.aab

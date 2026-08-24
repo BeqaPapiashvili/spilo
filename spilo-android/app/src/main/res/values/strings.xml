@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Spilo</string>
+    <string name="web_url">https://v3.animeb.ge</string>
+    <string name="offline_title">ინტერნეტი არ არის</string>
+    <string name="offline_message">გთხოვთ შეამოწმოთ ინტერნეტთან კავშირი და სცადოთ თავიდან.</string>
+    <string name="btn_retry">თავიდან ცდა</string>
+    <string name="file_chooser_title">აირჩიეთ ფაილი / სურათი</string>
+</resources>
