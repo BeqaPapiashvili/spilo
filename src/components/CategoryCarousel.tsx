@@ -20,7 +20,6 @@ import {
   Car,
   ChevronLeft,
   ChevronRight,
-  ArrowRight
 } from "lucide-react";
 
 // Swiper styles
@@ -33,73 +32,61 @@ const CAROUSEL_CATEGORIES = [
     title: "სმარტფონები",
     icon: Smartphone,
     slug: "mobiles",
-    count: "120+ მოდელი",
   },
   {
     title: "ტაბები",
     icon: Tablet,
     slug: "tablets",
-    count: "45+ მოდელი",
   },
   {
     title: "სმარტ საათები",
     icon: Watch,
     slug: "smartwatches",
-    count: "60+ მოდელი",
   },
   {
     title: "ლეპტოპები | IT",
     icon: Laptop,
     slug: "laptops",
-    count: "80+ მოდელი",
   },
   {
     title: "აუდიო სისტემა",
     icon: Headphones,
     slug: "audio-systems",
-    count: "95+ მოდელი",
   },
   {
     title: "Gaming & კონსოლები",
     icon: Gamepad2,
     slug: "gaming",
-    count: "50+ მოდელი",
   },
   {
     title: "TV | მონიტორები",
     icon: Tv,
     slug: "tv-monitors",
-    count: "70+ მოდელი",
   },
   {
     title: "ფოტო | ვიდეო",
     icon: Camera,
     slug: "photo-video",
-    count: "40+ მოდელი",
   },
   {
     title: "სკუტერები",
     icon: Bike,
     slug: "scooters",
-    count: "25+ მოდელი",
   },
   {
     title: "ჭკვიანი სახლი",
     icon: Home,
     slug: "smart-home",
-    count: "65+ მოდელი",
   },
   {
     title: "Beauty & მოვლა",
     icon: Sparkles,
     slug: "beauty",
-    count: "55+ მოდელი",
   },
   {
     title: "ავტო აქსესუარები",
     icon: Car,
     slug: "car-accessories",
-    count: "35+ მოდელი",
   },
 ];
 
@@ -109,14 +96,14 @@ export default function CategoryCarousel() {
   const [isEnd, setIsEnd] = useState(false);
 
   return (
-    <section className="w-full pt-4 sm:pt-6 relative select-none">
+    <section className="w-full pt-3 sm:pt-6 relative select-none">
       <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
-        <div className="flex items-center gap-3.5 relative">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 relative overflow-hidden">
 
-          {/* Lead Card: All Categories */}
+          {/* Lead Card: All Categories (Desktop side tile) */}
           <Link
             href="/categories"
-            className="group shrink-0 w-[130px] sm:w-[145px] h-[155px] sm:h-[165px] bg-[#111111] hover:bg-black text-white rounded-[22px] p-4 flex flex-col justify-between items-center text-center cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 z-10 border border-zinc-800 relative overflow-hidden"
+            className="hidden sm:flex group shrink-0 w-[130px] sm:w-[145px] h-[155px] sm:h-[165px] bg-[#111111] hover:bg-black text-white rounded-[22px] p-4 flex-col justify-between items-center text-center cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 z-10 border border-zinc-800 relative overflow-hidden"
           >
             {/* Ambient Coral Glow on Hover */}
             <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#FF5238]/20 rounded-full blur-xl group-hover:bg-[#FF5238]/35 transition-all" />
@@ -138,14 +125,14 @@ export default function CategoryCarousel() {
           </Link>
 
           {/* Swiper Carousel Track */}
-          <div className="flex-1 relative overflow-hidden">
+          <div className="flex-1 relative overflow-hidden w-full">
             
-            {/* Left Navigation Arrow */}
+            {/* Left Navigation Arrow (Desktop Only) */}
             {!isBeginning && (
               <button
                 type="button"
                 onClick={() => swiperRef.current?.slidePrev()}
-                className="absolute left-1 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md border border-zinc-200/80 backdrop-blur-md flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
+                className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md border border-zinc-200/80 backdrop-blur-md items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
                 aria-label="Previous categories"
               >
                 <ChevronLeft size={18} />
@@ -154,11 +141,27 @@ export default function CategoryCarousel() {
 
             <Swiper
               modules={[Navigation, FreeMode, Mousewheel]}
-              spaceBetween={12}
+              spaceBetween={8}
               slidesPerView="auto"
-              freeMode={true}
+              freeMode={{
+                enabled: true,
+                momentum: true,
+                momentumRatio: 0.8,
+              }}
               grabCursor={true}
               mousewheel={{ forceToAxis: true }}
+              touchAngle={45}
+              touchStartPreventDefault={false}
+              touchReleaseOnEdges={true}
+              preventClicks={true}
+              preventClicksPropagation={true}
+              resistance={true}
+              resistanceRatio={0.85}
+              breakpoints={{
+                640: {
+                  spaceBetween: 12,
+                },
+              }}
               onSwiper={(swiper) => {
                 swiperRef.current = swiper;
                 setIsBeginning(swiper.isBeginning);
@@ -168,28 +171,43 @@ export default function CategoryCarousel() {
                 setIsBeginning(swiper.isBeginning);
                 setIsEnd(swiper.isEnd);
               }}
-              className="w-full py-1"
+              className="w-full py-1 overflow-visible"
             >
+              {/* Mobile Lead Card (Included in carousel slide flow on mobile) */}
+              <SwiperSlide className="sm:!hidden !w-[88px] shrink-0">
+                <Link
+                  href="/categories"
+                  className="group w-[88px] h-[108px] bg-[#111111] text-white rounded-2xl p-2 flex flex-col justify-between items-center text-center cursor-pointer shadow-xs border border-zinc-800 relative overflow-hidden active:scale-95 transition-transform"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-[#FF5238] flex items-center justify-center text-white mt-1 shadow-xs">
+                    <LayoutGrid className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-[11px] text-white leading-tight line-clamp-2 pb-0.5">
+                    ყველა
+                  </span>
+                </Link>
+              </SwiperSlide>
+
               {CAROUSEL_CATEGORIES.map((cat, idx) => {
                 const IconComponent = cat.icon;
 
                 return (
-                  <SwiperSlide key={idx} className="!w-[130px] sm:!w-[145px]">
+                  <SwiperSlide key={idx} className="!w-[88px] sm:!w-[135px] md:!w-[145px] shrink-0">
                     <Link
                       href={`/catalog?category=${cat.slug}`}
-                      className="group w-[130px] sm:w-[145px] h-[155px] sm:h-[165px] bg-white hover:bg-[#FFF5F2] border border-zinc-200/80 hover:border-[#FED7CC] rounded-[22px] p-3.5 flex flex-col justify-between items-start cursor-pointer relative overflow-hidden select-none transition-all duration-200 shadow-2xs hover:shadow-xs block"
+                      className="group w-[88px] sm:w-[135px] md:w-[145px] h-[108px] sm:h-[155px] md:h-[165px] bg-white hover:bg-[#FFF5F2] border border-zinc-200/80 hover:border-[#FED7CC] rounded-2xl sm:rounded-[22px] p-2 sm:p-3.5 flex flex-col justify-between items-center sm:items-start cursor-pointer relative overflow-hidden select-none transition-all duration-200 shadow-2xs hover:shadow-xs text-center sm:text-left active:scale-95 sm:active:scale-100"
                     >
-                      {/* Top Category Title */}
-                      <div className="z-10 w-full">
-                        <h4 className="text-xs sm:text-[13px] text-zinc-900 group-hover:text-[#FF5238] transition-colors leading-tight pt-0.5 text-left line-clamp-2">
+                      {/* Top Category Title (Desktop & Mobile) */}
+                      <div className="z-10 w-full order-2 sm:order-1 mt-1 sm:mt-0">
+                        <h4 className="text-[11px] sm:text-xs md:text-[13px] text-zinc-800 group-hover:text-[#FF5238] transition-colors leading-tight line-clamp-2">
                           {cat.title}
                         </h4>
                       </div>
 
                       {/* Icon Stage Container */}
-                      <div className="w-full flex items-end justify-end pt-2 z-10">
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-50 group-hover:bg-white text-zinc-700 group-hover:text-[#FF5238] border border-zinc-100 group-hover:border-[#FED7CC] flex items-center justify-center transition-all duration-200 shadow-2xs group-hover:scale-110">
-                          {IconComponent && <IconComponent className="w-6 h-6 stroke-[1.8]" />}
+                      <div className="w-full flex items-center sm:items-end justify-center sm:justify-end z-10 order-1 sm:order-2 pt-0.5 sm:pt-2">
+                        <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-50 group-hover:bg-white text-zinc-700 group-hover:text-[#FF5238] border border-zinc-100 group-hover:border-[#FED7CC] flex items-center justify-center transition-all duration-200 shadow-2xs group-hover:scale-110">
+                          {IconComponent && <IconComponent className="w-4.5 h-4.5 sm:w-6 sm:h-6 stroke-[1.8]" />}
                         </div>
                       </div>
                     </Link>
@@ -198,12 +216,12 @@ export default function CategoryCarousel() {
               })}
             </Swiper>
 
-            {/* Right Navigation Arrow */}
+            {/* Right Navigation Arrow (Desktop Only) */}
             {!isEnd && (
               <button
                 type="button"
                 onClick={() => swiperRef.current?.slideNext()}
-                className="absolute right-1 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md border border-zinc-200/80 backdrop-blur-md flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
+                className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md border border-zinc-200/80 backdrop-blur-md items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
                 aria-label="Next categories"
               >
                 <ChevronRight size={18} />

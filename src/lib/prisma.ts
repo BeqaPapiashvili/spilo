@@ -15,15 +15,8 @@ function createPrismaClient(): PrismaClient {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
 
 export function getPrismaClient(): PrismaClient {
-  if (!globalForPrisma.prisma || !(globalForPrisma.prisma as any).storefrontSection) {
-    const fresh = createPrismaClient();
-    globalForPrisma.prisma = fresh;
-    return fresh;
-  }
-  return globalForPrisma.prisma;
+  return prisma;
 }

@@ -1,6 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const CANONICAL_CATEGORY_ORDER = [
+  "mobiles",
+  "tablets",
+  "smartwatches",
+  "laptops",
+  "audio-systems",
+  "gaming",
+  "tv-monitors",
+  "photo-video",
+  "scooters",
+  "smart-home",
+  "beauty",
+  "car-accessories",
+  "accessories",
+];
+
 export async function GET() {
   try {
     const categories = await prisma.category.findMany({
@@ -24,6 +40,15 @@ export async function GET() {
         icon: cat.icon,
         children,
       };
+    });
+
+    parsedCategories.sort((a, b) => {
+      const idxA = CANONICAL_CATEGORY_ORDER.indexOf(a.id || a.slug);
+      const idxB = CANONICAL_CATEGORY_ORDER.indexOf(b.id || b.slug);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return (a.name || "").localeCompare(b.name || "", "ka");
     });
 
     return NextResponse.json({

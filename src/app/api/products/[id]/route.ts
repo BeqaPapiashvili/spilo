@@ -27,9 +27,21 @@ export async function GET(
 
     let imageList: string[] = [];
     try {
-      imageList = typeof product.images === "string" ? JSON.parse(product.images) : (product.images as string[]);
+      imageList = typeof product.images === "string" ? JSON.parse(product.images) : (Array.isArray(product.images) ? product.images : []);
     } catch {
+      imageList = [];
+    }
+    if (!imageList || imageList.length === 0) {
       imageList = ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80"];
+    }
+
+    let parsedSpecs = undefined;
+    if (product.specs) {
+      try {
+        parsedSpecs = typeof product.specs === "string" ? JSON.parse(product.specs) : (Array.isArray(product.specs) ? product.specs : undefined);
+      } catch {
+        parsedSpecs = undefined;
+      }
     }
 
     const formatted = {
@@ -49,7 +61,7 @@ export async function GET(
       brandName: product.brand?.name,
       image: imageList[0] || "",
       images: imageList,
-      specs: product.specs || undefined,
+      specs: parsedSpecs,
       isFeatured: product.isFeatured,
       isFlashDeal: product.isFlashDeal,
     };

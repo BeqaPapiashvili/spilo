@@ -42,6 +42,22 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Utility to completely hide scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Prevent iOS Safari & mobile browser auto-zoom on input focus */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Custom Admin Sidebar & Table Scrollbars */
 .admin-scrollbar::-webkit-scrollbar {
   width: 5px;

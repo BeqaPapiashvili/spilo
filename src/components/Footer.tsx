@@ -3,7 +3,7 @@ import { Truck, ShieldCheck, RefreshCw, CreditCard, Phone, Mail } from "lucide-r
 
 export default function Footer() {
   return (
-    <footer className="bg-[#111111] text-white pt-16 pb-12 mt-20 border-t border-gray-800">
+    <footer className="bg-[#111111] text-white pt-16 pb-24 lg:pb-12 mt-20 border-t border-gray-800">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Features banner */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-12 border-b border-gray-800">

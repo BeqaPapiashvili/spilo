@@ -176,63 +176,69 @@ export default function CartPage() {
                 {cart.map((item) => {
                   const itemPrice = item.discountPrice || item.price;
                   return (
-                    <div key={`${item.id}-${item.color}-${item.storage}`} className="p-4 sm:p-5 flex gap-4 items-center">
-                      <Link href={`/product/${item.id}`} className="size-20 bg-gray-50 rounded-xl p-2 shrink-0 flex items-center justify-center">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-contain mix-blend-multiply"
-                        />
-                      </Link>
-
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <Link
-                          href={`/product/${item.id}`}
-                          className="text-xs sm:text-sm text-gray-900 hover:text-[#FF5238] transition-colors line-clamp-1 block"
-                        >
-                          {item.title}
+                    <div key={`${item.id}-${item.color}-${item.storage}`} className="p-3.5 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center justify-between">
+                      {/* Top Info on Mobile / Left Info on Desktop */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Link href={`/product/${item.id}`} className="size-16 sm:size-20 bg-gray-50 rounded-xl p-2 shrink-0 flex items-center justify-center">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-contain mix-blend-multiply"
+                          />
                         </Link>
-                        {(item.color || item.storage) && (
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            {item.color && <span>ფერი: {item.color}</span>}
-                            {item.storage && <span>მეხსიერება: {item.storage}</span>}
+
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <Link
+                            href={`/product/${item.id}`}
+                            className="text-xs sm:text-sm text-gray-900 hover:text-[#FF5238] transition-colors line-clamp-1 block"
+                          >
+                            {item.title}
+                          </Link>
+                          {(item.color || item.storage) && (
+                            <div className="flex items-center gap-2 text-[11px] sm:text-xs text-gray-500">
+                              {item.color && <span>ფერი: {item.color}</span>}
+                              {item.storage && <span>მეხსიერება: {item.storage}</span>}
+                            </div>
+                          )}
+                          <div className="text-xs sm:text-sm text-gray-900 pt-0.5">
+                            {itemPrice.toFixed(2)} ₾
                           </div>
-                        )}
-                        <div className="text-sm text-gray-900 pt-1">
-                          {itemPrice.toFixed(2)} ₾
                         </div>
                       </div>
 
-                      {/* Quantity Stepper */}
-                      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
-                        <button
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          className="w-7 h-7 bg-white text-gray-600 hover:text-gray-900 rounded-lg flex items-center justify-center cursor-pointer shadow-2xs"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="w-8 text-center text-xs text-gray-900">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-7 h-7 bg-white text-gray-600 hover:text-gray-900 rounded-lg flex items-center justify-center cursor-pointer shadow-2xs"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      {/* Total and Delete */}
-                      <div className="text-right shrink-0 min-w-[70px]">
-                        <div className="text-sm text-gray-900">
-                          {(itemPrice * item.quantity).toFixed(2)} ₾
+                      {/* Bottom Controls on Mobile / Right Controls on Desktop */}
+                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+                          <button
+                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            className="w-8 h-8 sm:w-7 sm:h-7 bg-white text-gray-600 hover:text-gray-900 rounded-lg flex items-center justify-center cursor-pointer shadow-2xs"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-xs text-gray-900">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="w-8 h-8 sm:w-7 sm:h-7 bg-white text-gray-600 hover:text-gray-900 rounded-lg flex items-center justify-center cursor-pointer shadow-2xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-xs text-gray-400 hover:text-red-500 mt-1 cursor-pointer transition-colors"
-                        >
-                          წაშლა
-                        </button>
+
+                        {/* Total and Delete */}
+                        <div className="flex items-center sm:flex-col sm:items-end gap-3 sm:gap-0 shrink-0 min-w-[70px]">
+                          <div className="text-sm text-gray-900 font-mono">
+                            {(itemPrice * item.quantity).toFixed(2)} ₾
+                          </div>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-xs text-gray-400 hover:text-red-500 sm:mt-1 cursor-pointer transition-colors p-1"
+                          >
+                            წაშლა
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

@@ -9,6 +9,8 @@ export async function GET(request: Request) {
     const idsParam = searchParams.get("ids");
     const categoryParam = searchParams.get("category");
     const brandParam = searchParams.get("brand");
+    const colorParam = searchParams.get("color");
+    const storageParam = searchParams.get("storage");
     const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
     const maxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
     const inStock = searchParams.get("inStock") === "true";
@@ -73,6 +75,38 @@ export async function GET(request: Request) {
             { brandId: { in: brands } },
           ],
         });
+      }
+    }
+
+    if (colorParam) {
+      const colors = colorParam.split(",").map((c) => c.trim()).filter(Boolean);
+      if (colors.length > 0) {
+        const colorOrs: any[] = [];
+        for (const col of colors) {
+          colorOrs.push(
+            { colorName: { equals: col } },
+            { colorName: { contains: col } },
+            { title: { contains: col } }
+          );
+        }
+        andConditions.push({ OR: colorOrs });
+      }
+    }
+
+    if (storageParam) {
+      const storages = storageParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (storages.length > 0) {
+        const storageOrs: any[] = [];
+        for (const st of storages) {
+          const cleanSt = st.replace(/\s+/, "");
+          storageOrs.push(
+            { storage: { equals: st } },
+            { storage: { contains: st } },
+            { title: { contains: st } },
+            { title: { contains: cleanSt } }
+          );
+        }
+        andConditions.push({ OR: storageOrs });
       }
     }
 
@@ -142,9 +176,21 @@ export async function GET(request: Request) {
     const formattedProducts = products.map((p: any) => {
       let imageList: string[] = [];
       try {
-        imageList = typeof p.images === "string" ? JSON.parse(p.images) : (p.images as string[]);
+        imageList = typeof p.images === "string" ? JSON.parse(p.images) : (Array.isArray(p.images) ? p.images : []);
       } catch {
+        imageList = [];
+      }
+      if (!imageList || imageList.length === 0) {
         imageList = ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80"];
+      }
+
+      let parsedSpecs = undefined;
+      if (p.specs) {
+        try {
+          parsedSpecs = typeof p.specs === "string" ? JSON.parse(p.specs) : (Array.isArray(p.specs) ? p.specs : undefined);
+        } catch {
+          parsedSpecs = undefined;
+        }
       }
 
       return {
@@ -164,7 +210,9 @@ export async function GET(request: Request) {
         brandName: p.brand?.name,
         image: imageList[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80",
         images: imageList,
-        specs: p.specs || undefined,
+        specs: parsedSpecs,
+        colorName: p.colorName || undefined,
+        storage: p.storage || undefined,
         isFeatured: p.isFeatured,
         isFlashDeal: p.isFlashDeal,
         rating: p.rating || 5,

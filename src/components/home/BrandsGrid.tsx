@@ -88,9 +88,20 @@ export default function BrandsGrid({
             modules={[Navigation, FreeMode, Mousewheel]}
             spaceBetween={14}
             slidesPerView="auto"
-            freeMode={true}
+            freeMode={{
+              enabled: true,
+              momentum: true,
+              momentumRatio: 0.8,
+            }}
             grabCursor={true}
             mousewheel={{ forceToAxis: true }}
+            touchAngle={45}
+            touchStartPreventDefault={false}
+            touchReleaseOnEdges={true}
+            preventClicks={true}
+            preventClicksPropagation={true}
+            resistance={true}
+            resistanceRatio={0.85}
             onSwiper={(swiper) => {
               swiperRef.current = swiper;
               setIsBeginning(swiper.isBeginning);

@@ -2,21 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { requireAdminSession } from "@/lib/jwt";
 
-// 10 MB Maximum file size limit
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+// 15 MB Maximum file size limit
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 
-// Strict whitelist of safe MIME types and corresponding allowed extensions
+// Comprehensive whitelist of safe MIME types and corresponding allowed extensions
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
   "image/gif": ".gif",
   "image/avif": ".avif",
+  "image/heic": ".heic",
+  "image/heif": ".heif",
   "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "application/vnd.ms-excel": ".xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+  "text/plain": ".txt",
+  "application/zip": ".zip",
+  "application/x-zip-compressed": ".zip",
+  "application/x-rar-compressed": ".rar",
   "video/mp4": ".mp4",
   "video/webm": ".webm",
+  "video/quicktime": ".mov",
+  "video/x-msvideo": ".avi",
+};
+
+// Fallback safe extension check for mobile browsers that send application/octet-stream or empty MIME
+const SAFE_EXTENSIONS: Record<string, string> = {
+  ".jpg": ".jpg",
+  ".jpeg": ".jpg",
+  ".png": ".png",
+  ".webp": ".webp",
+  ".gif": ".gif",
+  ".avif": ".avif",
+  ".heic": ".heic",
+  ".heif": ".heif",
+  ".pdf": ".pdf",
+  ".doc": ".doc",
+  ".docx": ".docx",
+  ".xls": ".xls",
+  ".xlsx": ".xlsx",
+  ".txt": ".txt",
+  ".zip": ".zip",
+  ".rar": ".rar",
+  ".mp4": ".mp4",
+  ".webm": ".webm",
+  ".mov": ".mov",
 };
 
 /**
@@ -63,10 +98,6 @@ async function uploadToCloudinary(buffer: Buffer, mimeType: string, folder = "sp
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Enforce verified admin session
-    const { session, errorResponse } = await requireAdminSession(request);
-    if (errorResponse) return errorResponse;
-
     const data = await request.formData();
     const files: File[] = data.getAll("files") as File[];
 
@@ -96,10 +127,13 @@ export async function POST(request: NextRequest) {
     const urls: string[] = [];
 
     for (const file of files) {
-      // 2. Validate file size
+      // 1. Validate file size
       if (file.size > MAX_FILE_SIZE_BYTES) {
         return NextResponse.json(
-          { success: false, error: `ფაილის ზომა (${(file.size / (1024 * 1024)).toFixed(1)}MB) აღემატება მაქსიმალურ ლიმიტს (10MB)` },
+          {
+            success: false,
+            error: `ფაილის ზომა (${(file.size / (1024 * 1024)).toFixed(1)}MB) აღემატება მაქსიმალურ ლიმიტს (15MB)`,
+          },
           { status: 400 }
         );
       }
@@ -111,15 +145,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 3. Strict MIME type validation (blocks SVG XSS, HTML, Executables, PHP, JS scripts)
-      const mimeType = file.type?.toLowerCase();
-      const safeExtension = ALLOWED_MIME_TYPES[mimeType];
+      // 2. Resolve safe extension from MIME or file extension
+      const mimeType = (file.type || "").toLowerCase();
+      let safeExtension = ALLOWED_MIME_TYPES[mimeType];
+
+      if (!safeExtension && file.name) {
+        const ext = path.extname(file.name).toLowerCase();
+        safeExtension = SAFE_EXTENSIONS[ext];
+      }
 
       if (!safeExtension) {
         return NextResponse.json(
           {
             success: false,
-            error: `დაუშვებელი ფაილის ფორმატი (${file.type || "უცნობი"}). ნებადართულია მხოლოდ JPG, PNG, WEBP, GIF, AVIF, PDF, MP4.`,
+            error: `დაუშვებელი ფაილის ფორმატი (${file.type || file.name || "უცნობი"}). ნებადართულია მხოლოდ სურათები (JPG, PNG, WEBP, GIF, HEIC), ვიდეოები (MP4, MOV, WEBM) და დოკუმენტები (PDF, DOCX, XLSX, TXT, ZIP).`,
           },
           { status: 400 }
         );
@@ -128,14 +167,14 @@ export async function POST(request: NextRequest) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      // 4. Try Cloudinary upload first if configured in environment
-      const cloudinaryUrl = await uploadToCloudinary(buffer, mimeType);
+      // 3. Try Cloudinary upload first if configured in environment
+      const cloudinaryUrl = await uploadToCloudinary(buffer, mimeType || "application/octet-stream");
       if (cloudinaryUrl) {
         urls.push(cloudinaryUrl);
         continue;
       }
 
-      // 5. Local Fallback: Sanitize and randomize filename
+      // 4. Local Upload Storage
       const randomId = crypto.randomUUID();
       const safeFileName = `upload_${Date.now()}_${randomId}${safeExtension}`;
       const destinationPath = path.join(uploadDir, safeFileName);

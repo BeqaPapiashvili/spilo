@@ -132,22 +132,22 @@ export function CategoryDetailClient({ slug, initialCategory }: CategoryDetailCl
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {category.children && category.children.length > 0 ? (
             category.children.map((sub, idx) => {
               const color = colorVariants[idx % colorVariants.length];
               const subItems = sub.items || [];
               const subHref = `/categories/${category.slug}/${sub.slug || sub.id}`;
-              const subIcon = getCategoryIcon(sub, "w-6 h-6 stroke-[1.8]");
+              const subIcon = getCategoryIcon(sub, "w-5 h-5 sm:w-6 sm:h-6 stroke-[1.8]");
 
               return (
                 <div
                   key={sub.id}
-                  className={`group p-6 rounded-3xl border border-gray-200/80 bg-white hover:border-[#1D1D1F] hover:shadow-xl hover:shadow-black/5 transition-all duration-200 flex flex-col justify-between select-none ${color.border}`}
+                  className={`group p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-200/80 bg-white hover:border-[#1D1D1F] hover:shadow-xl hover:shadow-black/5 transition-all duration-200 flex flex-col justify-between select-none ${color.border}`}
                 >
                   <div>
                     {/* Top Row: Icon Badge + Subcategory Title + Direct Subpage Arrow */}
-                    <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-start justify-between gap-3 mb-3 sm:mb-4">
                       <div className="flex items-center gap-3">
                         <span className={`w-12 h-12 rounded-2xl ${color.bg} ${color.text} flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform`}>
                           {subIcon}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Check, GitCompare } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -31,7 +30,6 @@ export default function ProductCard({
   discountPercentage,
   stock,
 }: ProductCardProps) {
-  const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
   const [mounted, setMounted] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
@@ -52,17 +50,7 @@ export default function ProductCard({
   const currentPrice = discountPrice || price;
   const calculatedMonthly = monthlyInstallment || Math.round(currentPrice / 12);
   const effectiveDiscount = discountPercentage || (discountPrice ? Math.round(((price - discountPrice) / price) * 100) : 0);
-  const currentDisplayImage = allImages[activeImageIndex] || allImages[0] || image;
-
-  // Navigate to product page on entire card click
-  const handleCardClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    // Don't navigate if clicked on action buttons
-    if (target.closest("button")) {
-      return;
-    }
-    router.push(`/product/${id}`);
-  };
+  const currentDisplayImage = allImages[activeImageIndex] || allImages[0] || image || "/placeholder.png";
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -107,16 +95,15 @@ export default function ProductCard({
 
   return (
     <div
-      onClick={handleCardClick}
       onMouseLeave={() => setActiveImageIndex(0)}
-      className="group relative flex flex-col h-[380px] w-full bg-white rounded-[24px] p-4 select-none cursor-pointer border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between shadow-2xs hover:shadow-xs"
+      className="group relative flex flex-col h-[340px] sm:h-[380px] w-full max-w-full bg-white rounded-[20px] sm:rounded-[24px] p-3 sm:p-4 select-none border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between shadow-2xs hover:shadow-xs overflow-hidden"
     >
       
       {/* Top Section: Image Area with Floating Hover Actions */}
-      <div className="relative w-full h-[190px] flex items-center justify-center p-2 overflow-hidden rounded-2xl cursor-pointer">
+      <div className="relative w-full h-[155px] sm:h-[190px] flex items-center justify-center p-2 overflow-hidden rounded-2xl">
         
         {/* Top-Right Floating Actions: Wishlist & Compare */}
-        <div className="absolute top-1 right-1 z-30 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute top-1 right-1 z-30 flex flex-col gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
           <button
             type="button"
             onClick={handleToggleFavorite}
@@ -144,20 +131,28 @@ export default function ProductCard({
           </button>
         </div>
 
-        {/* Product Image Stage */}
-        <div className="w-full h-full flex items-center justify-center cursor-pointer pointer-events-none">
+        {/* Product Image Stage (wrapped in standard Link for touch safety) */}
+        <Link
+          href={`/product/${id}`}
+          className="w-full h-full flex items-center justify-center cursor-pointer"
+        >
           <img
             src={currentDisplayImage}
             alt={title}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.src = "/placeholder.png";
+            }}
             className={`w-full h-full object-contain mix-blend-multiply transition-opacity duration-150 ${
               isOutOfStock ? "opacity-40 grayscale-[40%]" : ""
             }`}
           />
-        </div>
+        </Link>
 
-        {/* Hover-triggered Segmented Hover Zones */}
+        {/* Hover-triggered Segmented Hover Zones - ONLY on desktop (hidden on touch/mobile) */}
         {allImages.length > 1 && (
-          <div className="absolute inset-0 z-10 flex cursor-pointer">
+          <div className="absolute inset-0 z-10 hidden md:flex cursor-pointer pointer-events-none md:pointer-events-auto">
             {allImages.map((_, idx) => (
               <div
                 key={idx}
@@ -168,9 +163,9 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* Segmented Progress Bar at the Bottom of Image (Only on Hover) */}
+        {/* Segmented Progress Bar at the Bottom of Image (Only on Hover, desktop only) */}
         {allImages.length > 1 && (
-          <div className="absolute bottom-1 left-0 right-0 z-20 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="absolute bottom-1 left-0 right-0 z-20 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none hidden md:block">
             <div className="flex items-center gap-1.5 w-full">
               {allImages.map((_, idx) => (
                 <div
@@ -188,13 +183,13 @@ export default function ProductCard({
       </div>
 
       {/* Lower Content: Discount Badge, Price, Title, Installment */}
-      <div className="space-y-2 pt-1 flex-1 flex flex-col justify-end cursor-pointer">
+      <div className="space-y-2 pt-1 flex-1 flex flex-col justify-end">
         
         {/* Price & Action Row (With Discount Badge) */}
         <div className="flex items-center justify-between gap-2 min-h-[44px] relative">
           
           {/* Price Stack */}
-          <div className="min-w-0 flex-1 space-y-0.5">
+          <Link href={`/product/${id}`} className="min-w-0 flex-1 space-y-0.5 block cursor-pointer">
             {effectiveDiscount > 0 && (
               <div>
                 <span className="inline-block text-[11px] bg-[#10B981] text-white px-2 py-0.5 rounded-md leading-none">
@@ -204,7 +199,7 @@ export default function ProductCard({
             )}
 
             <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-lg sm:text-xl text-zinc-900 tracking-tight whitespace-nowrap">
+              <span className="text-base sm:text-xl text-zinc-900 tracking-tight whitespace-nowrap">
                 {currentPrice.toFixed(0)} ₾
               </span>
               {discountPrice && (
@@ -213,10 +208,10 @@ export default function ProductCard({
                 </span>
               )}
             </div>
-          </div>
+          </Link>
 
-          {/* Red/Coral Cart Button (Appears on Hover) */}
-          <div className="shrink-0">
+          {/* Red/Coral Cart Button */}
+          <div className="shrink-0 z-20">
             {isOutOfStock ? (
               <span className="text-[11px] text-zinc-400 bg-zinc-100 px-2 py-1 rounded-lg">
                 ამოიწურა
@@ -225,7 +220,7 @@ export default function ProductCard({
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 active:scale-95 ${
+                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm opacity-100 scale-100 md:opacity-0 md:scale-90 md:group-hover:opacity-100 md:group-hover:scale-100 active:scale-95 ${
                   isAdded
                     ? "bg-[#10B981] text-white"
                     : "bg-[#FF5238] hover:bg-[#EA3A20] text-white"
@@ -244,12 +239,13 @@ export default function ProductCard({
         </div>
 
         {/* Product Title (Max 2 lines with ellipsis ...) */}
-        <h3
+        <Link
+          href={`/product/${id}`}
           title={title}
-          className="text-xs sm:text-[13px] text-zinc-700 group-hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 overflow-hidden text-ellipsis break-words h-[34px]"
+          className="text-xs sm:text-[13px] text-zinc-700 hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 overflow-hidden text-ellipsis break-words h-[34px] block cursor-pointer"
         >
           {title}
-        </h3>
+        </Link>
 
         {/* Clean Installment & Stock Row */}
         <div className="flex items-center justify-between pt-1 border-t border-zinc-100 text-[11px]">

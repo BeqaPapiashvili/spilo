@@ -417,7 +417,7 @@ function ProfileContent() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
           
           {/* Left Navigation Sidebar Menu (4 cols) */}
-          <div className="md:col-span-4 border-r-0 md:border-r border-gray-100 pr-0 md:pr-8 space-y-1">
+          <div className="md:col-span-4 border-r-0 md:border-r border-gray-100 pr-0 md:pr-8">
             {/* Admin Panel Direct Link */}
             {isAdmin && (
               <Link
@@ -434,39 +434,41 @@ function ProfileContent() {
               </Link>
             )}
 
-            {[
-              { id: "edit_profile", label: "პროფილის რედაქტირება" },
-              { id: "orders", label: `შეკვეთები (${dbOrders.length})` },
-              { id: "wishlist", label: `ვიშლისტი (${wishlist.length})` },
-              { id: "addresses", label: "მისამართები" },
-              { id: "notifications", label: "SMS/Mail შეტყობინებები" },
-              { id: "payments", label: "გადახდები" },
-              { id: "password", label: "პაროლი" },
-              { id: "security", label: "უსაფრთხოების პოლიტიკა" },
-              { id: "faq", label: "ხშირად დასმული კითხვები" },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`w-full text-left px-4 py-3 rounded-xl text-xs md:text-sm cursor-pointer transition-colors ${
-                  activeTab === item.id
-                    ? "bg-[#F1F3F6] text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
+            <div className="flex md:flex-col gap-1.5 md:gap-1 overflow-x-auto no-scrollbar pb-3 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
+              {[
+                { id: "edit_profile", label: "პროფილის რედაქტირება" },
+                { id: "orders", label: `შეკვეთები (${dbOrders.length})` },
+                { id: "wishlist", label: `ვიშლისტი (${wishlist.length})` },
+                { id: "addresses", label: "მისამართები" },
+                { id: "notifications", label: "SMS/Mail შეტყობინებები" },
+                { id: "payments", label: "გადახდები" },
+                { id: "password", label: "პაროლი" },
+                { id: "security", label: "უსაფრთხოების პოლიტიკა" },
+                { id: "faq", label: "ხშირად დასმული კითხვები" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id)}
+                  className={`shrink-0 md:shrink md:w-full whitespace-nowrap text-left px-3.5 py-2 md:px-4 md:py-3 rounded-xl text-xs md:text-sm cursor-pointer transition-colors ${
+                    activeTab === item.id
+                      ? "bg-[#F1F3F6] text-gray-900 shadow-xs md:shadow-none"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 bg-gray-50/60 md:bg-transparent"
+                  }`}
+                >
+                  <span>{item.label}</span>
+                </button>
+              ))}
 
-            {/* Logout Action (Red) */}
-            <div className="pt-4 border-t border-gray-100 mt-2">
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-3 text-xs md:text-sm text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>გასვლა</span>
-              </button>
+              {/* Logout Action (Red) */}
+              <div className="md:pt-4 md:border-t md:border-gray-100 md:mt-2 shrink-0 md:shrink">
+                <button
+                  onClick={handleLogout}
+                  className="whitespace-nowrap md:w-full text-left px-3.5 py-2 md:px-4 md:py-3 text-xs md:text-sm text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors flex items-center gap-1.5 md:gap-2 bg-red-50/50 md:bg-transparent"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>გასვლა</span>
+                </button>
+              </div>
             </div>
           </div>
 

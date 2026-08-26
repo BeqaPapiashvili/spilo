@@ -216,7 +216,7 @@ export const useStore = create<StoreState>()(
 
             set((state) => {
               const merged = Array.from(new Set([...state.compareList, ...dbCompareIds]));
-              return { compareList: merged.slice(0, 3) };
+              return { compareList: merged.slice(0, 4) };
             });
           }
         } catch (err) {
@@ -378,10 +378,10 @@ export const useStore = create<StoreState>()(
       addToCompare: (id) =>
         set((state) => {
           if (state.compareList.includes(id)) return state;
-          if (state.compareList.length >= 3) {
+          if (state.compareList.length >= 4) {
             get().addToast({
               title: "შედარების ლიმიტი",
-              message: "შეგიძლიათ შეადაროთ მაქსიმუმ 3 პროდუქტი",
+              message: "შეგიძლიათ შეადაროთ მაქსიმუმ 4 პროდუქტი",
               type: "warning",
             });
             return state;
@@ -427,10 +427,10 @@ export const useStore = create<StoreState>()(
             });
             return { compareList: state.compareList.filter((i) => i !== id) };
           }
-          if (state.compareList.length >= 3) {
+          if (state.compareList.length >= 4) {
             get().addToast({
               title: "შედარების ლიმიტი",
-              message: "შეგიძლიათ შეადაროთ მაქსიმუმ 3 პროდუქტი",
+              message: "შეგიძლიათ შეადაროთ მაქსიმუმ 4 პროდუქტი",
               type: "warning",
             });
             return state;

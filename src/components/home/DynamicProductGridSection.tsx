@@ -41,9 +41,9 @@ export default function DynamicProductGridSection({
 
   const gridClass =
     columns === 2
-      ? "grid-cols-1 sm:grid-cols-2"
+      ? "grid-cols-2 lg:grid-cols-2"
       : columns === 3
-        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3"
         : columns === 5
           ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
           : columns === 6

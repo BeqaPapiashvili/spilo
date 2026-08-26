@@ -24,6 +24,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "**.zoommer.ge",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.zoommer.ge",
+      },
+      {
+        protocol: "https",
         hostname: "res.cloudinary.com",
       },
       {

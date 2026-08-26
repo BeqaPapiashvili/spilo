@@ -1,7 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Georgian } from "next/font/google";
 import "./globals.css";
 import { StorefrontLayoutWrapper } from "@/components/StorefrontLayoutWrapper";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 const notoGeorgian = Noto_Sans_Georgian({
   variable: "--font-noto-georgian",

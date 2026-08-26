@@ -7,10 +7,19 @@ import {
   Plus,
   Minus,
   ChevronDown,
+  ChevronRight,
   ShieldCheck,
   LogOut,
   Package,
   User as UserIcon,
+  Menu,
+  X,
+  Phone,
+  Mail,
+  Info,
+  Truck,
+  Heart,
+  ShoppingBag,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
@@ -150,6 +159,7 @@ export default function Header() {
   } = useStore();
 
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
@@ -191,12 +201,23 @@ export default function Header() {
       <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200/70 shadow-2xs">
         
         {/* Tier 1: Main Header Bar (Height 88px, Expanded to 1560px max width) */}
-        <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-[88px] flex items-center justify-between gap-4 lg:gap-8 relative z-50">
+        <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-[72px] sm:h-[88px] flex items-center justify-between gap-3 sm:gap-4 lg:gap-8 relative z-50">
 
-          {/* Left Side: Brand Logo & Address Button */}
-          <div className="flex items-center gap-5 lg:gap-8 shrink-0">
+          {/* Left Side: Hamburger (Mobile) + Brand Logo & Address Button */}
+          <div className="flex items-center gap-2.5 sm:gap-5 lg:gap-8 shrink-0">
+            {/* Mobile Hamburger Menu Button (lg:hidden) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden w-11 h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-gray-800 transition-colors shrink-0 cursor-pointer"
+              aria-label="მენიუს გახსნა"
+              title="მენიუ"
+            >
+              <Menu className="w-5 h-5 text-gray-800" />
+            </button>
+
             {/* Logo (120x42) */}
-            <Link href="/" className="w-[120px] h-[42px] text-2xl md:text-3xl text-gray-900 tracking-tighter shrink-0 flex items-center gap-0.5">
+            <Link href="/" className="w-[100px] sm:w-[120px] h-[36px] sm:h-[42px] text-2xl md:text-3xl text-gray-900 tracking-tighter shrink-0 flex items-center gap-0.5">
               <span>spilo</span>
               <span className="text-[#1D1D1F]">.</span>
             </Link>
@@ -217,30 +238,41 @@ export default function Header() {
             </button>
           </div>
 
-          {/* Center Search Input (800x48, Pill Shaped with Sleek Border) */}
-          <div className="flex-1 max-w-[800px] w-full">
+          {/* Center Search Input (Desktop/Tablet Only) */}
+          <div className="flex-1 max-w-[800px] w-full min-w-0 hidden sm:flex">
             <button
               type="button"
               onClick={() => setIsSearchModalOpen(true)}
-              className="w-full h-12 px-5 rounded-full border-2 border-gray-200 hover:border-gray-400 focus:border-[#1D1D1F] bg-white text-gray-400 text-xs md:text-[14px] flex items-center gap-3.5 shadow-2xs transition-all cursor-pointer group"
+              className="w-full h-11 sm:h-12 px-3 sm:px-5 rounded-full border-2 border-gray-200 hover:border-gray-400 focus:border-[#1D1D1F] bg-white text-gray-400 text-xs md:text-[14px] flex items-center gap-2 sm:gap-3.5 shadow-2xs transition-all cursor-pointer group"
             >
-              <CustomSearchIcon className="w-5 h-5 text-[#1D1D1F] group-hover:scale-105 transition-all shrink-0" />
+              <CustomSearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#1D1D1F] group-hover:scale-105 transition-all shrink-0" />
               <span className="truncate text-[#6B7280]">მოძებნე რაც გაგიხარდება</span>
             </button>
           </div>
 
-          {/* Right Action Buttons (Wishlist 48x48, Cart 48x48, User Auth h-48) */}
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 shrink-0">
 
-            {/* Wishlist Button (48x48) */}
+            {/* Mobile Search Button (sm:hidden - circular icon button matching Cart) */}
+            <button
+              type="button"
+              onClick={() => setIsSearchModalOpen(true)}
+              className="sm:hidden w-11 h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors cursor-pointer"
+              title="ძიება"
+              aria-label="ძიება"
+            >
+              <CustomSearchIcon className="w-5 h-5 text-[#212121]" />
+            </button>
+
+            {/* Wishlist Button (48x48) - visible from sm: */}
             <Link
               href="/wishlist"
-              className="w-12 h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
+              className="hidden sm:flex w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
               title="სურვილების სია"
             >
               <CustomHeartIcon className="w-5 h-5 text-[#212121]" />
               {wishlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#FF5238] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-[#FF5238] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs font-mono">
                   {wishlist.length}
                 </span>
               )}
@@ -254,18 +286,18 @@ export default function Header() {
             >
               <Link
                 href="/cart"
-                className="w-12 h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
+                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
                 title="კალათა"
               >
                 <CustomCartIcon className="w-5 h-5 text-[#212121]" />
                 {cartItemsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#FF5238] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs">
+                  <span className="absolute -top-1 -right-1 bg-[#FF5238] text-white text-[10px] rounded-full min-w-4.5 h-4.5 px-1 flex items-center justify-center shadow-xs font-mono">
                     {cartItemsCount}
                   </span>
                 )}
               </Link>
 
-              {/* Hover Cart Preview Card Dropdown */}
+              {/* Hover Cart Preview Card Dropdown (Desktop Only) */}
               <AnimatePresence>
                 {isCartHovered && (
                   <motion.div
@@ -273,7 +305,7 @@ export default function Header() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.18 }}
-                    className="absolute -right-12 sm:right-0 top-full mt-2 w-[340px] sm:w-[380px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-5 text-gray-900 z-50 space-y-4"
+                    className="hidden sm:block absolute right-0 top-full mt-2 w-[380px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-5 text-gray-900 z-50 space-y-4"
                   >
                     {/* Dropdown Header */}
                     <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -374,11 +406,11 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
-            {/* User Auth / Profile Pill Button */}
+            {/* User Auth / Profile Pill Button (hidden on mobile, visible from md:) */}
             {user ? (
               <Link
                 href="/profile"
-                className="flex items-center gap-2.5 bg-white text-gray-800 hover:text-gray-950 hover:bg-gray-50/80 px-5 h-12 rounded-full border border-gray-200 hover:border-gray-300 transition-all cursor-pointer text-xs md:text-[14px]"
+                className="hidden md:flex items-center gap-2.5 bg-white text-gray-800 hover:text-gray-950 hover:bg-gray-50/80 px-4 lg:px-5 h-11 sm:h-12 rounded-full border border-gray-200 hover:border-gray-300 transition-all cursor-pointer text-xs md:text-[14px]"
               >
                 <span className="max-w-[80px] sm:max-w-[120px] truncate text-gray-800">
                   {user.firstName || user.name || "პროფილი"}
@@ -389,7 +421,7 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => toggleAuthModal(true)}
-                className="flex items-center gap-2.5 bg-white text-gray-800 hover:text-gray-950 hover:bg-gray-50/80 px-5 h-12 rounded-full border border-gray-200 hover:border-gray-300 transition-all cursor-pointer text-xs md:text-[14px]"
+                className="hidden md:flex items-center gap-2.5 bg-white text-gray-800 hover:text-gray-950 hover:bg-gray-50/80 px-4 lg:px-5 h-11 sm:h-12 rounded-full border border-gray-200 hover:border-gray-300 transition-all cursor-pointer text-xs md:text-[14px]"
               >
                 <span className="text-gray-800">შესვლა</span>
                 <CustomUserIcon className="w-5 h-5 text-gray-800 shrink-0" />
@@ -413,10 +445,10 @@ export default function Header() {
         </div>
 
         {/* Tier 2: Sub-Navigation Bar (Height 64px, Expanded to 1560px max width) */}
-        <div className="border-t border-[#F0F0F2] h-[64px] flex items-center">
+        <div className="border-t border-[#F0F0F2] h-[52px] sm:h-[64px] flex items-center">
           <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-full flex items-center justify-between gap-4">
             
-            <div className="flex items-center gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar py-0.5">
+            <div className="flex items-center gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar py-0.5 w-full">
               
               {/* Categories Trigger Button */}
               <button
@@ -484,6 +516,300 @@ export default function Header() {
         <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setIsMegaMenuOpen(false)} />
       </header>
 
+      {/* Mobile Drawer Menu (lg:hidden) */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+            />
+
+            {/* Slide-over Drawer */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              className="relative w-full max-w-[320px] sm:max-w-sm bg-white h-full shadow-2xl flex flex-col justify-between overflow-hidden z-10"
+            >
+              {/* Drawer Top Header */}
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                <Link
+                  href="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-2xl text-gray-900 tracking-tighter flex items-center gap-0.5"
+                >
+                  <span>spilo</span>
+                  <span className="text-[#FF5238]">.</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="დახურვა"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-5">
+                {/* User Account Card */}
+                {user ? (
+                  <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-gray-100 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shrink-0">
+                        <UserIcon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-gray-900 truncate">
+                          {user.firstName || user.name || "მომხმარებელი"}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {user.email || user.phone}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex-1 py-2 text-center text-xs bg-white hover:bg-gray-50 text-gray-800 rounded-xl border border-gray-200 transition-colors"
+                      >
+                        პროფილი
+                      </Link>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="px-3 py-2 text-xs bg-[#0F172A] text-white rounded-xl flex items-center gap-1"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#F59E0B]" />
+                          <span>Admin</span>
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 rounded-xl border border-gray-200 bg-white transition-colors"
+                        title="გასვლა"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-[#FFF5F2] rounded-2xl p-4 border border-[#FED7CC] space-y-2.5">
+                    <p className="text-xs text-gray-700">ავტორიზაცია ან რეგისტრაცია</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        toggleAuthModal(true);
+                      }}
+                      className="w-full py-2.5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      <span>შესვლა / რეგისტრაცია</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Delivery Address Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsAddressModalOpen(true);
+                  }}
+                  className="w-full p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 flex items-center gap-3 text-left transition-colors cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-gray-700 shrink-0 shadow-2xs">
+                    <LocationPinIcon className="w-4 h-4 text-gray-700" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] text-gray-400 block">მიწოდების მისამართი</span>
+                    <span className="text-xs text-gray-800 truncate block">
+                      {selectedAddress || user?.address || "მისამართის დამატება"}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                </button>
+
+                {/* Primary Navigation Section */}
+                <div className="space-y-1">
+                  <span className="text-[11px] uppercase tracking-wider text-gray-400 px-2 block mb-1">
+                    ნავიგაცია
+                  </span>
+
+                  <Link
+                    href="/categories"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CategoriesGridIcon className="w-5 h-5" />
+                      <span>ყველა კატეგორია</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </Link>
+
+                  <Link
+                    href="/catalog"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <DiscountsBadgeIcon className="w-5 h-5" />
+                      <span>ფასდაკლებები</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </Link>
+
+                  <Link
+                    href="/catalog"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <BrandsBadgeIcon className="w-5 h-5" />
+                      <span>ბრენდები</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </Link>
+
+                  <Link
+                    href="/catalog"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <PickupPointBadgeIcon className="w-5 h-5" />
+                      <span>გატანის წერტილი</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </Link>
+
+                  <Link
+                    href="/compare"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CompareBadgeIcon className="w-5 h-5" />
+                      <span>შედარება</span>
+                    </div>
+                    {compareList.length > 0 && (
+                      <span className="bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] text-[10px] rounded-full px-2 py-0.5 font-mono">
+                        {compareList.length}
+                      </span>
+                    )}
+                  </Link>
+
+                  <Link
+                    href="/wishlist"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center">
+                        <Heart className="w-3.5 h-3.5" />
+                      </div>
+                      <span>სურვილების სია</span>
+                    </div>
+                    {wishlist.length > 0 && (
+                      <span className="bg-[#FF5238] text-white text-[10px] rounded-full px-2 py-0.5 font-mono">
+                        {wishlist.length}
+                      </span>
+                    )}
+                  </Link>
+
+                  <Link
+                    href="/cart"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-orange-50 text-[#FF5238] flex items-center justify-center">
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                      </div>
+                      <span>კალათა</span>
+                    </div>
+                    {cartItemsCount > 0 && (
+                      <span className="bg-[#FF5238] text-white text-[10px] rounded-full px-2 py-0.5 font-mono">
+                        {cartItemsCount}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+
+                {/* Info Links Section */}
+                <div className="space-y-1 pt-2 border-t border-gray-100">
+                  <span className="text-[11px] uppercase tracking-wider text-gray-400 px-2 block mb-1">
+                    ინფორმაცია
+                  </span>
+                  <Link
+                    href="/page/about"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block p-2 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    ჩვენ შესახებ
+                  </Link>
+                  <Link
+                    href="/page/delivery"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block p-2 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    მიწოდების პირობები
+                  </Link>
+                  <Link
+                    href="/page/privacy"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block p-2 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    კონფიდენციალურობა
+                  </Link>
+                  <Link
+                    href="/page/terms"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block p-2 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    წესები და პირობები
+                  </Link>
+                </div>
+              </div>
+
+              {/* Drawer Bottom Footer: Contact & Language */}
+              <div className="p-4 border-t border-gray-100 bg-gray-50/70 space-y-3">
+                <div className="flex items-center justify-between text-xs text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-gray-500" />
+                    <span>+995 32 2 00 00 00</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLang(lang === "GE" ? "EN" : "GE")}
+                    className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 text-xs text-gray-800 cursor-pointer"
+                  >
+                    {lang === "GE" ? "ქართული (GE)" : "English (EN)"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Full Search Modal */}
       <SearchModal isOpen={isSearchModalOpen} onClose={() => setIsSearchModalOpen(false)} />
 
@@ -497,3 +823,4 @@ export default function Header() {
     </>
   );
 }
+

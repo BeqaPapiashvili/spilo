@@ -1,3 +1,5 @@
+"use client";
+
 import { useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, FreeMode, Mousewheel } from "swiper/modules";
@@ -30,14 +32,16 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
   const [isBeginning, setIsBeginning] = useState(true);
   const [isEnd, setIsEnd] = useState(false);
 
-  return (
-    <div className="relative group/carousel">
+  if (!products || products.length === 0) return null;
 
-      {/* Previous Arrow Button (Left) */}
+  return (
+    <div className="relative group/carousel w-full max-w-full overflow-hidden">
+
+      {/* Previous Arrow Button (Left) - Desktop only */}
       {!isBeginning && (
         <button
           onClick={() => swiperRef.current?.slidePrev()}
-          className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-200/80 flex items-center justify-center text-gray-800 cursor-pointer hover:text-[#FF5238] hover:border-[#FED7CC] transition-colors"
+          className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-200/80 items-center justify-center text-gray-800 cursor-pointer hover:text-[#FF5238] hover:border-[#FED7CC] transition-colors"
           aria-label="Previous product slide"
         >
           <svg width="10" height="14" viewBox="0 0 9 14" fill="none" className="rotate-180">
@@ -48,11 +52,28 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
 
       <Swiper
         modules={[Navigation, FreeMode, Mousewheel]}
-        spaceBetween={16}
+        spaceBetween={12}
         slidesPerView="auto"
-        freeMode={true}
+        freeMode={{
+          enabled: true,
+          momentum: true,
+          momentumRatio: 0.8,
+        }}
         grabCursor={true}
         mousewheel={{ forceToAxis: true }}
+        touchAngle={45}
+        touchStartPreventDefault={false}
+        touchReleaseOnEdges={true}
+        preventClicks={true}
+        preventClicksPropagation={true}
+        resistance={true}
+        resistanceRatio={0.85}
+        watchSlidesProgress={true}
+        breakpoints={{
+          640: {
+            spaceBetween: 16,
+          },
+        }}
         onSwiper={(swiper) => {
           swiperRef.current = swiper;
           setIsBeginning(swiper.isBeginning);
@@ -62,20 +83,20 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
           setIsBeginning(swiper.isBeginning);
           setIsEnd(swiper.isEnd);
         }}
-        className="w-full py-3 px-1"
+        className="w-full py-2 px-0.5 overflow-visible"
       >
         {products.map((product) => (
-          <SwiperSlide key={product.id} className="!w-[250px] md:!w-[280px]">
+          <SwiperSlide key={product.id} className="!w-[190px] sm:!w-[230px] md:!w-[270px] shrink-0">
             <ProductCard {...product} />
           </SwiperSlide>
         ))}
       </Swiper>
 
-      {/* Next Arrow Button (Right) */}
+      {/* Next Arrow Button (Right) - Desktop only */}
       {!isEnd && (
         <button
           onClick={() => swiperRef.current?.slideNext()}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-200/80 flex items-center justify-center text-gray-800 cursor-pointer hover:text-[#FF5238] hover:border-[#FED7CC] transition-colors"
+          className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-200/80 items-center justify-center text-gray-800 cursor-pointer hover:text-[#FF5238] hover:border-[#FED7CC] transition-colors"
           aria-label="Next product slide"
         >
           <svg width="10" height="14" viewBox="0 0 9 14" fill="none">

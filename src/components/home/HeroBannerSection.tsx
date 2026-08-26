@@ -131,7 +131,7 @@ export default function HeroBannerSection({
             )}
 
             {/* CENTER SPOTLIGHT CARD (Primary Hero Slide) */}
-            <div className="flex-1 max-w-[1000px] h-[420px] sm:h-[460px] md:h-[480px] rounded-[32px] sm:rounded-[36px] overflow-hidden relative shadow-2xl bg-[#111111] group">
+            <div className="flex-1 max-w-[1000px] h-[360px] sm:h-[460px] md:h-[480px] rounded-[24px] sm:rounded-[36px] overflow-hidden relative shadow-2xl bg-[#111111] group">
               
               {/* Slide Background Images (Layered Cross-Fade without White Flashes) */}
               {slides.map((slide, idx) => {
@@ -164,7 +164,7 @@ export default function HeroBannerSection({
               })}
 
               {/* Foreground Animated Content Stack */}
-              <div className="relative z-20 h-full flex flex-col justify-between p-6 sm:p-10 md:p-14 text-white">
+              <div className="relative z-20 h-full flex flex-col justify-between p-4 sm:p-10 md:p-14 text-white">
                 
                 {/* Top Row: Badge & Slide Index Counter */}
                 <div className="flex items-center justify-between">
@@ -175,22 +175,22 @@ export default function HeroBannerSection({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
                       transition={{ duration: 0.25 }}
-                      className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/25 backdrop-blur-md border border-white/25 px-3.5 py-1.2 rounded-full text-xs text-white shadow-2xs"
+                      className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/25 backdrop-blur-md border border-white/25 px-3 py-1 sm:px-3.5 sm:py-1.2 rounded-full text-[11px] sm:text-xs text-white shadow-2xs"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[#FF5238]" />
+                      <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FF5238]" />
                       <span>{currentSlide.badge || "სპეციალური შეთავაზება"}</span>
                     </motion.div>
                   </AnimatePresence>
 
                   {slides.length > 1 && (
-                    <div className="text-xs text-white/90 font-mono bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/15">
+                    <div className="text-[11px] sm:text-xs text-white/90 font-mono bg-black/50 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-white/15">
                       0{activeIndex + 1} / 0{slides.length}
                     </div>
                   )}
                 </div>
 
                 {/* Center Content: Title & Subtitle with Smooth Motion */}
-                <div className="max-w-xl space-y-3 sm:space-y-4 my-auto">
+                <div className="max-w-xl space-y-2 sm:space-y-4 my-auto">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={`content-${activeIndex}`}
@@ -198,24 +198,24 @@ export default function HeroBannerSection({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -12 }}
                       transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="space-y-3 sm:space-y-4"
+                      className="space-y-2 sm:space-y-4"
                     >
-                      <h2 className="text-2xl sm:text-4xl md:text-[42px] text-white leading-[1.15] tracking-tight font-sans">
+                      <h2 className="text-xl sm:text-4xl md:text-[42px] text-white leading-[1.2] sm:leading-[1.15] tracking-tight font-sans">
                         {currentSlide.title || "იპოვე იდეალური საჩუქარი ყველასთვის"}
                       </h2>
 
-                      <p className="text-white/85 text-xs sm:text-base leading-relaxed line-clamp-2 max-w-md font-sans">
+                      <p className="text-white/85 text-[11px] sm:text-base leading-relaxed line-clamp-2 max-w-md font-sans">
                         {currentSlide.subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"}
                       </p>
 
                       {/* Action Button */}
-                      <div className="pt-2 sm:pt-4 flex items-center gap-3">
+                      <div className="pt-1 sm:pt-4 flex items-center gap-3">
                         <Link
                           href={currentSlide.link || "/catalog"}
-                          className="inline-flex items-center gap-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-[#FF5238]/35 hover:shadow-xl hover:shadow-[#FF5238]/45 active:scale-[0.98] cursor-pointer group/btn"
+                          className="inline-flex items-center gap-2 bg-[#FF5238] hover:bg-[#EA3A20] text-white px-5 sm:px-8 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-[#FF5238]/35 hover:shadow-xl hover:shadow-[#FF5238]/45 active:scale-[0.98] cursor-pointer group/btn"
                         >
                           <span>{currentSlide.buttonText || "შეარჩიე საჩუქარი"}</span>
-                          <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                          <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 transition-transform group-hover/btn:translate-x-1" />
                         </Link>
                       </div>
                     </motion.div>

@@ -92,28 +92,44 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         id={id}
         initialProduct={
           product
-            ? ({
-                id: product.id,
-                title: product.title,
-                slug: product.slug,
-                sku: product.sku,
-                description: product.description || "",
-                price: product.price,
-                discountPrice: product.discountPrice || undefined,
-                discountPercentage: product.discountPercentage || undefined,
-                monthlyInstallment: product.monthlyInstallment || undefined,
-                stock: product.stock,
-                categoryId: product.categoryId,
-                categoryName: product.category?.name,
-                brandId: product.brandId,
-                brandName: product.brand?.name,
-                images: Array.isArray(product.images) ? (product.images as string[]) : [],
-                specs: product.specs as any,
-                colorName: product.colorName || undefined,
-                storage: product.storage || undefined,
-                isFeatured: product.isFeatured,
-                isFlashDeal: product.isFlashDeal,
-              } as any)
+            ? (() => {
+                let parsedImages: string[] = [];
+                try {
+                  parsedImages = typeof product.images === "string" ? JSON.parse(product.images) : (Array.isArray(product.images) ? product.images : []);
+                } catch {
+                  parsedImages = [];
+                }
+                let parsedSpecs = undefined;
+                if (product.specs) {
+                  try {
+                    parsedSpecs = typeof product.specs === "string" ? JSON.parse(product.specs) : (Array.isArray(product.specs) ? product.specs : undefined);
+                  } catch {
+                    parsedSpecs = undefined;
+                  }
+                }
+                return {
+                  id: product.id,
+                  title: product.title,
+                  slug: product.slug,
+                  sku: product.sku,
+                  description: product.description || "",
+                  price: product.price,
+                  discountPrice: product.discountPrice || undefined,
+                  discountPercentage: product.discountPercentage || undefined,
+                  monthlyInstallment: product.monthlyInstallment || undefined,
+                  stock: product.stock,
+                  categoryId: product.categoryId,
+                  categoryName: product.category?.name,
+                  brandId: product.brandId,
+                  brandName: product.brand?.name,
+                  images: parsedImages,
+                  specs: parsedSpecs as any,
+                  colorName: product.colorName || undefined,
+                  storage: product.storage || undefined,
+                  isFeatured: product.isFeatured,
+                  isFlashDeal: product.isFlashDeal,
+                } as any;
+              })()
             : null
         }
       />

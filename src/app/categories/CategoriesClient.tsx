@@ -110,36 +110,36 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
             <p className="text-xs text-gray-400">იტვირთება კატეგორიები...</p>
           </div>
         ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {filtered.map((cat, idx) => {
               const color = colorVariants[idx % colorVariants.length];
-              const iconNode = getCategoryIcon(cat, "w-7 h-7 stroke-[1.8]");
+              const iconNode = getCategoryIcon(cat, "w-5 h-5 sm:w-7 sm:h-7 stroke-[1.8]");
               const childrenCount = cat.children?.length || 0;
 
               return (
                 <Link
                   key={cat.id}
                   href={`/categories/${cat.slug || cat.id}`}
-                  className={`group relative p-6 rounded-3xl border border-gray-200/80 bg-white hover:border-[#1D1D1F] hover:shadow-xl hover:shadow-black/5 transition-all duration-200 flex flex-col justify-between min-h-[220px] select-none ${color.border}`}
+                  className={`group relative p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-200/80 bg-white hover:border-[#1D1D1F] hover:shadow-xl hover:shadow-black/5 transition-all duration-200 flex flex-col justify-between min-h-[170px] sm:min-h-[220px] select-none ${color.border}`}
                 >
                   {/* Top Bar: Icon Badge & Arrow */}
                   <div className="flex items-start justify-between">
-                    <div className={`w-14 h-14 rounded-2xl ${color.bg} ${color.text} flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-200`}>
+                    <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${color.bg} ${color.text} flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-200`}>
                       {iconNode}
                     </div>
 
-                    <span className="w-9 h-9 rounded-full bg-gray-100/80 group-hover:bg-[#1D1D1F] group-hover:text-white text-gray-500 flex items-center justify-center transition-colors">
-                      <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-100/80 group-hover:bg-[#1D1D1F] group-hover:text-white text-gray-500 flex items-center justify-center transition-colors">
+                      <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </span>
                   </div>
 
                   {/* Middle & Bottom: Title, Count, and Subcategories preview */}
-                  <div className="space-y-2.5 pt-4">
+                  <div className="space-y-1.5 sm:space-y-2.5 pt-3 sm:pt-4">
                     <div>
-                      <h3 className="text-base text-gray-900 group-hover:text-[#1D1D1F] transition-colors tracking-tight">
+                      <h3 className="text-xs sm:text-base text-gray-900 group-hover:text-[#1D1D1F] transition-colors tracking-tight line-clamp-1">
                         {cat.name}
                       </h3>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">
                         {childrenCount > 0
                           ? `${childrenCount} ქვეკატეგორია`
                           : "დაათვალიერეთ მოდელები"}
@@ -148,7 +148,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
 
                     {/* Subcategories preview chips if available */}
                     {cat.children && cat.children.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
+                      <div className="hidden sm:flex flex-wrap gap-1.5 pt-1">
                         {cat.children.slice(0, 3).map((sub) => (
                           <span
                             key={sub.id}

@@ -103,7 +103,6 @@ export async function middleware(request: NextRequest) {
     "/api/banners",
     "/api/coupons",
     "/api/promotions",
-    "/api/upload",
   ];
 
   const isStandaloneAdminRoute = standaloneAdminPrefixes.some(
@@ -170,7 +169,6 @@ export const config = {
     "/api/coupons",
     "/api/promotions/:path*",
     "/api/promotions",
-    "/api/upload",
   ],
 };
 
