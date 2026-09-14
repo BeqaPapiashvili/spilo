@@ -15,6 +15,7 @@ export async function GET(request: Request) {
   try {
     const session = await getAuthSession(request);
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
     const phone = searchParams.get("phone");
     const status = searchParams.get("status");
 
@@ -29,6 +30,10 @@ export async function GET(request: Request) {
 
     let where: any = {};
 
+    if (id) {
+      where.OR = [{ id }, { orderNumber: id }];
+    }
+
     if (isAdmin) {
       if (phone) where.contactPhone = phone;
       if (status) where.status = status;
@@ -41,7 +46,22 @@ export async function GET(request: Request) {
     const orders = await prisma.order.findMany({
       where,
       include: {
-        items: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                title: true,
+                sku: true,
+                price: true,
+                discountPrice: true,
+                costPrice: true,
+                category: { select: { name: true } },
+                brand: { select: { name: true } },
+              },
+            },
+          },
+        },
         user: {
           select: { id: true, name: true, email: true, phone: true },
         },
@@ -49,10 +69,21 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
+    const sanitizedOrders = orders.map((order) => {
+      if (isAdmin) return order;
+      return {
+        ...order,
+        items: order.items.map(({ costPrice, product, ...itemRest }: any) => ({
+          ...itemRest,
+          product: product ? { ...product, costPrice: undefined } : undefined,
+        })),
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      count: orders.length,
-      data: orders,
+      count: sanitizedOrders.length,
+      data: sanitizedOrders,
     });
   } catch (error: any) {
     console.error("GET /api/orders error:", error);
@@ -171,16 +202,25 @@ export async function POST(request: Request) {
       }
 
       // Step D: Create Order and OrderItems atomically
+      const customerEmail = (customer.email || customer.customerEmail || session?.email || "").trim() || null;
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
           customerName: name,
+          customerEmail,
           contactPhone: phone,
           shippingAddress,
           paymentMethod: paymentMethod || "ბარათით გადახდა",
           paymentStatus: "PAID",
           status: "PENDING",
+          deliveryDate: null,
+          deliveryMethod: body.deliveryMethod || "delivery",
+          personType: customer.personType || "physical",
+          idNumber: customer.idNumber || null,
+          notes: body.notes || body.comment || null,
+          couponCode: couponCode || null,
+          discountAmount: body.discountAmount ? Number(body.discountAmount) : 0,
           totalAmount: Number(totalAmount),
           items: {
             create: items.map((item: any) => {
@@ -189,8 +229,13 @@ export async function POST(request: Request) {
               return {
                 productId: dbProduct.id,
                 title: dbProduct.title || item.title,
+                sku: dbProduct.sku || item.sku || null,
                 quantity: Number(item.quantity) || 1,
-                price: Number(item.discountPrice || item.price || dbProduct.discountPrice || dbProduct.price),
+                price: Number(item.price ?? item.discountPrice ?? dbProduct.discountPrice ?? dbProduct.price),
+                originalPrice: Number(dbProduct.price),
+                discountPrice: dbProduct.discountPrice ? Number(dbProduct.discountPrice) : null,
+                costPrice: dbProduct.costPrice || null,
+                selectedVariants: item.selectedVariants || null,
                 image: dbProduct.images && Array.isArray(dbProduct.images) && dbProduct.images.length > 0
                   ? (dbProduct.images[0] as string)
                   : item.image || null,
@@ -273,28 +318,14 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, status } = body;
+    const { id, status, deliveryDate } = body;
 
-    if (!id || !status) {
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: "Order ID and status are required" },
+        { success: false, error: "Order ID is required" },
         { status: 400 }
       );
     }
-
-    const statusMap: Record<string, OrderStatus> = {
-      "მუშავდება": "PROCESSING",
-      "PROCESSING": "PROCESSING",
-      "გზაშია": "SHIPPED",
-      "SHIPPED": "SHIPPED",
-      "ჩაბარებულია": "DELIVERED",
-      "DELIVERED": "DELIVERED",
-      "გაუქმებულია": "CANCELLED",
-      "CANCELLED": "CANCELLED",
-      "PENDING": "PENDING",
-    };
-
-    const targetStatus = statusMap[status] || "PROCESSING";
 
     let existingOrder = await prisma.order.findUnique({
       where: { id },
@@ -316,8 +347,24 @@ export async function PUT(request: Request) {
     }
 
     const previousStatus = existingOrder.status;
+    let targetStatus = previousStatus;
 
-    // Transactionally update status and restore stock if cancelling
+    if (status) {
+      const statusMap: Record<string, OrderStatus> = {
+        "მუშავდება": "PROCESSING",
+        "PROCESSING": "PROCESSING",
+        "გზაშია": "SHIPPED",
+        "SHIPPED": "SHIPPED",
+        "ჩაბარებულია": "DELIVERED",
+        "DELIVERED": "DELIVERED",
+        "გაუქმებულია": "CANCELLED",
+        "CANCELLED": "CANCELLED",
+        "PENDING": "PENDING",
+      };
+      targetStatus = statusMap[status] || previousStatus;
+    }
+
+    // Transactionally update status, deliveryDate, and restore stock if cancelling
     const updatedOrder = await prisma.$transaction(async (tx) => {
       // If moving to CANCELLED from non-cancelled status, restore stock
       if (targetStatus === "CANCELLED" && previousStatus !== "CANCELLED") {
@@ -339,9 +386,14 @@ export async function PUT(request: Request) {
         }
       }
 
+      const updateData: any = { status: targetStatus };
+      if (deliveryDate !== undefined) {
+        updateData.deliveryDate = deliveryDate ? new Date(deliveryDate) : null;
+      }
+
       return await tx.order.update({
         where: { id: existingOrder!.id },
-        data: { status: targetStatus },
+        data: updateData,
         include: { items: true },
       });
     });
@@ -350,16 +402,16 @@ export async function PUT(request: Request) {
       userId: session?.userId,
       adminEmail: session?.email,
       adminName: session?.name,
-      action: "ORDER_STATUS_UPDATE",
+      action: "ORDER_UPDATE",
       entity: "Order",
       target: `#${updatedOrder.orderNumber}`,
-      details: `შეკვეთის სტატუსი შეიცვალა: ${previousStatus} → ${targetStatus}`,
+      details: `შეკვეთის მონაცემები განახლდა (სტატუსი: ${targetStatus}, ჩაბარების თარიღი: ${updatedOrder.deliveryDate ? updatedOrder.deliveryDate.toISOString().split('T')[0] : 'არ არის მითითებული'})`,
     });
 
     return NextResponse.json({
       success: true,
       data: updatedOrder,
-      message: "შეკვეთის სტატუსი წარმატებით განახლდა",
+      message: "შეკვეთა წარმატებით განახლდა",
     });
   } catch (error: any) {
     console.error("PUT /api/orders error:", error);

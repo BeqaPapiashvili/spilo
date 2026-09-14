@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/jwt";
+import { ADMIN_ROLES } from "@/lib/permissions";
 
 export async function GET(
   request: Request,
@@ -44,6 +46,9 @@ export async function GET(
       }
     }
 
+    const session = await getAuthSession(request);
+    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
+
     const formatted = {
       id: product.id,
       title: product.title,
@@ -51,6 +56,7 @@ export async function GET(
       sku: product.sku,
       description: product.description,
       price: product.price,
+      costPrice: isAdmin ? (product.costPrice ?? undefined) : undefined,
       discountPrice: product.discountPrice || undefined,
       discountPercentage: product.discountPercentage || undefined,
       monthlyInstallment: product.monthlyInstallment || undefined,
@@ -98,6 +104,7 @@ export async function PUT(
         sku: body.sku !== undefined ? body.sku : undefined,
         description: body.description !== undefined ? body.description : undefined,
         price: body.price !== undefined ? Number(body.price) : undefined,
+        costPrice: body.costPrice !== undefined ? (body.costPrice ? Number(body.costPrice) : null) : undefined,
         discountPrice: body.discountPrice !== undefined ? (body.discountPrice ? Number(body.discountPrice) : null) : undefined,
         discountPercentage: body.discountPercentage !== undefined ? (body.discountPercentage ? Number(body.discountPercentage) : null) : undefined,
         monthlyInstallment: body.monthlyInstallment !== undefined ? (body.monthlyInstallment ? Number(body.monthlyInstallment) : null) : undefined,

@@ -128,6 +128,7 @@ function CheckoutContent() {
   );
   const [recipientIdNumber, setRecipientIdNumber] = useState(user?.idNumber || "");
   const [recipientPhone, setRecipientPhone] = useState(user?.phone || "");
+  const [recipientEmail, setRecipientEmail] = useState(user?.email || "");
 
   // Step 2: Payment Details state (defaulting to COD)
   const [paymentCategory, setPaymentCategory] = useState<
@@ -162,6 +163,7 @@ function CheckoutContent() {
 
     if (user.address && !address) setAddress(user.address);
     if (user.phone && !recipientPhone) setRecipientPhone(user.phone);
+    if (user.email && !recipientEmail) setRecipientEmail(user.email);
     if (user.firstName && !recipientFirstName) setRecipientFirstName(user.firstName);
     if (user.lastName && !recipientLastName) setRecipientLastName(user.lastName);
     if (user.idNumber && !recipientIdNumber) setRecipientIdNumber(user.idNumber);
@@ -178,6 +180,7 @@ function CheckoutContent() {
           const u = data.user;
           if (u.address) setAddress(u.address);
           if (u.phone) setRecipientPhone(u.phone);
+          if (u.email) setRecipientEmail(u.email);
           if (u.firstName) setRecipientFirstName(u.firstName);
           if (u.lastName) setRecipientLastName(u.lastName);
           if (u.idNumber) setRecipientIdNumber(u.idNumber);
@@ -329,17 +332,33 @@ function CheckoutContent() {
     const fullShippingAddress = `${city}, ${address}${comment ? ` (${comment})` : ""}`;
 
     const orderPayload = {
-      items: [...cart],
+      items: cart.map((item) => ({
+        id: item.id,
+        productId: item.id,
+        title: item.title || "",
+        quantity: item.quantity,
+        price: item.discountPrice || item.price,
+        originalPrice: item.price,
+        discountPrice: item.discountPrice || null,
+        selectedVariants: item.color || item.storage ? { color: item.color, storage: item.storage } : null,
+        image: item.image || "",
+      })),
       customer: {
         name: fullRecipientName,
         phone: recipientPhone,
-        email: user?.email || "",
+        email: recipientEmail.trim() || user?.email || "",
         idNumber: recipientIdNumber,
         personType,
       },
+      deliveryMethod,
+      city,
+      address,
+      notes: comment || "",
+      subtotal: Number(cartSubtotal.toFixed(2)),
+      shippingFee: shippingCost,
+      discountAmount: Number(discountAmount.toFixed(2)),
       totalAmount: Number(totalAmount.toFixed(2)),
       paymentMethod: paymentMethodLabel,
-      address: fullShippingAddress,
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
     };
 
@@ -646,6 +665,17 @@ function CheckoutContent() {
                         className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                       />
                       {errors.recipientPhone && <p className="text-xs text-red-500 pt-1 px-2">{errors.recipientPhone}</p>}
+                    </div>
+
+                    {/* Recipient Email */}
+                    <div>
+                      <input
+                        type="email"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        placeholder="მიმღების ელ-ფოსტა (სურვილისამებრ)"
+                        className="w-full h-14 px-5 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
+                      />
                     </div>
                   </div>
                 </div>

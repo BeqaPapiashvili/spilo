@@ -1629,212 +1629,123 @@ export default function AdminHomepageCMSPage() {
                       </div>
 
                       {/* Split 2-Column */}
+                      {/* Split 2-Column */}
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                        {/* Left: Active Slide Controls */}
+                        {/* Left: Active Slide Controls (Pure Image Slot & Link) */}
                         <div className="lg:col-span-5 space-y-3.5 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
                           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <h4 className="text-xs text-[#FF5238]">სლაიდი #{selectedHeroSlideIndex + 1}-ის რედაქტირება</h4>
+                            <h4 className="text-xs text-[#FF5238]">სლაიდი #{selectedHeroSlideIndex + 1}-ის სურათი & ლინკი</h4>
                             <span className="text-[11px] text-slate-400">რეალური დროის ცვლილება</span>
                           </div>
 
                           <ImageUploadField
                             value={activeHeroSlide.image}
                             onChange={(url) => handleUpdateHeroSlide(selectedHeroSlideIndex, "image", url)}
-                            label="დესკტოპის ფონის სურათი (Desktop Background)"
-                            placeholder="https://... ან ატვირთეთ ფოტო"
+                            label="მთავარი ბანერის სურათი (Desktop Banner Image)"
+                            placeholder="https://... ან ატვირთეთ ბანერის ფოტო"
                           />
 
                           <ImageUploadField
                             value={activeHeroSlide.mobileImage || ""}
                             onChange={(url) => handleUpdateHeroSlide(selectedHeroSlideIndex, "mobileImage", url)}
-                            label="მობილურის ფონის სურათი (Mobile Background, არასავალდებულო)"
+                            label="მობილურის ბანერის სურათი (Mobile Banner Image, არასავალდებულო)"
                             placeholder="https://... ან ატვირთეთ მობილურის ვერსია"
                           />
 
                           <div>
-                            <label className="block text-[11px] text-slate-600 mb-1">ბეიჯის ტექსტი (Badge)</label>
-                            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                              {["სპეციალური შეთავაზება", "Next-Gen Gaming", "Apple Official", "HOT DEAL", "NEW"].map((b) => (
-                                <button
-                                  key={b}
-                                  type="button"
-                                  onClick={() => handleUpdateHeroSlide(selectedHeroSlideIndex, "badge", b)}
-                                  className={`px-2 py-0.5 rounded-full text-[10px] transition-all cursor-pointer ${
-                                    activeHeroSlide.badge === b
-                                      ? "bg-[#FF5238] text-white shadow-2xs"
-                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                  }`}
-                                >
-                                  {b}
-                                </button>
-                              ))}
-                            </div>
+                            <label className="block text-[11px] text-slate-600 mb-1">გადასასვლელი ლინკი (Destination Link)</label>
                             <input
                               type="text"
-                              value={activeHeroSlide.badge || ""}
-                              onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "badge", e.target.value)}
-                              placeholder="სპეციალური შეთავაზება"
-                              className="adm-input w-full text-xs"
+                              value={activeHeroSlide.link || ""}
+                              onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "link", e.target.value)}
+                              placeholder="/catalog ან /product/..."
+                              className="adm-input w-full text-xs font-mono"
                             />
+                            <p className="text-[10px] text-slate-400 mt-1">ბანერზე დაჭერისას მომხმარებელი გადავა ამ ლინკზე</p>
                           </div>
 
                           <div>
-                            <label className="block text-[11px] text-slate-600 mb-1">დიდი სათაური (Main Title)</label>
+                            <label className="block text-[11px] text-slate-600 mb-1">სლაიდის სახელი (შიდა აღნიშვნისთვის, არასავალდებულო)</label>
                             <input
                               type="text"
-                              value={activeHeroSlide.title}
+                              value={activeHeroSlide.title || ""}
                               onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "title", e.target.value)}
-                              placeholder="იპოვე იდეალური საჩუქარი ყველასთვის"
+                              placeholder={`ბანერი #${selectedHeroSlideIndex + 1}`}
                               className="adm-input w-full text-xs font-sans"
                             />
                           </div>
-
-                          <div>
-                            <label className="block text-[11px] text-slate-600 mb-1">ქვესათაური (Subtitle Description)</label>
-                            <textarea
-                              rows={2}
-                              value={activeHeroSlide.subtitle || ""}
-                              onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "subtitle", e.target.value)}
-                              placeholder="შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"
-                              className="adm-input w-full text-xs resize-none font-sans"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-[11px] text-slate-600 mb-1">ღილაკის ტექსტი</label>
-                              <input
-                                type="text"
-                                value={activeHeroSlide.buttonText || ""}
-                                onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "buttonText", e.target.value)}
-                                placeholder="შეარჩიე საჩუქარი"
-                                className="adm-input w-full text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] text-slate-600 mb-1">გადასასვლელი ლინკი</label>
-                              <input
-                                type="text"
-                                value={activeHeroSlide.link || ""}
-                                onChange={(e) => handleUpdateHeroSlide(selectedHeroSlideIndex, "link", e.target.value)}
-                                placeholder="/catalog"
-                                className="adm-input w-full text-xs font-mono"
-                              />
-                            </div>
-                          </div>
                         </div>
 
-                        {/* Right: 1:1 Triple Showcase Carousel Live Preview */}
+                        {/* Right: 1:1 Extra.ge Style Panoramic Banner Live Preview */}
                         <div className="lg:col-span-7 space-y-3">
                           <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-200 space-y-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1.5">
                                 <Eye size={14} className="text-[#FF5238]" />
-                                <h4 className="text-xs text-slate-900">Triple Showcase კარუსელის 1:1 Live Preview (სლაიდი #{selectedHeroSlideIndex + 1})</h4>
+                                <h4 className="text-xs text-slate-900">Extra.ge სტილის ბანერის 1:1 Live Preview (სლაიდი #{selectedHeroSlideIndex + 1})</h4>
                               </div>
                               <span className="text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
                                 მყისიერად აისახება
                               </span>
                             </div>
 
-                            {/* 1:1 Triple Showcase Stage Preview */}
-                            <div className="relative flex items-center justify-center gap-2 select-none overflow-hidden py-1">
-                              
-                              {/* Left Preview Snippet */}
-                              {formHeroSlides.length > 1 && (
-                                <div
-                                  onClick={() => setSelectedHeroSlideIndex(prevHeroSlideIndex)}
-                                  className="w-[70px] sm:w-[90px] h-[260px] rounded-2xl overflow-hidden relative opacity-60 hover:opacity-100 transition-all cursor-pointer shrink-0 bg-[#111111]"
-                                >
-                                  <img
-                                    src={prevHeroSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&q=80"}
-                                    alt={prevHeroSlide.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-                                  <div className="absolute bottom-2 left-2 right-2 text-white text-[9px] truncate">
-                                    {prevHeroSlide.title}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Center Active Spotlight Card */}
-                              <div className="flex-1 h-[260px] rounded-[24px] overflow-hidden relative shadow-lg bg-[#111111] group">
+                            {/* 1:1 Panoramic Banner Stage Preview */}
+                            <div className="relative w-full aspect-[3.4/1] rounded-2xl overflow-hidden shadow-md bg-zinc-900 group select-none">
+                              {activeHeroSlide.image ? (
                                 <img
-                                  src={activeHeroSlide.image || "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1400&q=80"}
-                                  alt={activeHeroSlide.title}
-                                  className="absolute inset-0 w-full h-full object-cover"
+                                  src={activeHeroSlide.image}
+                                  alt={activeHeroSlide.title || "Banner"}
+                                  className="w-full h-full object-cover"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
-
-                                {/* Foreground Content */}
-                                <div className="relative z-10 h-full flex flex-col justify-between p-4 sm:p-5 text-white">
-                                  
-                                  {/* Top Row: Badge & Slide Index */}
-                                  <div className="flex items-center justify-between">
-                                    <div className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-md border border-white/25 px-2.5 py-0.5 rounded-full text-[10px] text-white">
-                                      <Sparkles className="w-3 h-3 text-[#FF5238]" />
-                                      <span>{activeHeroSlide.badge || "სპეციალური შეთავაზება"}</span>
-                                    </div>
-                                    <div className="text-[10px] text-white/80 font-mono bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
-                                      0{selectedHeroSlideIndex + 1} / 0{formHeroSlides.length}
-                                    </div>
-                                  </div>
-
-                                  {/* Center: Title & Subtitle */}
-                                  <div className="space-y-1.5 my-auto max-w-[280px]">
-                                    <h3 className="text-base sm:text-lg text-white leading-tight font-sans line-clamp-2">
-                                      {activeHeroSlide.title || "იპოვე იდეალური საჩუქარი ყველასთვის"}
-                                    </h3>
-                                    <p className="text-white/80 text-[11px] leading-snug line-clamp-2 font-sans">
-                                      {activeHeroSlide.subtitle || "შეარჩიე, შეფუთე, გაუგზავნე საჩუქარი მარტივად Spilo-თი"}
-                                    </p>
-                                    <div className="pt-1">
-                                      <span className="inline-flex items-center gap-1 bg-[#FF5238] text-white px-3.5 py-1.5 rounded-xl text-[11px] shadow-sm">
-                                        <span>{activeHeroSlide.buttonText || "შეარჩიე საჩუქარი"}</span>
-                                        <ArrowRight className="w-3 h-3" />
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Bottom Progress Bars */}
-                                  {formHeroSlides.length > 1 && (
-                                    <div className="flex items-center gap-1.5 pt-1">
-                                      {formHeroSlides.map((_, dotIdx) => (
-                                        <button
-                                          key={dotIdx}
-                                          type="button"
-                                          onClick={() => setSelectedHeroSlideIndex(dotIdx)}
-                                          className={`h-1 rounded-full transition-all cursor-pointer ${
-                                            dotIdx === selectedHeroSlideIndex ? "w-6 bg-[#FF5238]" : "w-2 bg-white/40"
-                                          }`}
-                                        />
-                                      ))}
-                                    </div>
-                                  )}
-
-                                </div>
-                              </div>
-
-                              {/* Right Preview Snippet */}
-                              {formHeroSlides.length > 1 && (
-                                <div
-                                  onClick={() => setSelectedHeroSlideIndex(nextHeroSlideIndex)}
-                                  className="w-[70px] sm:w-[90px] h-[260px] rounded-2xl overflow-hidden relative opacity-60 hover:opacity-100 transition-all cursor-pointer shrink-0 bg-[#111111]"
-                                >
-                                  <img
-                                    src={nextHeroSlide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&q=80"}
-                                    alt={nextHeroSlide.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-                                  <div className="absolute bottom-2 left-2 right-2 text-white text-[9px] truncate">
-                                    {nextHeroSlide.title}
-                                  </div>
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">
+                                  <span className="text-xs">ატვირთეთ ან მიუთითეთ ბანერის სურათი</span>
                                 </div>
                               )}
 
+                              {/* Left Circular Arrow */}
+                              {formHeroSlides.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedHeroSlideIndex(prevHeroSlideIndex)}
+                                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/45 hover:bg-black/75 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all cursor-pointer shadow-md"
+                                  title="წინა სლაიდი"
+                                >
+                                  <ChevronLeft size={16} strokeWidth={2.2} />
+                                </button>
+                              )}
+
+                              {/* Right Circular Arrow */}
+                              {formHeroSlides.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedHeroSlideIndex(nextHeroSlideIndex)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/45 hover:bg-black/75 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all cursor-pointer shadow-md"
+                                  title="შემდეგი სლაიდი"
+                                >
+                                  <ChevronRight size={16} strokeWidth={2.2} />
+                                </button>
+                              )}
+
+                              {/* Bottom Frosted Capsule with Dots */}
+                              {formHeroSlides.length > 1 && (
+                                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                                  <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/15 shadow-sm">
+                                    {formHeroSlides.map((_, dotIdx) => (
+                                      <button
+                                        key={dotIdx}
+                                        type="button"
+                                        onClick={() => setSelectedHeroSlideIndex(dotIdx)}
+                                        className={`transition-all duration-300 rounded-full cursor-pointer ${
+                                          dotIdx === selectedHeroSlideIndex
+                                            ? "w-2 h-2 bg-white ring-2 ring-white/50"
+                                            : "w-1.5 h-1.5 bg-white/45 hover:bg-white/80"
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             {/* Slide Switcher Ribbon */}

@@ -28,7 +28,7 @@ function SectionFallback({ height = 240 }: { height?: number }) {
 
 // Dynamic Imports for Granular Polymorphic Section Components
 const HeroBannerSection = dynamicImport(() => import("@/components/home/HeroBannerSection"), {
-  loading: () => <SectionFallback height={360} />,
+  loading: () => <SectionFallback height={300} />,
   ssr: true,
 });
 

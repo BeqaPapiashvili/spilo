@@ -254,6 +254,7 @@ export async function POST(request: Request) {
         sku: body.sku || `SP-${Date.now()}`,
         description: body.description || "",
         price: Number(body.price),
+        costPrice: body.costPrice !== undefined && body.costPrice !== null && body.costPrice !== "" ? Number(body.costPrice) : null,
         discountPrice: body.discountPrice ? Number(body.discountPrice) : null,
         discountPercentage: body.discountPercentage ? Number(body.discountPercentage) : null,
         monthlyInstallment: body.monthlyInstallment ? Number(body.monthlyInstallment) : null,

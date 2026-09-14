@@ -144,7 +144,22 @@ export default function AdminOrdersPage() {
           paymentStatus: o.paymentStatus || "PAID",
           address: o.shippingAddress || "",
           customerName: o.customerName || "მომხმარებელი",
+          customerEmail: o.customerEmail || o.user?.email || "",
           contactPhone: o.contactPhone || "",
+          deliveryDate: o.deliveryDate
+            ? new Date(o.deliveryDate).toLocaleDateString("ka-GE", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : null,
+          rawDeliveryDate: o.deliveryDate,
+          deliveryMethod: o.deliveryMethod || "delivery",
+          personType: o.personType || "physical",
+          idNumber: o.idNumber || "",
+          notes: o.notes || "",
+          couponCode: o.couponCode || null,
+          discountAmount: o.discountAmount || 0,
           items: o.items || [],
         }));
         setDbOrders(mappedOrders);
@@ -574,13 +589,28 @@ export default function AdminOrdersPage() {
 
                       {/* Date */}
                       <td className="py-3.5 px-6 text-zinc-500 font-mono text-[11px] whitespace-nowrap">
-                        {order.date}
+                        <div>{order.date}</div>
+                        {order.deliveryDate ? (
+                          <div className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1">
+                            <Truck className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>ჩაბარება: {order.deliveryDate}</span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-zinc-400 mt-0.5">
+                            ჩაბარება: -
+                          </div>
+                        )}
                       </td>
 
                       {/* Customer & Address */}
                       <td className="py-3.5 px-6">
                         <div className="space-y-0.5 max-w-[220px]">
                           <p className="text-zinc-900 truncate font-sans">{order.customerName}</p>
+                          {order.customerEmail && (
+                            <p className="text-[11px] text-zinc-400 font-mono truncate">
+                              {order.customerEmail}
+                            </p>
+                          )}
                           {order.contactPhone && (
                             <p className="text-[11px] text-zinc-400 font-mono flex items-center gap-1">
                               <Phone className="w-3 h-3 text-zinc-400" />
@@ -598,15 +628,30 @@ export default function AdminOrdersPage() {
 
                       {/* Payment & Items */}
                       <td className="py-3.5 px-6">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 text-zinc-700">
-                            <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="text-[11px]">{order.paymentMethod}</span>
-                          </div>
-                          <p className="text-[10px] text-zinc-400 font-mono">
-                            {order.items?.length || 0} ნივთი
-                          </p>
-                        </div>
+                        {(() => {
+                          const totalCost = (order.items || []).reduce((sum: number, item: any) => {
+                            const c = Number(item.costPrice || 0);
+                            return sum + (c > 0 ? c * (item.quantity || 1) : 0);
+                          }, 0);
+                          const hasAnyCost = (order.items || []).some((item: any) => Number(item.costPrice || 0) > 0);
+                          const estimatedProfit = order.totalAmount - totalCost;
+                          return (
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5 text-zinc-700">
+                                <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
+                                <span className="text-[11px]">{order.paymentMethod}</span>
+                              </div>
+                              <p className="text-[10px] text-zinc-400 font-mono">
+                                {order.items?.length || 0} ნივთი
+                              </p>
+                              {hasAnyCost && (
+                                <p className="text-[10px] text-emerald-600 font-mono">
+                                  მოგება: +{estimatedProfit.toFixed(0)} ₾
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Total Amount */}
@@ -788,7 +833,17 @@ export default function AdminOrdersPage() {
             <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-zinc-500">მომხმარებელი:</span>
-                <span className="text-zinc-900 font-medium">{previewOrder.customerName}</span>
+                <span className="text-zinc-900">{previewOrder.customerName} ({previewOrder.personType === "legal" ? "იურიდიული" : "ფიზიკური"})</span>
+              </div>
+              {previewOrder.idNumber && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">პირადი / ს/კ #:</span>
+                  <span className="text-zinc-900 font-mono">{previewOrder.idNumber}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-zinc-500">მომხმარებლის მეილი:</span>
+                <span className="text-zinc-900 font-mono">{previewOrder.customerEmail || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">ტელეფონი:</span>
@@ -797,33 +852,77 @@ export default function AdminOrdersPage() {
                 </a>
               </div>
               <div className="flex justify-between">
+                <span className="text-zinc-500">მიწოდება:</span>
+                <span className="text-zinc-900">
+                  {previewOrder.deliveryMethod === "pickup" ? "მაღაზიიდან გატანა" : "კურიერით მიტანა"}
+                </span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-zinc-500">მისამართი:</span>
                 <span className="text-zinc-900 text-right max-w-[240px]">{previewOrder.address || "მისამართი არ არის"}</span>
+              </div>
+              {previewOrder.notes && (
+                <div className="flex justify-between text-amber-800 bg-amber-50/60 p-1.5 rounded-lg border border-amber-200/50">
+                  <span>შენიშვნა კურიერს:</span>
+                  <span className="text-right max-w-[220px]">{previewOrder.notes}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-zinc-500">ჩაბარების თარიღი:</span>
+                <span className="text-emerald-700 font-mono">{previewOrder.deliveryDate || "არ არის მითითებული"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">გადახდა:</span>
                 <span className="text-zinc-900">{previewOrder.paymentMethod}</span>
               </div>
+              {previewOrder.couponCode && (
+                <div className="flex justify-between text-blue-700">
+                  <span>პრომო კოდი:</span>
+                  <span className="font-mono">{previewOrder.couponCode} {previewOrder.discountAmount ? `(-${previewOrder.discountAmount} ₾)` : ""}</span>
+                </div>
+              )}
             </div>
 
-            {/* Order Items List */}
-            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-              <h4 className="text-xs text-zinc-500 font-medium">შეკვეთილი ნივთები ({previewOrder.items?.length || 0}):</h4>
+            {/* Order Items List with Full Price Comparison */}
+            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+              <h4 className="text-xs text-zinc-500">შეკვეთილი ნივთები ({previewOrder.items?.length || 0}):</h4>
               {previewOrder.items && previewOrder.items.length > 0 ? (
-                previewOrder.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between gap-3 p-2 bg-white rounded-xl border border-zinc-100 text-xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {item.image && (
-                        <img src={item.image} alt={item.title} className="w-9 h-9 object-contain rounded-lg border border-zinc-200 p-0.5 shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-zinc-900 truncate">{item.title}</p>
-                        <p className="text-[11px] text-zinc-400 font-mono">{item.quantity} x {item.price} ₾</p>
+                previewOrder.items.map((item: any, idx: number) => {
+                  const qty = Number(item.quantity) || 1;
+                  const soldPrice = Number(item.price);
+                  const origPrice = Number(item.originalPrice || item.product?.price || soldPrice);
+                  const costP = item.costPrice || item.product?.costPrice ? Number(item.costPrice || item.product?.costPrice) : null;
+                  const itemProfit = costP !== null ? (soldPrice - costP) * qty : null;
+
+                  return (
+                    <div key={idx} className="p-2.5 bg-white rounded-xl border border-zinc-100 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {item.image && (
+                            <img src={item.image} alt={item.title} className="w-9 h-9 object-contain rounded-lg border border-zinc-200 p-0.5 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-zinc-900 truncate">{item.title}</p>
+                            <p className="text-[11px] text-zinc-400 font-mono">{qty} ცალი</p>
+                          </div>
+                        </div>
+                        <span className="font-mono text-zinc-900 shrink-0">{(qty * soldPrice).toFixed(2)} ₾</span>
+                      </div>
+
+                      {/* Pricing Comparison Line */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500 font-mono pt-1 border-t border-zinc-100/80">
+                        <span>საიტზე: {origPrice.toFixed(2)} ₾</span>
+                        <span>გაიყიდა: {soldPrice.toFixed(2)} ₾</span>
+                        {costP !== null && (
+                          <span className="text-amber-700">ასაღები: {costP.toFixed(2)} ₾</span>
+                        )}
+                        {itemProfit !== null && (
+                          <span className="text-emerald-700">მოგება: +{itemProfit.toFixed(2)} ₾</span>
+                        )}
                       </div>
                     </div>
-                    <span className="font-mono text-zinc-900 shrink-0">{(item.quantity * item.price).toFixed(0)} ₾</span>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="text-xs text-zinc-400 py-2 text-center">ნივთების სია ცარიელია</p>
               )}

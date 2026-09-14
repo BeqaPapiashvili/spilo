@@ -40,6 +40,7 @@ export interface Product {
   slug: string;
   description: string;
   price: number;
+  costPrice?: number;
   discountPrice?: number;
   discountPercentage?: number;
   monthlyInstallment?: number;
@@ -134,6 +135,7 @@ export interface OrderItem {
   product: Product;
   quantity: number;
   price: number;
+  costPrice?: number;
   selectedVariants?: Record<string, string>;
 }
 

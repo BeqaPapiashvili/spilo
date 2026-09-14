@@ -137,6 +137,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
   
   // Pricing & Stock
   const [price, setPrice] = useState<number | "">(initialProduct?.price ?? "");
+  const [costPrice, setCostPrice] = useState<number | "">((initialProduct as any)?.costPrice ?? "");
   const [discountPrice, setDiscountPrice] = useState<number | "">(initialProduct?.discountPrice ?? "");
   const [stock, setStock] = useState<number | "">(initialProduct?.stock ?? 10);
   const [sku, setSku] = useState(initialProduct?.sku || `SP-${Math.floor(100000 + Math.random() * 900000)}`);
@@ -385,6 +386,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
         slug: slug.trim() || geoToLat(title.toLowerCase()).replace(/\s+/g, "-"),
         description,
         price: Number(price),
+        costPrice: costPrice !== "" && costPrice !== null ? Number(costPrice) : null,
         discountPrice: discountPrice ? Number(discountPrice) : null,
         stock: Number(stock || 0),
         sku,
@@ -674,6 +676,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
                   </div>
                 </div>
 
+                {/* Cost Price */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs text-zinc-800">
+                      ასაღები ფასი (თვითღირებულება) (₾)
+                    </label>
+                    <span className="text-[10px] text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
+                      🔒 მხოლოდ ადმინისთვის
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={costPrice}
+                      onChange={(e) => setCostPrice(e.target.value ? Number(e.target.value) : "")}
+                      placeholder="მაგ: 2100"
+                      className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-zinc-200 text-xs text-zinc-900 focus:border-[#FF5238] focus:ring-2 focus:ring-[#FF5238]/15 focus:outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 pointer-events-none">₾</span>
+                  </div>
+                </div>
+
                 {/* Discount Price */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -720,6 +745,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
                   onChange={setWarrantyMonths}
                 />
               </div>
+
+              {/* Gross Profit Margin indicator */}
+              {Number(price) > 0 && costPrice !== "" && Number(costPrice) >= 0 && (
+                <div className="bg-[#F8FAFC] border border-zinc-200/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-zinc-750">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span>
+                      მოგება ერთეულზე:{" "}
+                      {((discountPrice ? Number(discountPrice) : Number(price)) - Number(costPrice)).toFixed(2)} ₾ (
+                      {Math.round(
+                        (((discountPrice ? Number(discountPrice) : Number(price)) - Number(costPrice)) /
+                          (discountPrice ? Number(discountPrice) : Number(price))) *
+                          100
+                      )}
+                      % მარჟა)
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-zinc-400">
+                    🔒 საიტზე მომხმარებელი ამ ინფორმაციას ვერ ხედავს
+                  </span>
+                </div>
+              )}
 
               {/* Toggles Row */}
               <div className="pt-3 border-t border-zinc-100 space-y-3">

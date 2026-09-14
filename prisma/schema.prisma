@@ -62,6 +62,7 @@ model Product {
   sku                String           @unique
   description        String?          @db.Text
   price              Float
+  costPrice          Float?
   discountPrice      Float?
   discountPercentage Int?
   monthlyInstallment Float?
@@ -183,11 +184,19 @@ model Order {
   userId          String?
   user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerName    String
+  customerEmail   String?
   contactPhone    String
   shippingAddress String      @db.Text
   paymentMethod   String
   paymentStatus   String      @default("PAID")
   status          OrderStatus @default(PENDING)
+  deliveryDate    DateTime?
+  deliveryMethod  String?     @default("delivery")
+  personType      String?     @default("physical")
+  idNumber        String?
+  notes           String?     @db.Text
+  couponCode      String?
+  discountAmount  Float?      @default(0)
   totalAmount     Float
   items           OrderItem[]
   createdAt       DateTime    @default(now())
@@ -195,17 +204,22 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  title     String
-  quantity  Int
-  price     Float
-  image     String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id])
+  title            String
+  sku              String?
+  quantity         Int
+  price            Float    // Sold price per unit
+  originalPrice    Float?   // Catalog original price on site
+  discountPrice    Float?   // Catalog discount price on site
+  costPrice        Float?   // Sourcing cost price
+  selectedVariants Json?    // Chosen variants: color, storage, etc.
+  image            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model AdminUser {
