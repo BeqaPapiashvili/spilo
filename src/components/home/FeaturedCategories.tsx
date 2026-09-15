@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Smartphone, Laptop, Watch, Headphones, Gamepad2, Tv, Camera, Home, Sparkles } from "lucide-react";
 import { ResolvedCategoryItem } from "@/lib/storefrontFeed";
+import { useStore } from "@/store/useStore";
 
 const iconMap: Record<string, any> = {
   Smartphone,
@@ -28,6 +29,7 @@ export default function FeaturedCategories({
   subtitle,
   categories = [],
 }: FeaturedCategoriesProps) {
+  const { toggleMegaMenu, isMegaMenuOpen } = useStore();
   if (!categories || categories.length === 0) return null;
 
   return (
@@ -42,13 +44,19 @@ export default function FeaturedCategories({
               {subtitle || "დაათვალიერე ტოპ კატეგორიები და იპოვე სასურველი ნივთი"}
             </p>
           </div>
-          <Link
-            href="/categories"
+          <button
+            type="button"
+            onClick={() => {
+              if (!isMegaMenuOpen) {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+              toggleMegaMenu();
+            }}
             className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-[#FF5238] transition-colors cursor-pointer shrink-0"
           >
             <span>ყველა კატეგორია</span>
             <ArrowRight className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
 
         <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-4">

@@ -77,9 +77,9 @@ function CustomUserIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-function CategoriesGridIcon({ className = "w-6 h-6" }: { className?: string }) {
+function CategoriesGridIcon({ className = "w-6 h-6", active = false }: { className?: string; active?: boolean }) {
   return (
-    <div className={`${className} rounded-lg bg-[#FF5238] text-white flex items-center justify-center p-1 shadow-2xs shrink-0`}>
+    <div className={`${className} rounded-lg ${active ? "bg-white text-[#FF5238]" : "bg-[#FF5238] text-white"} flex items-center justify-center p-1 shadow-2xs shrink-0 transition-colors`}>
       <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
         <rect x="2" y="2" width="4.5" height="4.5" rx="1.2" />
         <rect x="9.5" y="2" width="4.5" height="4.5" rx="1.2" />
@@ -155,10 +155,11 @@ export default function Header() {
     adminUser,
     toggleAuthModal,
     logout,
-    addToast
+    addToast,
+    isMegaMenuOpen,
+    toggleMegaMenu,
   } = useStore();
 
-  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -444,76 +445,8 @@ export default function Header() {
 
         </div>
 
-        {/* Tier 2: Sub-Navigation Bar (Height 64px, Expanded to 1560px max width) */}
-        <div className="border-t border-[#F0F0F2] h-[52px] sm:h-[64px] flex items-center">
-          <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-full flex items-center justify-between gap-4">
-            
-            <div className="flex items-center gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar py-0.5 w-full">
-              
-              {/* Categories Trigger Button */}
-              <button
-                type="button"
-                onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
-                className={`flex items-center gap-2 transition-colors cursor-pointer text-[13px] shrink-0 py-0.5 ${
-                  isMegaMenuOpen ? "text-[#FF5238]" : "text-[#1F2937] hover:text-[#FF5238]"
-                }`}
-              >
-                <CategoriesGridIcon className="w-6 h-6" />
-                <span>კატეგორიები</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isMegaMenuOpen ? "rotate-180 text-[#FF5238]" : ""}`} />
-              </button>
-
-              {/* Vertical Separator */}
-              <div className="h-4 w-px bg-[#E5E7EB] shrink-0 mx-1 sm:mx-2" />
-
-              {/* Fast Link 1: Discounts */}
-              <Link
-                href="/catalog"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
-              >
-                <DiscountsBadgeIcon className="w-6 h-6" />
-                <span>ფასდაკლებები</span>
-              </Link>
-
-              {/* Fast Link 2: Brands */}
-              <Link
-                href="/catalog"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
-              >
-                <BrandsBadgeIcon className="w-6 h-6" />
-                <span>ბრენდები</span>
-              </Link>
-
-              {/* Fast Link 3: Pick-up Point */}
-              <Link
-                href="/catalog"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
-              >
-                <PickupPointBadgeIcon className="w-6 h-6" />
-                <span>გატანის წერტილი</span>
-              </Link>
-
-              {/* Fast Link 4: Compare */}
-              <Link
-                href="/compare"
-                className="flex items-center gap-2 text-[13px] text-[#374151] hover:text-[#FF5238] transition-colors shrink-0 py-0.5"
-              >
-                <CompareBadgeIcon className="w-6 h-6" />
-                <span>შედარება</span>
-                {compareList.length > 0 && (
-                  <span className="bg-[#FFF5F2] text-[#FF5238] border border-[#FED7CC] text-[10px] rounded-full px-1.5 py-0.2 font-mono">
-                    {compareList.length}
-                  </span>
-                )}
-              </Link>
-
-            </div>
-
-          </div>
-        </div>
-
         {/* MegaMenu Dropdown */}
-        <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setIsMegaMenuOpen(false)} />
+        <MegaMenu isOpen={isMegaMenuOpen} onClose={() => toggleMegaMenu(false)} />
       </header>
 
       {/* Mobile Drawer Menu (lg:hidden) */}
@@ -652,17 +585,20 @@ export default function Header() {
                     ნავიგაცია
                   </span>
 
-                  <Link
-                    href="/categories"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      toggleMegaMenu(true);
+                    }}
+                    className="w-full flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                   >
                     <div className="flex items-center gap-3">
                       <CategoriesGridIcon className="w-5 h-5" />
                       <span>ყველა კატეგორია</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </Link>
+                  </button>
 
                   <Link
                     href="/catalog"

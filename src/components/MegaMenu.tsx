@@ -83,6 +83,32 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
           transition={{ duration: 0.15 }}
           className="absolute top-full left-0 right-0 w-full h-[calc(100dvh-100%)] min-h-[calc(100dvh-100%)] bg-white z-50 border-t border-[#F0F0F2] flex flex-col shadow-2xl overflow-hidden"
         >
+          {/* Top Bar for Desktop with Category Title & Close Button */}
+          <div className="hidden md:flex w-full max-w-[1560px] mx-auto px-4 lg:px-6 py-3 border-b border-[#F0F0F2] items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <span className="text-gray-900">კატეგორიები</span>
+              {activeCategory && (
+                <>
+                  <span className="text-gray-300">/</span>
+                  <span className="text-gray-500">{activeCategory.name}</span>
+                </>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs text-gray-600 hover:text-gray-950 bg-gray-100 hover:bg-gray-200 transition-all cursor-pointer group"
+              title="დახურვა"
+              aria-label="დახურვა"
+            >
+              <span>დახურვა</span>
+              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-gray-600 group-hover:text-gray-950 shadow-2xs">
+                <X className="w-3.5 h-3.5" />
+              </div>
+            </button>
+          </div>
+
           {/* =========================================================
               MOBILE DRILL-DOWN VIEW (md:hidden)
               Step 1: Main Category List
@@ -180,31 +206,45 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
               </div>
             ) : (
               /* Mobile Step 1: Full List of Categories to Choose */
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-1">
-                <div className="px-2 py-2 text-xs text-gray-400">
-                  აირჩიეთ კატეგორია:
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-[#F9FAFB] shrink-0">
+                  <span className="text-sm text-gray-900">კატეგორიები</span>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center cursor-pointer shadow-2xs transition-colors"
+                    aria-label="დახურვა"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                {categories.map((category) => {
-                  const iconElement = getCategoryIcon(category, "w-5 h-5");
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => setMobileCategory(category)}
-                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-100 text-left transition-all active:scale-[0.99] cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center shrink-0 border border-gray-100">
-                          {iconElement}
+
+                <div className="flex-1 overflow-y-auto p-3.5 space-y-1">
+                  <div className="px-2 py-2 text-xs text-gray-400">
+                    აირჩიეთ კატეგორია:
+                  </div>
+                  {categories.map((category) => {
+                    const iconElement = getCategoryIcon(category, "w-5 h-5");
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => setMobileCategory(category)}
+                        className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-100 text-left transition-all active:scale-[0.99] cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center shrink-0 border border-gray-100">
+                            {iconElement}
+                          </div>
+                          <span className="text-xs text-gray-800 truncate">
+                            {category.name}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-800 truncate">
-                          {category.name}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
-                    </button>
-                  );
-                })}
+                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

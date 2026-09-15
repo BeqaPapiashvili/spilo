@@ -20,6 +20,8 @@ import {
   Car,
 } from "lucide-react";
 
+import { useStore } from "@/store/useStore";
+
 // Swiper styles
 import "swiper/css";
 import "swiper/css/navigation";
@@ -92,6 +94,7 @@ export default function CategoryCarousel() {
   const swiperRef = useRef<any>(null);
   const [isBeginning, setIsBeginning] = useState(true);
   const [isEnd, setIsEnd] = useState(false);
+  const { toggleMegaMenu, isMegaMenuOpen } = useStore();
 
   return (
     <section className="w-full pt-3 sm:pt-6 relative select-none">
@@ -99,10 +102,14 @@ export default function CategoryCarousel() {
         <div className="flex items-center gap-2.5 sm:gap-3.5 relative overflow-hidden">
 
           {/* Lead Card: All Categories (Desktop side tile) */}
-          <Link
-            href="/categories"
-            draggable={false}
-            onDragStart={(e) => e.preventDefault()}
+          <button
+            type="button"
+            onClick={() => {
+              if (!isMegaMenuOpen) {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+              toggleMegaMenu();
+            }}
             className="hidden sm:flex group shrink-0 w-[130px] sm:w-[145px] h-[155px] sm:h-[165px] bg-[#111111] hover:bg-black text-white rounded-[22px] p-4 flex-col justify-between items-center text-center cursor-pointer shadow-xs border border-zinc-800 relative overflow-hidden select-none transition-colors"
           >
             <div className="flex-1 flex flex-col items-center justify-center pt-1 z-10">
@@ -119,7 +126,7 @@ export default function CategoryCarousel() {
                 დათვალიერება →
               </span>
             </div>
-          </Link>
+          </button>
 
           {/* Swiper Carousel Track - Identical to ProductCarousel */}
           <div className="flex-1 relative group/carousel min-w-0 overflow-hidden">

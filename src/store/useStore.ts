@@ -65,6 +65,7 @@ interface StoreState {
   adminUser: { id: string; name: string; email: string; role: string } | null;
   adminToken: string | null;
   isAuthModalOpen: boolean;
+  isMegaMenuOpen: boolean;
   toasts: ToastMessage[];
   recentlyViewed: WishlistItem[];
   recentSearches: string[];
@@ -103,6 +104,7 @@ interface StoreState {
   clearCompare: () => void;
   toggleHighlightDifferences: () => void;
   toggleAuthModal: (open?: boolean) => void;
+  toggleMegaMenu: (open?: boolean) => void;
   setUser: (user: UserProfile | null) => void;
 
   // Toast Actions
@@ -149,6 +151,7 @@ export const useStore = create<StoreState>()(
       adminUser: null,
       adminToken: null,
       isAuthModalOpen: false,
+      isMegaMenuOpen: false,
       toasts: [],
       recentlyViewed: [],
       recentSearches: ["DJI Neo", "iPhone 16", "MacBook Pro"],
@@ -467,6 +470,8 @@ export const useStore = create<StoreState>()(
         set((state) => ({ highlightDifferencesOnly: !state.highlightDifferencesOnly })),
       toggleAuthModal: (open) => 
         set((state) => ({ isAuthModalOpen: open !== undefined ? open : !state.isAuthModalOpen })),
+      toggleMegaMenu: (open) =>
+        set((state) => ({ isMegaMenuOpen: open !== undefined ? open : !state.isMegaMenuOpen })),
       setUser: (user) => {
         set({ user, isAuthModalOpen: false, ...(user === null ? { adminUser: null, adminToken: null } : {}) });
         if (user?.id) {
