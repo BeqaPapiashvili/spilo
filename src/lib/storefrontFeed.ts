@@ -131,7 +131,10 @@ export async function resolveStorefrontFeed(): Promise<ResolvedStorefrontSection
       if (config.sourceType === "MANUAL" && Array.isArray(config.manualProductIds) && config.manualProductIds.length > 0) {
         // Query exact manual IDs
         const found = await prisma.product.findMany({
-          where: { id: { in: config.manualProductIds } },
+          where: { 
+            id: { in: config.manualProductIds },
+            status: { not: "PENDING_REVIEW" }
+          },
           include: {
             category: true,
             brand: true,
@@ -145,7 +148,9 @@ export async function resolveStorefrontFeed(): Promise<ResolvedStorefrontSection
           .filter(Boolean);
       } else {
         // AUTOMATIC SOURCE: Dynamic Prisma where clause
-        const whereClause: any = {};
+        const whereClause: any = {
+          status: { not: "PENDING_REVIEW" }
+        };
 
         // Brand filter
         if (config.brand) {

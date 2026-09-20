@@ -65,6 +65,14 @@ export async function GET(request: Request) {
         user: {
           select: { id: true, name: true, email: true, phone: true },
         },
+        returns: {
+          include: {
+            logs: {
+              orderBy: { createdAt: "desc" },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

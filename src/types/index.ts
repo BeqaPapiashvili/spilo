@@ -60,6 +60,8 @@ export interface Product {
   isHot?: boolean;
   isFeatured?: boolean;
   isFlashDeal?: boolean;
+  status?: "PUBLISHED" | "PENDING_REVIEW" | "DRAFT";
+  isApproved?: boolean;
   warrantyMonths?: number;
   freeShipping?: boolean;
   storage?: string;

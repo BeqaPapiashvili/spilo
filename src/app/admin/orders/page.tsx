@@ -30,7 +30,8 @@ import {
   ShieldAlert,
   ArrowRight,
   Phone,
-  Package
+  Package,
+  RotateCcw
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { exportOrdersToCSV } from "@/utils/exportImport";
@@ -161,6 +162,7 @@ export default function AdminOrdersPage() {
           couponCode: o.couponCode || null,
           discountAmount: o.discountAmount || 0,
           items: o.items || [],
+          returns: o.returns || [],
         }));
         setDbOrders(mappedOrders);
         setOrders(mappedOrders);
@@ -188,7 +190,12 @@ export default function AdminOrdersPage() {
         (o.paymentMethod && o.paymentMethod.toLowerCase().includes(query)) ||
         (o.address && o.address.toLowerCase().includes(query));
 
-      const matchStatus = selectedStatusFilter === "ALL" || o.status === selectedStatusFilter;
+      const matchStatus =
+        selectedStatusFilter === "ALL"
+          ? true
+          : selectedStatusFilter === "RETURNS"
+          ? o.returns && o.returns.length > 0
+          : o.status === selectedStatusFilter;
       const matchPayment = paymentFilter === "ALL" || o.paymentMethod.toLowerCase().includes(paymentFilter.toLowerCase());
 
       return matchSearch && matchStatus && matchPayment;
@@ -218,7 +225,8 @@ export default function AdminOrdersPage() {
     const totalRevenue = dbOrders
       .filter((o) => o.status !== "გაუქმებულია")
       .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-    return { total, processing, shipped, delivered, cancelled, totalRevenue };
+    const returnsCount = dbOrders.filter((o) => o.returns && o.returns.length > 0).length;
+    return { total, processing, shipped, delivered, cancelled, totalRevenue, returnsCount };
   }, [dbOrders]);
 
   const statuses = ["ALL", "მუშავდება", "გზაშია", "ჩაბარებულია", "გაუქმებულია"];
@@ -360,7 +368,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* 2. Interactive KPI Stats Cards Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         
         {/* Metric 1: Total Orders */}
         <button
@@ -422,7 +430,22 @@ export default function AdminOrdersPage() {
           <p className="text-xl text-zinc-900 mt-1 tracking-tight">{metrics.delivered}</p>
         </button>
 
-        {/* Metric 5: Total Revenue */}
+        {/* Metric 5: Returns & Exchanges */}
+        <button
+          type="button"
+          onClick={() => { setSelectedStatusFilter("RETURNS"); setCurrentPage(1); }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer bg-orange-50/70 border-orange-200/80 ${
+            selectedStatusFilter === "RETURNS" ? "ring-2 ring-[#FF5238] shadow-xs" : "hover:shadow-2xs"
+          }`}
+        >
+          <div className="flex items-center justify-between text-[#FF5238] text-xs">
+            <span>დაბრუნება/გადაცვლა</span>
+            <RotateCcw className="w-3.5 h-3.5 text-[#FF5238]" />
+          </div>
+          <p className="text-xl text-zinc-900 mt-1 tracking-tight">{metrics.returnsCount}</p>
+        </button>
+
+        {/* Metric 6: Total Revenue */}
         <div className="p-4 rounded-2xl border text-left bg-[#FFF5F2] border-[#FED7CC] col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between text-[#FF5238] text-xs">
             <span>სულ შემოსავალი</span>
@@ -575,15 +598,38 @@ export default function AdminOrdersPage() {
                       className="hover:bg-zinc-50/80 transition-colors group"
                     >
                       
-                      {/* Order Number */}
-                      <td className="py-3.5 px-6 font-mono text-zinc-900 font-medium">
-                        <div className="flex items-center gap-2">
-                          <Link 
-                            href={`/admin/orders/${order.rawId || order.id}`}
-                            className="hover:text-[#FF5238] transition-colors"
-                          >
-                            #{order.id}
-                          </Link>
+                      {/* Order Number & Returns Badge */}
+                      <td className="py-3.5 px-6 font-mono text-zinc-900">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Link 
+                              href={`/admin/orders/${order.rawId || order.id}`}
+                              className="hover:text-[#FF5238] transition-colors"
+                            >
+                              #{order.id}
+                            </Link>
+                          </div>
+                          {order.returns && order.returns.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              {(() => {
+                                const ret = order.returns[0];
+                                const isEx = ret.type === "EXCHANGE";
+                                return (
+                                  <Link
+                                    href={`/admin/orders/${order.rawId || order.id}`}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border font-sans cursor-pointer hover:opacity-80 transition-opacity ${
+                                      isEx
+                                        ? "bg-orange-50 text-orange-700 border-orange-200"
+                                        : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                    }`}
+                                  >
+                                    <RotateCcw className="w-2.5 h-2.5" />
+                                    <span>{isEx ? "გადაცვლა" : "დაბრუნება"}</span>
+                                  </Link>
+                                );
+                              })()}
+                            </div>
+                          )}
                         </div>
                       </td>
 

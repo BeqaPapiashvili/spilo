@@ -70,6 +70,8 @@ export async function GET(
       specs: parsedSpecs,
       isFeatured: product.isFeatured,
       isFlashDeal: product.isFlashDeal,
+      status: product.status || "PUBLISHED",
+      isApproved: product.isApproved !== false,
     };
 
     return NextResponse.json({ success: true, data: formatted });
@@ -115,6 +117,8 @@ export async function PUT(
         specs: body.specs !== undefined ? body.specs : undefined,
         isFeatured: body.isFeatured !== undefined ? Boolean(body.isFeatured) : undefined,
         isFlashDeal: body.isFlashDeal !== undefined ? Boolean(body.isFlashDeal) : undefined,
+        status: body.status !== undefined ? body.status : undefined,
+        isApproved: body.isApproved !== undefined ? Boolean(body.isApproved) : undefined,
       },
     });
 

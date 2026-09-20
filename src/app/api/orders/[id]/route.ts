@@ -20,6 +20,14 @@ export async function GET(
       include: {
         items: true,
         user: true,
+        returns: {
+          include: {
+            logs: {
+              orderBy: { createdAt: "desc" },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 

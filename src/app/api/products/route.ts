@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     const onlyDiscounted = searchParams.get("discount") === "true";
     const isFeatured = searchParams.get("featured") === "true";
     const isFlashDeal = searchParams.get("flash") === "true";
+    const statusParam = searchParams.get("status");
     const sort = searchParams.get("sort") || "default";
 
     // Optional pagination params (only applied if limit is provided)
@@ -133,6 +134,17 @@ export async function GET(request: Request) {
       andConditions.push({ isFlashDeal: true });
     }
 
+    if (statusParam === "PENDING_REVIEW") {
+      andConditions.push({ status: "PENDING_REVIEW" });
+    } else if (statusParam === "PUBLISHED") {
+      andConditions.push({ OR: [{ status: "PUBLISHED" }, { status: null }] });
+    } else if (statusParam === "ALL") {
+      // no status filter
+    } else {
+      // Default (Storefront): hide pending review products
+      andConditions.push({ status: { not: "PENDING_REVIEW" } });
+    }
+
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     // Build Sorting
@@ -215,6 +227,8 @@ export async function GET(request: Request) {
         storage: p.storage || undefined,
         isFeatured: p.isFeatured,
         isFlashDeal: p.isFlashDeal,
+        status: p.status || "PUBLISHED",
+        isApproved: p.isApproved !== false,
         rating: p.rating || 5,
         reviewCount: p.reviewCount || 0,
       };

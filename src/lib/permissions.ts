@@ -22,7 +22,8 @@ export function isRouteAllowed(role: string = "SUPER_ADMIN", pathname: string): 
       normalizedPath === "/admin" ||
       normalizedPath === "/admin/stats" ||
       normalizedPath.startsWith("/admin/support") ||
-      normalizedPath.startsWith("/admin/orders")
+      normalizedPath.startsWith("/admin/orders") ||
+      normalizedPath.startsWith("/admin/returns")
     ) {
       return true;
     }

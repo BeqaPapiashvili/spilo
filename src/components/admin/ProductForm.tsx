@@ -24,7 +24,8 @@ import {
   ChevronRight,
   HelpCircle,
   Star,
-  RefreshCw
+  RefreshCw,
+  Clock
 } from "lucide-react";
 import { Category, SubCategory, DeepCategoryItem, SpecGroup, ProductVariant, Product } from "@/types";
 import { ImageUploader } from "@/components/admin/ImageUploader";
@@ -366,7 +367,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
   };
 
   // Submit Handler
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, overrideStatus?: string) => {
     e.preventDefault();
     if (!title.trim() || price === "" || Number(price) <= 0) {
       alert("გთხოვთ მიუთითოთ პროდუქტის სახელი და სწორი ფასი");
@@ -381,7 +382,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
     setIsSubmitting(true);
 
     try {
-      const payload = {
+      const payload: any = {
         title: title.trim(),
         slug: slug.trim() || geoToLat(title.toLowerCase()).replace(/\s+/g, "-"),
         description,
@@ -401,6 +402,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
         isFeatured,
         isFlashDeal,
       };
+
+      if (overrideStatus) {
+        payload.status = overrideStatus;
+        payload.isApproved = overrideStatus === "PUBLISHED";
+      } else if (initialProduct?.status) {
+        payload.status = initialProduct.status;
+        payload.isApproved = initialProduct.status === "PUBLISHED";
+      }
 
       let res;
       if (isEdit && initialProduct?.id) {
@@ -476,6 +485,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
             გაუქმება
           </Link>
 
+          {initialProduct?.status === "PENDING_REVIEW" && (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={(e) => handleSubmit(e, "PUBLISHED")}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              <span>დამოწმება და გამოქვეყნება</span>
+            </button>
+          )}
+
           <button
             type="submit"
             disabled={isSubmitting}
@@ -495,6 +520,36 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
           </button>
         </div>
       </div>
+
+      {/* Pending Review Guidance Banner in Form */}
+      {initialProduct?.status === "PENDING_REVIEW" && (
+        <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-zinc-900">ეს პროდუქტი მოლოდინის რეჟიმშია (საიტზე დამალულია)</p>
+              <p className="text-amber-700 text-[11px]">
+                შეგიძლიათ შეცვალოთ ნებისმიერი ინფორმაცია და დააჭიროთ „დამოწმება და გამოქვეყნება“ ღილაკს, რათა პროდუქტი მომენტალურად გამოჩნდეს საიტის კატალოგში.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={(e) => handleSubmit(e, "PUBLISHED")}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer shadow-xs"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            )}
+            <span>დამოწმება და გამოქვეყნება</span>
+          </button>
+        </div>
+      )}
 
       {/* 2. Top Navigation Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">

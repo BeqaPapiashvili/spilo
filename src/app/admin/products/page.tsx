@@ -28,7 +28,8 @@ import {
   TrendingDown,
   Layers,
   Award,
-  FilterX
+  FilterX,
+  Clock
 } from "lucide-react";
 import { Product, Category } from "@/types";
 import { exportProductsToCSV } from "@/utils/exportImport";
@@ -62,13 +63,14 @@ export default function AdminProductsPage() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [adminTab, setAdminTab] = useState<"ALL" | "PUBLISHED" | "PENDING_REVIEW">("ALL");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       const [prodRes, catRes, brandRes] = await Promise.all([
-        fetch("/api/products"),
+        fetch("/api/products?status=ALL"),
         fetch("/api/categories"),
         fetch("/api/brands"),
       ]);
@@ -95,6 +97,50 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleApproveSingle = async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      const res = await fetch("/api/products/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        loadData();
+      } else {
+        alert(json.error || "დამოწმება ვერ მოხერხდა");
+      }
+    } catch (err) {
+      console.error("Approve error:", err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    setActionLoadingId("bulk-approve");
+    try {
+      const res = await fetch("/api/products/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds: selectedIds }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedIds([]);
+        loadData();
+      } else {
+        alert(json.error || "ჯგუფური დამოწმება ვერ მოხერხდა");
+      }
+    } catch (err) {
+      console.error("Bulk approve error:", err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -111,6 +157,9 @@ export default function AdminProductsPage() {
 
       const matchCat = selectedCategory === "ALL" || p.categoryId === selectedCategory;
       const matchBrand = selectedBrand === "ALL" || p.brandId === selectedBrand;
+
+      if (adminTab === "PUBLISHED" && p.status === "PENDING_REVIEW") return false;
+      if (adminTab === "PENDING_REVIEW" && p.status !== "PENDING_REVIEW") return false;
 
       let matchStock = true;
       if (stockFilter === "IN_STOCK") matchStock = p.stock > 0;
@@ -142,12 +191,14 @@ export default function AdminProductsPage() {
   // Metrics Counters
   const metrics = useMemo(() => {
     const total = products.length;
+    const pending = products.filter((p) => p.status === "PENDING_REVIEW").length;
+    const published = products.filter((p) => p.status !== "PENDING_REVIEW").length;
     const inStock = products.filter((p) => p.stock > 5).length;
     const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
     const outOfStock = products.filter((p) => p.stock <= 0).length;
     const discounted = products.filter((p) => p.discountPrice && p.discountPrice < p.price).length;
     const featured = products.filter((p) => p.isFeatured).length;
-    return { total, inStock, lowStock, outOfStock, discounted, featured };
+    return { total, pending, published, inStock, lowStock, outOfStock, discounted, featured };
   }, [products]);
 
   // Category & Brand Options for CustomSelect
@@ -377,6 +428,102 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {/* Moderation & Publishing Status Switcher Tabs */}
+      <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => {
+            setAdminTab("ALL");
+            setCurrentPage(1);
+          }}
+          className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            adminTab === "ALL"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600"
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>ყველა პროდუქტი ({metrics.total})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setAdminTab("PUBLISHED");
+            setCurrentPage(1);
+          }}
+          className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            adminTab === "PUBLISHED"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600"
+          }`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>გამოქვეყნებული საიტზე ({metrics.published})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setAdminTab("PENDING_REVIEW");
+            setCurrentPage(1);
+          }}
+          className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            adminTab === "PENDING_REVIEW"
+              ? "bg-amber-500 text-white shadow-xs"
+              : metrics.pending > 0
+              ? "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+              : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600"
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          <span>გადასამოწმებელი (Pending Review)</span>
+          {metrics.pending > 0 && (
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                adminTab === "PENDING_REVIEW"
+                  ? "bg-white/25 text-white"
+                  : "bg-amber-200 text-amber-900"
+              }`}
+            >
+              {metrics.pending}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Pending Review Guidance Banner (visible when viewing pending review items) */}
+      {adminTab === "PENDING_REVIEW" && (
+        <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-zinc-900">გადასამოწმებელი პროდუქტები ({filteredProducts.length})</p>
+              <p className="text-amber-700 text-[11px]">
+                ეს პროდუქტები იმპორტირებულია ექსელიდან და საიტზე მყიდველებისთვის დამალულია. შეგიძლიათ შეხვიდეთ რედაქტირებაში, შეცვალოთ ნებისმიერი ინფორმაცია და დაადასტუროთ საიტზე გამოსაქვეყნებლად.
+              </p>
+            </div>
+          </div>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              disabled={actionLoadingId === "bulk-approve"}
+              onClick={handleBulkApprove}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+            >
+              {actionLoadingId === "bulk-approve" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              <span>არჩეულების დამტკიცება ({selectedIds.length})</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 2. Interactive KPI Metrics Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
@@ -532,6 +679,20 @@ export default function AdminProductsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              disabled={actionLoadingId === "bulk-approve"}
+              onClick={handleBulkApprove}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {actionLoadingId === "bulk-approve" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              <span>მონიშნულის დამოწმება ({selectedIds.length})</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => exportProductsToCSV(products.filter((p) => selectedIds.includes(p.id)))}
               className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
@@ -649,6 +810,12 @@ export default function AdminProductsPage() {
                           </div>
                           <div className="min-w-0 max-w-[280px]">
                             <div className="flex items-center gap-1.5 flex-wrap">
+                              {p.status === "PENDING_REVIEW" && (
+                                <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200/80 px-1.5 py-0.2 rounded font-sans">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>გადასამოწმებელი</span>
+                                </span>
+                              )}
                               {p.isFeatured && (
                                 <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded font-sans">Featured</span>
                               )}
@@ -713,6 +880,23 @@ export default function AdminProductsPage() {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right pr-6 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
+                          {p.status === "PENDING_REVIEW" && (
+                            <button
+                              type="button"
+                              disabled={actionLoadingId === p.id}
+                              onClick={() => handleApproveSingle(p.id)}
+                              title="დამოწმება და საიტზე გამოქვეყნება"
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs flex items-center gap-1 transition-colors cursor-pointer shrink-0 mr-1"
+                            >
+                              {actionLoadingId === p.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              )}
+                              <span>დამოწმება</span>
+                            </button>
+                          )}
+
                           <button
                             type="button"
                             onClick={() => setPreviewProduct(p)}
@@ -1019,6 +1203,7 @@ export default function AdminProductsPage() {
           isOpen={isImportModalOpen}
           onClose={() => {
             setIsImportModalOpen(false);
+            setAdminTab("PENDING_REVIEW");
             loadData();
           }}
         />

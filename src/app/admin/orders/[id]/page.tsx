@@ -30,10 +30,15 @@ import {
   ArrowUpRight,
   TrendingUp,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  RotateCcw,
+  ArrowLeftRight,
+  ArrowRight,
+  ChevronDown,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { OrderStatus } from "@/types";
+import OrderReturnSection from "@/components/admin/orders/OrderReturnSection";
 
 interface OrderDetailPageProps {
   params: Promise<{ id: string }>;
@@ -407,11 +412,91 @@ export default function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
         )}
       </div>
 
+      {/* ⚠️ High-Visibility Top Alert Banner for Active / Existing Returns & Exchanges */}
+      {order.returns && order.returns.length > 0 && (() => {
+        const topReturn = order.returns[0];
+        const isExchange = topReturn.type === "EXCHANGE";
+        const returnItems = (Array.isArray(topReturn.items) && topReturn.items.length > 0)
+          ? topReturn.items
+          : items.length > 0
+          ? items
+          : [];
+        const firstItem = returnItems[0];
+        const itemImg = firstItem?.image || firstItem?.product?.images?.[0] || firstItem?.product?.image;
+
+        return (
+          <div className="bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-indigo-50/80 border border-orange-200/90 rounded-3xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              {/* Product Thumbnail or Type Icon */}
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-orange-200/80 shrink-0 flex items-center justify-center p-1.5 shadow-2xs overflow-hidden">
+                {itemImg ? (
+                  <img
+                    src={itemImg}
+                    alt={firstItem?.title || "პროდუქტი"}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80";
+                    }}
+                  />
+                ) : (
+                  <Package className="w-6 h-6 text-orange-500" />
+                )}
+              </div>
+
+              <div className="space-y-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full border ${
+                    isExchange
+                      ? "bg-orange-100 text-orange-800 border-orange-300"
+                      : "bg-indigo-100 text-indigo-800 border-indigo-300"
+                  }`}>
+                    {isExchange ? "გადაცვლის მოთხოვნა" : "დაბრუნების მოთხოვნა"}
+                  </span>
+
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white text-zinc-700 border border-zinc-200 font-mono">
+                    სტატუსი: {topReturn.status}
+                  </span>
+                </div>
+
+                <p className="text-sm text-zinc-900 leading-snug truncate">
+                  {firstItem?.title ? `პროდუქტი: ${firstItem.title}` : `დაფიქსირებულია ${isExchange ? "გადაცვლა" : "დაბრუნება"}`}
+                </p>
+
+                {isExchange && topReturn.exchangeTo && (
+                  <p className="text-xs text-orange-950 font-mono">
+                    👉 იცვლება: {topReturn.exchangeTo}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
+              <a
+                href="#returns-section"
+                className="h-10 px-4 bg-zinc-900 hover:bg-[#FF5238] text-white rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <span>დაბრუნების ბარათზე გადასვლა</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </a>
+
+              <Link
+                href="/admin/returns"
+                className="h-10 px-3.5 bg-white hover:bg-zinc-100 text-zinc-700 rounded-2xl text-xs border border-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ყველა დაბრუნება</span>
+              </Link>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Details Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
-        {/* Left Column: Ordered Items List (2 cols) */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-zinc-200/80 shadow-xs p-6 space-y-6">
+        {/* Left Column: Ordered Items List & Returns Management (2 cols) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-3xl border border-zinc-200/80 shadow-xs p-6 space-y-6">
           <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
             <div>
               <h3 className="text-base text-zinc-900">
@@ -468,9 +553,28 @@ export default function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
                           <h4 className="text-sm text-zinc-900 leading-snug">
                             {item.title}
                           </h4>
-                          <span className="text-xs px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-800 font-mono shrink-0">
-                            {qty} ცალი
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {(() => {
+                              const itemReturnInfo = (order?.returns || []).find((ret: any) =>
+                                (Array.isArray(ret.items) && ret.items.some((it: any) => it.orderItemId === item.id || it.productId === item.productId)) ||
+                                (!ret.items || ret.items.length === 0)
+                              );
+                              if (!itemReturnInfo) return null;
+                              const isExchange = itemReturnInfo.type === "EXCHANGE";
+                              return (
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-mono ${
+                                  isExchange
+                                    ? "bg-orange-50 text-orange-700 border-orange-200"
+                                    : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                }`}>
+                                  {isExchange ? "გადასაცვლელია" : "დასაბრუნებელია"}
+                                </span>
+                              );
+                            })()}
+                            <span className="text-xs px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-800 font-mono shrink-0">
+                              {qty} ცალი
+                            </span>
+                          </div>
                         </div>
 
                         {/* Metadata badges: SKU, Brand, Category */}
@@ -612,6 +716,16 @@ export default function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Order Returns & Exchanges (დაბრუნება / გადაცვლა) Section */}
+        <OrderReturnSection
+          orderId={order.id}
+          orderNumber={order.orderNumber || order.id}
+          orderItems={items}
+          initialReturns={order.returns || []}
+          canManage={canManageOrders}
+        />
+      </div>
 
         {/* Right Column: Customer & Order Execution Details (1 col) */}
         <div className="space-y-6">

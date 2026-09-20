@@ -77,6 +77,8 @@ model Product {
   storage            String?
   isFeatured         Boolean          @default(false)
   isFlashDeal        Boolean          @default(false)
+  status             String           @default("PUBLISHED") // "PUBLISHED" | "PENDING_REVIEW"
+  isApproved         Boolean          @default(true)
   cartItems          CartItem[]
   orderItems         OrderItem[]
   reviews            Review[]
@@ -199,6 +201,7 @@ model Order {
   discountAmount  Float?      @default(0)
   totalAmount     Float
   items           OrderItem[]
+  returns         OrderReturn[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
@@ -472,3 +475,46 @@ model OtpVerification {
   @@index([phone, used, expiresAt])
 }
 
+enum ReturnType {
+  RETURN
+  EXCHANGE
+}
+
+enum ReturnStatus {
+  REQUESTED
+  IN_PROGRESS
+  COURIER_ASSIGNED
+  COMPLETED
+  REJECTED
+}
+
+model OrderReturn {
+  id            String       @id @default(cuid())
+  orderId       String
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type          ReturnType   @default(RETURN)
+  status        ReturnStatus @default(REQUESTED)
+  reason        String       @db.Text
+  internalNotes String?      @db.Text
+  items         Json?
+  exchangeTo    String?      @db.Text
+  logs          ReturnLog[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([orderId])
+}
+
+model ReturnLog {
+  id            String        @id @default(cuid())
+  orderReturnId String
+  orderReturn   OrderReturn   @relation(fields: [orderReturnId], references: [id], onDelete: Cascade)
+  status        ReturnStatus?
+  action        String        // CREATED, STATUS_CHANGED, NOTE_ADDED
+  comment       String?       @db.Text
+  authorName    String?
+  authorEmail   String?
+  createdAt     DateTime      @default(now())
+
+  @@index([orderReturnId])
+}

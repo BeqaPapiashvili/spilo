@@ -28,6 +28,7 @@ import {
   ExternalLink, 
   X, 
   Zap, 
+  RotateCcw,
   Search,
   Headphones,
   LogOut,
@@ -71,6 +72,7 @@ const NAVIGATION_TABS: MenuTab[] = [
         items: [
           { title: "Dashboard", href: "/admin", icon: <LayoutDashboard className="w-4 h-4" /> },
           { title: "შეკვეთები", href: "/admin/orders", icon: <ShoppingBag className="w-4 h-4" />, badge: "ახალი" },
+          { title: "დაბრუნება & გადაცვლა", href: "/admin/returns", icon: <RotateCcw className="w-4 h-4" /> },
           { title: "მომხმარებლები & გუნდი", href: "/admin/customers", icon: <Users className="w-4 h-4" /> },
           { title: "მხარდაჭერა & ჩატი", href: "/admin/support", icon: <Headphones className="w-4 h-4" /> },
         ],
