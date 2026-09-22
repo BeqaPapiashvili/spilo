@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/jwt";
 
 export async function GET(request: Request) {
   try {
@@ -24,29 +25,40 @@ export async function GET(request: Request) {
   }
 }
 
-import { getAuthSession } from "@/lib/jwt";
-
 export async function POST(request: Request) {
   try {
     const session = await getAuthSession(request);
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, error: "შეფასების დასამატებლად გაიარეთ ავტორიზაცია" },
+        { status: 401 }
+      );
+    }
     const body = await request.json();
-    const { productId, author, rating, comment } = body;
+    const { productId, rating, comment } = body;
 
-    if (!productId || (!author && !session?.name) || rating === undefined) {
-      return NextResponse.json({ success: false, error: "Product ID, author, and rating are required" }, { status: 400 });
+    if (!productId || rating === undefined) {
+      return NextResponse.json(
+        { success: false, error: "პროდუქტი და შეფასება აუცილებელია" },
+        { status: 400 }
+      );
     }
 
-    const resolvedAuthor = session?.name || author.trim();
-    const resolvedUserId = session?.userId || null;
+    const purchased = await prisma.orderItem.findFirst({
+      where: {
+        productId,
+        order: { userId: session.userId, status: { in: ["DELIVERED", "SHIPPED"] } },
+      },
+    });
 
     const newReview = await prisma.review.create({
       data: {
         productId,
-        userId: resolvedUserId,
-        author: resolvedAuthor,
+        userId: session.userId,
+        author: session.name || "მომხმარებელი",
         rating: Math.min(5, Math.max(1, Number(rating))),
-        comment: (comment || "").trim(),
-        verifiedPurchase: true,
+        comment: String(comment || "").trim().slice(0, 2000),
+        verifiedPurchase: Boolean(purchased),
       },
     });
 

@@ -23,7 +23,9 @@ import {
   Save,
   Check,
   Search,
-  Trash2
+  Trash2,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -36,7 +38,7 @@ export default function ProfilePage() {
     <ProtectedRoute>
       <Suspense fallback={
         <div className="bg-white min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#FF5238]" />
         </div>
       }>
         <ProfileContent />
@@ -63,7 +65,8 @@ function ProfileContent() {
   ];
 
   const tabFromUrl = searchParams.get("tab");
-  const activeTab = validTabs.includes(tabFromUrl || "") ? tabFromUrl! : "edit_profile";
+  const hasTab = validTabs.includes(tabFromUrl || "");
+  const activeTab = hasTab ? tabFromUrl! : "edit_profile";
 
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -209,7 +212,7 @@ function ProfileContent() {
     return (
       <div className="bg-[#F8FAFC] min-h-[75vh] flex items-center justify-center py-16 px-4">
         <div className="bg-white rounded-[32px] p-8 md:p-12 max-w-md w-full text-center space-y-5 shadow-xs border border-gray-100">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-[#FFF1EE] text-[#FF5238] rounded-full flex items-center justify-center mx-auto">
             <User className="w-8 h-8" />
           </div>
           <h1 className="text-2xl text-gray-900">პირადი კაბინეტი</h1>
@@ -393,12 +396,72 @@ function ProfileContent() {
     }
   };
 
+  const profileNavItems = [
+    { id: "edit_profile", label: "პროფილის რედაქტირება", href: "/profile?tab=edit_profile" },
+    { id: "orders", label: "შეკვეთები", href: "/profile?tab=orders" },
+    { id: "orders_completed", label: "ჩემი დასრულებული შეკვეთები", href: "/profile?tab=orders&status=completed" },
+    { id: "wishlist", label: "ვიშლისტი", href: "/profile?tab=wishlist" },
+    { id: "addresses", label: "მისამართები", href: "/profile?tab=addresses" },
+    { id: "notifications", label: "SMS/Mail შეტყობინებები", href: "/profile?tab=notifications" },
+    { id: "payments", label: "გადახდები", href: "/profile?tab=payments" },
+    { id: "password", label: "პაროლი", href: "/profile?tab=password" },
+    { id: "security", label: "უსაფრთხოების პოლიტიკა", href: "/profile?tab=security" },
+    { id: "faq", label: "დახმარების ცენტრი", href: "/profile?tab=faq" },
+  ];
+
+  const orderStatusParam = searchParams.get("status");
+  const activeLabel =
+    activeTab === "orders" && orderStatusParam === "completed"
+      ? "ჩემი დასრულებული შეკვეთები"
+      : profileNavItems.find((item) => item.id === activeTab)?.label || "პროფილი";
+
   return (
-    <div className="bg-white min-h-screen py-8">
-      <div className="container mx-auto px-4 lg:px-8 max-w-6xl space-y-8">
-        
-        {/* Page Top Heading */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-6">
+    <div className="bg-white min-h-screen py-1 md:py-8 pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-md:overflow-x-hidden">
+      <div className="mx-auto w-full max-w-6xl px-5 md:px-4 lg:px-8 md:container space-y-0 md:space-y-8">
+
+        <div
+          className={`md:hidden origin-left transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${
+            hasTab ? "-translate-x-[18%] opacity-40 pointer-events-none" : "translate-x-0 opacity-100"
+          }`}
+        >
+            <div className="flex items-center gap-3 py-4 border-b border-gray-200">
+              <User className="w-5 h-5 text-gray-900" strokeWidth={1.5} />
+              <h1 className="text-[17px] text-gray-900">გამარჯობა</h1>
+            </div>
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="w-full flex items-center justify-between py-4 text-[15px] text-gray-900 border-b border-gray-100"
+              >
+                <span>ადმინპანელი</span>
+                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" strokeWidth={1.5} />
+              </Link>
+            )}
+
+            <nav className="flex flex-col">
+              {profileNavItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="w-full flex items-center justify-between py-4 text-[15px] text-gray-900 border-b border-gray-100"
+                >
+                  <span>{item.label}</span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" strokeWidth={1.5} />
+                </Link>
+              ))}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between py-4 text-[15px] text-[#FF5238]"
+              >
+                <span>გასვლა</span>
+                <ChevronRight className="w-4 h-4 text-[#FF5238] shrink-0" strokeWidth={1.5} />
+              </button>
+            </nav>
+        </div>
+
+        <div className="hidden md:flex items-center justify-between border-b border-gray-100 pb-6">
           <div className="flex items-center gap-3">
             <User className="w-6 h-6 text-gray-900" />
             <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
@@ -407,17 +470,20 @@ function ProfileContent() {
           </div>
           {isLoading && (
             <div className="flex items-center gap-2 text-xs text-gray-400">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#FF5238]" />
               <span>ჩატვირთვა...</span>
             </div>
           )}
         </div>
 
-        {/* 2-Column Main Profile Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
+        <div
+          className={`grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start max-md:fixed max-md:inset-x-0 max-md:top-16 max-md:bottom-0 max-md:z-[45] max-md:overflow-y-auto max-md:overscroll-contain max-md:bg-white max-md:px-5 max-md:pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))] max-md:transition-transform max-md:duration-[420ms] max-md:ease-[cubic-bezier(0.32,0.72,0,1)] ${
+            hasTab ? "max-md:translate-x-0" : "max-md:translate-x-full max-md:pointer-events-none"
+          }`}
+        >
           
           {/* Left Navigation Sidebar Menu (4 cols) */}
-          <div className="md:col-span-4 border-r-0 md:border-r border-gray-100 pr-0 md:pr-8">
+          <div className="hidden md:block md:col-span-4 border-r-0 md:border-r border-gray-100 pr-0 md:pr-8">
             {/* Admin Panel Direct Link */}
             {isAdmin && (
               <Link
@@ -425,10 +491,10 @@ function ProfileContent() {
                 className="w-full text-left px-4 py-3 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs md:text-sm flex items-center justify-between transition-colors shadow-xs group cursor-pointer mb-3"
               >
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
+                  <ShieldCheck className="w-4 h-4 text-[#FF5238]" />
                   <span>ადმინპანელში გადასვლა</span>
                 </div>
-                <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] bg-[#FF5238]/20 text-[#FFB4A8] border border-[#FF5238]/30 px-2.5 py-0.5 rounded-full">
                   Admin
                 </span>
               </Link>
@@ -473,12 +539,25 @@ function ProfileContent() {
           </div>
 
           {/* Right Main Content Area (8 cols) */}
-          <div className="md:col-span-8 max-w-xl space-y-6">
+          <div className="md:col-span-8 max-w-xl space-y-4 md:space-y-6">
+            {hasTab && (
+              <div className="md:hidden flex items-center gap-1 py-3 mb-2 border-b border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => router.push("/profile")}
+                  className="-ml-2 w-9 h-9 rounded-full flex items-center justify-center text-gray-900"
+                  aria-label="უკან"
+                >
+                  <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+                </button>
+                <h1 className="text-[15px] text-gray-900 truncate">{activeLabel}</h1>
+              </div>
+            )}
             
             {/* 1. Edit Profile Form Tab */}
             {activeTab === "edit_profile" && (
-              <form onSubmit={handleProfileUpdate} className="space-y-5">
-                <h2 className="text-xl text-gray-900 mb-6">
+              <form onSubmit={handleProfileUpdate} className="space-y-3.5 md:space-y-5">
+                <h2 className="hidden md:block text-xl text-gray-900 mb-6">
                   პროფილის რედაქტირება
                 </h2>
 
@@ -494,9 +573,9 @@ function ProfileContent() {
                       onBlur={() => handleFieldBlur("phone")}
                       disabled={!editableFields.phone}
                       placeholder="ტელეფონის ნომერი (მაგ: 599123456)"
-                      className={`w-full h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
+                      className={`w-full h-11 md:h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
                         editableFields.phone
-                          ? "bg-white text-gray-900 ring-2 ring-blue-600 shadow-xs"
+                          ? "bg-white text-gray-900 ring-2 ring-[#FF5238] shadow-xs"
                           : "bg-[#F1F3F6] text-gray-500 cursor-not-allowed select-none opacity-80"
                       }`}
                     />
@@ -524,9 +603,9 @@ function ProfileContent() {
                       onBlur={() => handleFieldBlur("email")}
                       disabled={!editableFields.email}
                       placeholder="ელფოსტა"
-                      className={`w-full h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
+                      className={`w-full h-11 md:h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
                         editableFields.email
-                          ? "bg-white text-gray-900 ring-2 ring-blue-600 shadow-xs"
+                          ? "bg-white text-gray-900 ring-2 ring-[#FF5238] shadow-xs"
                           : "bg-[#F1F3F6] text-gray-500 cursor-not-allowed select-none opacity-80"
                       }`}
                     />
@@ -554,9 +633,9 @@ function ProfileContent() {
                       onBlur={() => handleFieldBlur("firstName")}
                       disabled={!editableFields.firstName}
                       placeholder="მიუთითეთ სახელი"
-                      className={`w-full h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
+                      className={`w-full h-11 md:h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
                         editableFields.firstName
-                          ? "bg-white text-gray-900 ring-2 ring-blue-600 shadow-xs"
+                          ? "bg-white text-gray-900 ring-2 ring-[#FF5238] shadow-xs"
                           : "bg-[#F1F3F6] text-gray-500 cursor-not-allowed select-none opacity-80"
                       }`}
                     />
@@ -584,9 +663,9 @@ function ProfileContent() {
                       onBlur={() => handleFieldBlur("lastName")}
                       disabled={!editableFields.lastName}
                       placeholder="მიუთითეთ გვარი"
-                      className={`w-full h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
+                      className={`w-full h-11 md:h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
                         editableFields.lastName
-                          ? "bg-white text-gray-900 ring-2 ring-blue-600 shadow-xs"
+                          ? "bg-white text-gray-900 ring-2 ring-[#FF5238] shadow-xs"
                           : "bg-[#F1F3F6] text-gray-500 cursor-not-allowed select-none opacity-80"
                       }`}
                     />
@@ -603,7 +682,7 @@ function ProfileContent() {
                 </div>
 
                 {/* Georgian Citizenship Switch Box */}
-                <div className="h-13 px-4 bg-[#F1F3F6] rounded-2xl flex items-center justify-between">
+                <div className="h-11 md:h-13 px-4 bg-[#F1F3F6] rounded-2xl flex items-center justify-between">
                   <span className="text-xs md:text-sm text-gray-800">საქართველოს მოქალაქე</span>
                   <button
                     type="button"
@@ -612,7 +691,7 @@ function ProfileContent() {
                       setIsGeorgianCitizen(val);
                     }}
                     className={`w-12 h-6 rounded-full relative p-0.5 transition-colors cursor-pointer ${
-                      isGeorgianCitizen ? "bg-blue-600" : "bg-gray-300"
+                      isGeorgianCitizen ? "bg-[#FF5238]" : "bg-gray-300"
                     }`}
                   >
                     <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
@@ -633,9 +712,9 @@ function ProfileContent() {
                       onBlur={() => handleFieldBlur("idNumber")}
                       disabled={!editableFields.idNumber}
                       placeholder="მიუთითეთ 11-ნიშნა პირადი ნომერი"
-                      className={`w-full h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
+                      className={`w-full h-11 md:h-13 pl-4 pr-12 rounded-2xl text-xs md:text-sm transition-all focus:outline-none ${
                         editableFields.idNumber
-                          ? "bg-white text-gray-900 ring-2 ring-blue-600 shadow-xs"
+                          ? "bg-white text-gray-900 ring-2 ring-[#FF5238] shadow-xs"
                           : "bg-[#F1F3F6] text-gray-500 cursor-not-allowed select-none opacity-80"
                       }`}
                     />
@@ -656,7 +735,7 @@ function ProfileContent() {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="w-full h-13 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white rounded-2xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
+                    className="w-full h-11 md:h-13 bg-[#FF5238] hover:bg-[#EA3A20] disabled:opacity-70 text-white rounded-2xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
                   >
                     {isSaving ? (
                       <>
@@ -705,137 +784,134 @@ function ProfileContent() {
 
               const displayedOrders = currentSubTab === "completed" ? completedOrders : activeOrders;
 
+              const statusMeta = (status: string) => {
+                const raw = status || "";
+                const upper = raw.toUpperCase();
+                if (raw === "ჩაბარებულია" || upper === "DELIVERED") {
+                  return { label: "ჩაბარებულია", className: "bg-emerald-50 text-emerald-700" };
+                }
+                if (raw === "გზაშია" || upper === "SHIPPED") {
+                  return { label: "გზაშია", className: "bg-[#FFF1EE] text-[#FF5238]" };
+                }
+                if (raw === "გაუქმებულია" || upper === "CANCELLED") {
+                  return { label: "გაუქმებულია", className: "bg-red-50 text-red-600" };
+                }
+                if (raw === "მუშავდება" || upper === "PROCESSING") {
+                  return { label: "მუშავდება", className: "bg-amber-50 text-amber-700" };
+                }
+                if (upper === "PENDING") {
+                  return { label: "მოლოდინში", className: "bg-amber-50 text-amber-700" };
+                }
+                return { label: raw, className: "bg-white text-gray-600" };
+              };
+
               return (
-                <div className="space-y-6">
-                  
-                  {/* Sub-Tabs Header Navigation Bar matching Screenshot */}
-                  <div className="flex border-b border-gray-200 gap-8 text-sm md:text-base pt-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 p-1 bg-[#F4F5F7] rounded-2xl">
                     <button
                       type="button"
                       onClick={() => handleOrderSubTabChange("active")}
-                      className={`pb-3 font-sans transition-all cursor-pointer border-b-2 -mb-[2px] ${
+                      className={`h-10 rounded-[14px] text-[13px] md:text-sm cursor-pointer transition-colors ${
                         currentSubTab === "active"
-                          ? "border-blue-600 text-gray-900"
-                          : "border-transparent text-gray-400 hover:text-gray-900"
+                          ? "bg-white text-[#1D1D1F] shadow-sm"
+                          : "text-gray-400"
                       }`}
                     >
-                      <span>
-                        მიმდინარე შეკვეთები{activeOrders.length > 0 ? ` (${activeOrders.length})` : ""}
-                      </span>
+                      მიმდინარე{activeOrders.length > 0 ? ` ${activeOrders.length}` : ""}
                     </button>
-
                     <button
                       type="button"
                       onClick={() => handleOrderSubTabChange("completed")}
-                      className={`pb-3 font-sans transition-all cursor-pointer border-b-2 -mb-[2px] ${
+                      className={`h-10 rounded-[14px] text-[13px] md:text-sm cursor-pointer transition-colors ${
                         currentSubTab === "completed"
-                          ? "border-blue-600 text-gray-900"
-                          : "border-transparent text-gray-400 hover:text-gray-900"
+                          ? "bg-white text-[#1D1D1F] shadow-sm"
+                          : "text-gray-400"
                       }`}
                     >
-                      <span>
-                        დასრულებული შეკვეთები{completedOrders.length > 0 ? ` (${completedOrders.length})` : ""}
-                      </span>
+                      დასრულებული{completedOrders.length > 0 ? ` ${completedOrders.length}` : ""}
                     </button>
                   </div>
 
-                  {/* Orders List / Cards */}
                   {displayedOrders.length === 0 ? (
-                    <div className="bg-[#F1F3F6] rounded-3xl p-10 text-center text-gray-500 space-y-2">
-                      <Package className="w-8 h-8 mx-auto text-gray-400" />
-                      <p className="text-xs md:text-sm text-gray-700">
+                    <div className="bg-[#F4F5F7] rounded-[22px] px-5 py-9 text-center">
+                      <span className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-3">
+                        <Package className="w-6 h-6 text-[#FF5238]" strokeWidth={1.6} />
+                      </span>
+                      <p className="text-[15px] text-[#1D1D1F]">
                         {currentSubTab === "completed"
-                          ? "დასრულებული შეკვეთები არ მოიძებნა"
-                          : "მიმდინარე შეკვეთები არ მოიძებნა"}
+                          ? "დასრულებული შეკვეთები არ არის"
+                          : "მიმდინარე შეკვეთა არ არის"}
                       </p>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[12px] text-gray-400 mt-1 max-w-[240px] mx-auto leading-relaxed">
                         {currentSubTab === "completed"
-                          ? "თქვენ არ გაქვთ ჩაბარებული ან გაუქმებული შეკვეთების ისტორია"
-                          : "თქვენ არ გაქვთ აქტიური შეკვეთა დამუშავების პროცესში"}
+                          ? "ჩაბარებული ან გაუქმებული შეკვეთები აქ გამოჩნდება"
+                          : "როცა შეკვეთას გააფორმებ, აქ გამოჩნდება"}
                       </p>
+                      {currentSubTab === "active" && (
+                        <Link
+                          href="/catalog"
+                          className="inline-flex items-center justify-center mt-4 h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-[14px]"
+                        >
+                          კატალოგის ნახვა
+                        </Link>
+                      )}
                     </div>
                   ) : (
-                    displayedOrders.map((order) => (
-                      <div key={order.id} className="bg-[#F1F3F6] rounded-3xl p-5 md:p-6 space-y-4">
-                        
-                        {/* Card Header Row: Order ID & Status & Invoice */}
-                        <div className="flex items-center justify-between text-xs md:text-sm">
-                          <div className="flex items-center gap-3">
-                            <span className="text-gray-900 font-mono tracking-tight">
-                              #{order.id}
-                            </span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] ${
-                              order.status === "ჩაბარებულია" || order.status === "DELIVERED"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : order.status === "გზაშია" || order.status === "SHIPPED"
-                                ? "bg-blue-100 text-blue-700"
-                                : order.status === "გაუქმებულია" || order.status === "CANCELLED"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-amber-100 text-amber-700"
-                            }`}>
-                              {order.status}
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInvoiceOrder(order)}
-                            className="text-blue-600 hover:underline text-xs md:text-sm cursor-pointer transition-colors"
-                          >
-                            ინვოისი
-                          </button>
-                        </div>
-
-                        {/* Inner White Box with Items */}
-                        <div className="bg-white rounded-2xl p-4 md:p-5 space-y-3 shadow-2xs">
-                          {order.items.map((item: any, idx: number) => (
-                            <div key={idx} className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <img
-                                  src={item.image}
-                                  alt={item.title}
-                                  className="w-12 h-12 md:w-14 md:h-14 object-contain rounded-xl bg-gray-50 border border-gray-100 shrink-0 p-1"
-                                />
-                                <div className="min-w-0">
-                                  <p className="text-xs md:text-sm text-gray-900 line-clamp-2">
-                                    {item.title}
-                                  </p>
-                                  {item.quantity > 1 && (
-                                    <p className="text-[11px] text-gray-400">
-                                      რაოდენობა: {item.quantity} ცალი
-                                    </p>
-                                  )}
-                                </div>
+                    <div className="space-y-3">
+                      {displayedOrders.map((order) => {
+                        const meta = statusMeta(order.status);
+                        return (
+                          <article key={order.id} className="bg-[#F4F5F7] rounded-[22px] p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[14px] text-[#1D1D1F]">შეკვეთა #{order.id}</p>
+                                <p className="text-[12px] text-gray-400 mt-0.5">{order.date}</p>
                               </div>
-
-                              <div className="text-right shrink-0">
-                                <span className="text-xs md:text-sm text-[#111111] font-mono">
-                                  {((item.discountPrice || item.price) * item.quantity).toFixed(0)} ₾
-                                </span>
-                              </div>
+                              <span className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] ${meta.className}`}>
+                                {meta.label}
+                              </span>
                             </div>
-                          ))}
-                        </div>
 
-                        {/* Card Footer Row: Order Date & Total Cost */}
-                        <div className="flex items-center justify-between text-xs md:text-sm pt-1">
-                          <span className="text-gray-500">
-                            შეკვეთა: {order.date}
-                          </span>
-                          <div className="text-right">
-                            <span className="text-gray-900">
-                              შეკვეთის ღირებულება:
-                            </span>
-                            <span className="text-blue-600 font-mono text-sm md:text-base pl-1.5">
-                              {order.totalAmount.toFixed(0)} ₾
-                            </span>
-                          </div>
-                        </div>
+                            <div className="space-y-2.5">
+                              {order.items.map((item: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-3">
+                                  <img
+                                    src={item.image}
+                                    alt={item.title}
+                                    className="w-14 h-14 object-contain rounded-xl bg-white shrink-0 p-1"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[13px] text-[#1D1D1F] line-clamp-2 leading-snug">
+                                      {item.title}
+                                    </p>
+                                    <p className="text-[12px] text-gray-400 mt-0.5">
+                                      {item.quantity} ცალი
+                                    </p>
+                                  </div>
+                                  <span className="text-[13px] text-[#1D1D1F] shrink-0">
+                                    {((item.discountPrice || item.price) * item.quantity).toFixed(0)} ₾
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
 
-                      </div>
-                    ))
+                            <div className="flex items-center justify-between pt-1 border-t border-white/80">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedInvoiceOrder(order)}
+                                className="text-[13px] text-[#FF5238] cursor-pointer"
+                              >
+                                ინვოისი
+                              </button>
+                              <p className="text-[15px] text-[#1D1D1F]">
+                                {order.totalAmount.toFixed(0)} ₾
+                              </p>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
                   )}
-
                 </div>
               );
             })()}
@@ -843,7 +919,7 @@ function ProfileContent() {
             {/* 3. Wishlist Tab */}
             {activeTab === "wishlist" && (
               <div className="space-y-4">
-                <h2 className="text-xl text-gray-900 border-b border-gray-100 pb-3">
+                <h2 className="hidden md:block text-xl text-gray-900 border-b border-gray-100 pb-3">
                   ვიშლისტი ({wishlist.length})
                 </h2>
                 {wishlist.length === 0 ? (
@@ -872,26 +948,29 @@ function ProfileContent() {
 
             {/* 4. Addresses Tab */}
             {activeTab === "addresses" && (
-              <div className="space-y-6">
-                <h2 className="text-xl text-gray-900">მისამართები</h2>
+              <div className="space-y-5">
+                <h2 className="hidden md:block text-xl text-gray-900">მისამართები</h2>
 
                 {address && address.trim() ? (
-                  <div className="bg-[#F1F3F6] rounded-2xl p-5 md:p-6 flex items-center justify-between border border-gray-100/60">
-                    <div className="space-y-1 pr-4">
-                      <p className="text-xs md:text-sm text-gray-900 leading-snug">
+                  <div className="bg-[#F4F5F7] rounded-[22px] p-4 md:p-5 flex items-start gap-3">
+                    <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 mt-0.5">
+                      <MapPin className="w-[18px] h-[18px] text-[#FF5238]" strokeWidth={1.7} />
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-[14px] md:text-sm text-[#1D1D1F] leading-snug">
                         {address.split(", (კომენტარი:")[0].split(", comment:")[0]}
                       </p>
-                      <p className="text-[12px] text-gray-500">
-                        {address.includes(", (კომენტარი:")
-                          ? address.split(", (კომენტარი:")[1].replace(")", "")
-                          : "კომენტარი"}
-                      </p>
+                      {address.includes(", (კომენტარი:") ? (
+                        <p className="text-[12px] text-gray-500">
+                          {address.split(", (კომენტარი:")[1].replace(")", "")}
+                        </p>
+                      ) : null}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => setIsAddressModalOpen(true)}
-                        className="p-2 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                        className="w-9 h-9 rounded-full bg-white text-gray-700 flex items-center justify-center cursor-pointer"
                         title="მისამართის შეცვლა"
                       >
                         <Pencil className="w-4 h-4" />
@@ -899,53 +978,63 @@ function ProfileContent() {
                       <button
                         type="button"
                         onClick={() => handleProfileUpdate(undefined, "")}
-                        className="p-2 text-gray-600 hover:text-red-600 transition-colors cursor-pointer"
+                        className="w-9 h-9 rounded-full bg-white text-gray-500 hover:text-[#FF5238] flex items-center justify-center cursor-pointer"
                         title="მისამართის წაშლა"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                ) : null}
+                ) : (
+                  <div className="bg-[#F4F5F7] rounded-[22px] px-5 py-8 text-center">
+                    <span className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-3">
+                      <MapPin className="w-6 h-6 text-[#FF5238]" strokeWidth={1.6} />
+                    </span>
+                    <p className="text-[15px] text-[#1D1D1F]">მისამართი არ არის დამატებული</p>
+                    <p className="text-[12px] text-gray-400 mt-1 max-w-[240px] mx-auto leading-relaxed">
+                      დაამატე მიწოდების მისამართი, რომ შეკვეთა პირდაპირ შენთან მოვიდეს
+                    </p>
+                  </div>
+                )}
 
-                <div>
-                  <button
-                    onClick={() => setIsAddressModalOpen(true)}
-                    className="px-8 h-13 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs md:text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
-                  >
-                    <span>მისამართის დამატება</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddressModalOpen(true)}
+                  className="w-full h-12 bg-[#FF5238] hover:bg-[#EA3A20] text-white rounded-2xl text-[15px] cursor-pointer transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{address && address.trim() ? "მისამართის შეცვლა" : "მისამართის დამატება"}</span>
+                </button>
               </div>
             )}
 
             {/* 5. SMS/Mail Notifications Tab */}
             {activeTab === "notifications" && (
               <div className="space-y-4">
-                <h2 className="text-xl text-gray-900 border-b border-gray-100 pb-3">
+                <h2 className="hidden md:block text-xl text-gray-900 border-b border-gray-100 pb-3">
                   SMS / Mail შეტყობინებები
                 </h2>
                 <div className="space-y-3">
-                  <div className="h-13 px-4 bg-[#F1F3F6] rounded-2xl flex items-center justify-between">
+                  <div className="h-11 md:h-13 px-4 bg-[#F1F3F6] rounded-2xl flex items-center justify-between">
                     <span className="text-xs md:text-sm text-gray-800">SMS შეტყობინებები შეკვეთის სტატუსზე</span>
                     <button
                       type="button"
                       onClick={() => toggleNotification("sms")}
                       className={`w-12 h-6 rounded-full relative p-0.5 transition-colors cursor-pointer ${
-                        smsNotify ? "bg-blue-600" : "bg-gray-300"
+                        smsNotify ? "bg-[#FF5238]" : "bg-gray-300"
                       }`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transition-transform ${smsNotify ? "translate-x-6" : ""}`} />
                     </button>
                   </div>
 
-                  <div className="h-13 px-4 bg-[#F1F3F6] rounded-2xl flex items-center justify-between">
+                  <div className="h-11 md:h-13 px-4 bg-[#F1F3F6] rounded-2xl flex items-center justify-between">
                     <span className="text-xs md:text-sm text-gray-800">Mail შეტყობინებები ფასდაკლებებზე</span>
                     <button
                       type="button"
                       onClick={() => toggleNotification("email")}
                       className={`w-12 h-6 rounded-full relative p-0.5 transition-colors cursor-pointer ${
-                        emailNotify ? "bg-blue-600" : "bg-gray-300"
+                        emailNotify ? "bg-[#FF5238]" : "bg-gray-300"
                       }`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transition-transform ${emailNotify ? "translate-x-6" : ""}`} />
@@ -958,7 +1047,7 @@ function ProfileContent() {
             {/* 6. Payments Tab */}
             {activeTab === "payments" && (
               <div className="space-y-4">
-                <h2 className="text-xl text-gray-900 border-b border-gray-100 pb-3">
+                <h2 className="hidden md:block text-xl text-gray-900 border-b border-gray-100 pb-3">
                   გადახდები & შენახული ბარათები
                 </h2>
                 <div className="bg-[#F8FAFC] rounded-2xl p-8 text-center text-gray-500 space-y-2 border border-gray-100">
@@ -972,7 +1061,7 @@ function ProfileContent() {
             {/* 7. Password Tab */}
             {activeTab === "password" && (
               <form onSubmit={handlePasswordChange} className="space-y-4">
-                <h2 className="text-xl text-gray-900 border-b border-gray-100 pb-3">
+                <h2 className="hidden md:block text-xl text-gray-900 border-b border-gray-100 pb-3">
                   პაროლის შეცვლა
                 </h2>
                 <div className="space-y-3">
@@ -981,27 +1070,27 @@ function ProfileContent() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="მიმდინარე პაროლი"
-                    className="w-full h-13 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full h-11 md:h-13 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                   />
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="ახალი პაროლი (მინ. 6 სიმბოლო)"
-                    className="w-full h-13 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full h-11 md:h-13 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                   />
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="გაამეორეთ ახალი პაროლი"
-                    className="w-full h-13 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full h-11 md:h-13 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isPasswordSaving}
-                  className="w-full h-13 bg-[#111111] hover:bg-black disabled:opacity-70 text-white rounded-2xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2"
+                  className="w-full h-11 md:h-13 bg-[#111111] hover:bg-black disabled:opacity-70 text-white rounded-2xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2"
                 >
                   {isPasswordSaving ? (
                     <>
@@ -1023,7 +1112,7 @@ function ProfileContent() {
             {/* 8. Security Policy Tab */}
             {activeTab === "security" && (
               <div className="space-y-4">
-                <h2 className="text-xl text-gray-900 border-b border-gray-100 pb-3">
+                <h2 className="hidden md:block text-xl text-gray-900 border-b border-gray-100 pb-3">
                   უსაფრთხოების პოლიტიკა
                 </h2>
                 <p className="text-xs text-gray-600 leading-relaxed">
@@ -1035,7 +1124,7 @@ function ProfileContent() {
             {/* 9. FAQ Tab */}
             {activeTab === "faq" && (
               <div className="space-y-4">
-                <h2 className="text-xl text-gray-900 border-b border-gray-100 pb-3">
+                <h2 className="hidden md:block text-xl text-gray-900 border-b border-gray-100 pb-3">
                   ხშირად დასმული კითხვები
                 </h2>
                 <div className="space-y-3 text-xs md:text-sm">

@@ -131,14 +131,8 @@ function CheckoutContent() {
   const [recipientEmail, setRecipientEmail] = useState(user?.email || "");
 
   // Step 2: Payment Details state (defaulting to COD)
-  const [paymentCategory, setPaymentCategory] = useState<
-    "cod" | "transfer" | "card" | "installment" | "points" | "keepz" | "crypto"
-  >("cod");
-  const [selectedInstallmentBank, setSelectedInstallmentBank] = useState<
-    "bog" | "tbc" | "tbc_ganatsileba" | "credo"
-  >("bog");
-  const [expandedCardGateway, setExpandedCardGateway] = useState<"tbc" | "bog">("bog");
-  const [selectedCardOption, setSelectedCardOption] = useState<"card" | "applepay">("card");
+  const [paymentCategory, setPaymentCategory] = useState<"card" | "installment" | "cod" | "transfer">("card");
+  const [installmentMonths, setInstallmentMonths] = useState<3 | 6 | 9 | 12>(3);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Promo Code State
@@ -197,6 +191,7 @@ function CheckoutContent() {
   const shippingCost = deliveryMethod === "pickup" ? 0 : 0; // Free delivery
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const totalAmount = Math.max(0, cartSubtotal + shippingCost - discountAmount);
+  const monthlyInstallment = totalAmount / installmentMonths;
 
   const handleApplyCoupon = async () => {
     if (!promoCode.trim()) {
@@ -216,6 +211,7 @@ function CheckoutContent() {
         body: JSON.stringify({
           code: promoCode.trim(),
           orderTotal: cartSubtotal,
+          items: cart.map((item) => ({ id: item.id, quantity: item.quantity })),
         }),
       });
 
@@ -305,27 +301,17 @@ function CheckoutContent() {
 
     setIsSubmitting(true);
 
+    const isOnlinePayment = paymentCategory === "card" || paymentCategory === "installment";
+
     let paymentMethodLabel = "კურიერთან ანგარიშსწორება (ადგილზე გადახდა)";
     if (paymentCategory === "cod") {
       paymentMethodLabel = "კურიერთან ანგარიშსწორება (ადგილზე გადახდა)";
     } else if (paymentCategory === "transfer") {
       paymentMethodLabel = "საბანკო გადარიცხვა (Bank Transfer)";
     } else if (paymentCategory === "installment") {
-      const bankNames: Record<string, string> = {
-        bog: "საქართველოს ბანკი (0% განვადება)",
-        tbc: "TBC ბანკი (0% განვადება)",
-        tbc_ganatsileba: "TBC განაწილება",
-        credo: "კრედო ბანკი",
-      };
-      paymentMethodLabel = `განვადება: ${bankNames[selectedInstallmentBank] || "საქართველოს ბანკი"}`;
-    } else if (paymentCategory === "card") {
-      paymentMethodLabel = `ბარათით გადახდა (${expandedCardGateway.toUpperCase()} - ${selectedCardOption === "applepay" ? "Apple Pay" : "Visa/Mastercard"})`;
-    } else if (paymentCategory === "points") {
-      paymentMethodLabel = "ქულებით შეძენა";
-    } else if (paymentCategory === "keepz") {
-      paymentMethodLabel = "Keepz - ონლაინ ბანკით შეძენა";
-    } else if (paymentCategory === "crypto") {
-      paymentMethodLabel = "კრიპტოთი შეძენა";
+      paymentMethodLabel = `განვადება: საქართველოს ბანკი (${installmentMonths} თვე)`;
+    } else {
+      paymentMethodLabel = "ბარათით გადახდა (United Payment / Bank of Georgia)";
     }
 
     const fullRecipientName = `${recipientFirstName} ${recipientLastName}`.trim();
@@ -360,6 +346,7 @@ function CheckoutContent() {
       totalAmount: Number(totalAmount.toFixed(2)),
       paymentMethod: paymentMethodLabel,
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+      deferSettlement: isOnlinePayment,
     };
 
     let finalOrderNumber = `SP-${Date.now().toString().slice(-6)}`;
@@ -384,6 +371,29 @@ function CheckoutContent() {
       }
 
       finalOrderNumber = resData.order?.orderNumber || resData.order?.id || finalOrderNumber;
+
+      if (isOnlinePayment) {
+        const payRes = await fetch("/api/checkout/create-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: resData.order?.id || finalOrderNumber,
+            installmentNumber: paymentCategory === "installment" ? installmentMonths : 1,
+          }),
+        });
+        const payData = await payRes.json();
+        if (!payRes.ok || !payData.success || !payData.redirectUrl) {
+          setIsSubmitting(false);
+          addToast({
+            title: paymentCategory === "installment" ? "განვადება ვერ გაიხსნა" : "გადახდის გვერდი ვერ გაიხსნა",
+            message: payData.error || "სცადეთ ხელახლა ან აირჩიეთ ბარათით გადახდა",
+            type: "error",
+          });
+          return;
+        }
+        window.location.href = payData.redirectUrl;
+        return;
+      }
       
       const newOrderRecord = {
         id: finalOrderNumber,
@@ -686,248 +696,115 @@ function CheckoutContent() {
             {/* STEP 2 CONTENT: Payment Details */}
             {step === 2 && (
               <div className="space-y-6">
-                
-                {/* Payment Methods Top Pills */}
+                <div className="rounded-2xl border border-[#FED7CC] bg-[#FFF5F2] px-4 py-3 text-xs text-[#9A3412]">
+                  {paymentCategory === "installment"
+                    ? "განვადებაზე ბანკის გვერდი იგივე 3D ბარათის ფორმაა — იქ ბარათს შეიყვან და თანხა არჩეულ თვეებზე იყოფა. Extra-ს ინტერნეტბანკის განაცხადი ამ სატესტო ანგარიშზე არ იხსნება."
+                    : "სატესტო გარემო · United Payment / BOG 3D. ბანკში ახლა ჩაირიცხება 0.01 ₾, შეკვეთის რეალური თანხა საიტზე უცვლელი რჩება."}
+                </div>
+
                 <div className="space-y-3">
                   <h3 className="text-sm text-gray-900">გადახდის მეთოდები</h3>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {[
-                      { id: "cod", label: "ადგილზე გადახდა (COD)", active: true },
-                      { id: "transfer", label: "საბანკო გადარიცხვა", active: true },
-                      { id: "card", label: "ბარათით გადახდა", badge: "მალე" },
-                      { id: "installment", label: "0% განვადება", badge: "მალე" },
+                      { id: "card", label: "ბარათით გადახდა", hint: "Visa / Mastercard" },
+                      { id: "installment", label: "განვადება", hint: "BOG 3–12 თვე" },
+                      { id: "cod", label: "ადგილზე გადახდა", hint: "კურიერთან" },
+                      { id: "transfer", label: "საბანკო გადარიცხვა", hint: "ინვოისი" },
                     ].map((item) => (
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setPaymentCategory(item.id as any)}
-                        className={`min-h-12 py-2 px-3 rounded-2xl text-xs transition-all cursor-pointer border text-center flex flex-col items-center justify-center gap-0.5 ${
+                        onClick={() => setPaymentCategory(item.id as typeof paymentCategory)}
+                        className={`min-h-[4.25rem] py-2 px-3 rounded-2xl text-xs transition-all cursor-pointer border text-left ${
                           paymentCategory === item.id
                             ? "border-[#FF5238] bg-[#FFF5F2] text-[#FF5238] ring-1 ring-[#FF5238]"
                             : "border-transparent bg-[#F1F3F6] text-gray-700 hover:bg-gray-200"
                         }`}
                       >
-                        <span>{item.label}</span>
-                        {item.badge && (
-                          <span className="text-[9px] text-[#FF5238] bg-[#FED7CC] px-1.5 py-0.2 rounded-md">
-                            {item.badge}
-                          </span>
-                        )}
+                        <span className="block text-[13px]">{item.label}</span>
+                        <span className={`block mt-0.5 text-[10px] ${paymentCategory === item.id ? "text-[#FF5238]/80" : "text-gray-500"}`}>
+                          {item.hint}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Sub-Panel: Cash on Delivery */}
-                {paymentCategory === "cod" && (
-                  <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2 border border-gray-200/60">
-                    <p className="text-gray-900 text-sm">ადგილზე გადახდა კურიერთან (Cash on Delivery)</p>
-                    <p>შეკვეთის საფასურს გადაიხდით ნივთის ჩაბარებისას კურიერთან ნაღდი ანგარიშსწორებით ან საბანკო ბარათით (POS ტერმინალით).</p>
-                    <p className="text-[#FF5238]">✓ წინასწარი გადახდა არ მოითხოვება. შეკვეთა დაუყოვნებლივ გადაეცემა კურიერს.</p>
+                {paymentCategory === "card" && (
+                  <div className="p-5 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2 border border-gray-200/60">
+                    <p className="text-gray-900 text-sm">ბარათით გადახდა · Bank of Georgia</p>
+                    <p>შეკვეთის გაფორმების შემდეგ გადახვალთ United Payment-ის 3D უსაფრთხო გვერდზე. იქ შეიყვანთ ბარათს და SMS კოდს.</p>
+                    <p className="text-[#FF5238]">თანხა ჩამოიჭრება მხოლოდ წარმატებული 3D დადასტურების შემდეგ.</p>
                   </div>
                 )}
 
-                {/* Sub-Panel: Bank Transfer */}
+                {paymentCategory === "installment" && (
+                  <div className="p-5 bg-[#FFF5F2] border border-[#FED7CC] rounded-2xl space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-900">საქართველოს ბანკის განვადება · 0%</p>
+                      <p className="text-[11px] text-gray-500 mt-1">აირჩიე ვადა — ყოველთვიური თანხა იცვლება</p>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {([3, 6, 9, 12] as const).map((months) => {
+                        const monthly = totalAmount / months;
+                        const selected = installmentMonths === months;
+                        return (
+                          <button
+                            key={months}
+                            type="button"
+                            onClick={() => setInstallmentMonths(months)}
+                            className={`min-h-[4.25rem] rounded-xl text-xs cursor-pointer border px-1 py-2 ${
+                              selected
+                                ? "border-[#FF5238] bg-white text-[#FF5238] ring-1 ring-[#FF5238]"
+                                : "border-transparent bg-white text-gray-700"
+                            }`}
+                          >
+                            <span className="block text-[13px]">{months} თვე</span>
+                            <span className={`block mt-0.5 font-mono text-[11px] ${selected ? "text-[#FF5238]" : "text-gray-500"}`}>
+                              {monthly.toFixed(2)} ₾
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="rounded-xl bg-white border border-[#FED7CC] px-3 py-3 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-gray-600">
+                        <span>არჩეული გეგმა</span>
+                        <span className="text-gray-900">{installmentMonths} თვე · 0%</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>ყოველთვიურად</span>
+                        <span className="text-gray-900 font-mono">{monthlyInstallment.toFixed(2)} ₾</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>სულ</span>
+                        <span className="text-[#FF5238] font-mono">{totalAmount.toFixed(2)} ₾</span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-relaxed">
+                      შემდეგ გაიხსნება United Payment-ის 3D გვერდი. იქ ბარათს შეიყვან — ეს არის განვადება, არა ერთჯერადი გადახდა: POS-ს ეგზავნება {installmentMonths} თვე.
+                    </p>
+                  </div>
+                )}
+
+                {paymentCategory === "cod" && (
+                  <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2 border border-gray-200/60">
+                    <p className="text-gray-900 text-sm">ადგილზე გადახდა კურიერთან</p>
+                    <p>თანხას გადაიხდით ჩაბარებისას ნაღდად ან POS ტერმინალით. ონლაინ ბარათი არ ჩამოიჭრება.</p>
+                  </div>
+                )}
+
                 {paymentCategory === "transfer" && (
                   <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-700 space-y-2.5 border border-gray-200/60">
-                    <p className="text-gray-900 text-sm">საბანკო გადარიცხვა (Manual Bank Transfer)</p>
-                    <p>შეკვეთის დადასტურების შემდეგ მიიღებთ ინვოისს. გთხოვთ გადარიცხოთ თანხა ქვემოთ მითითებულ რეკვიზიტებზე:</p>
+                    <p className="text-gray-900 text-sm">საბანკო გადარიცხვა</p>
+                    <p>შეკვეთის შემდეგ მიიღებთ ინვოისს. გადარიცხეთ თანხა ამ რეკვიზიტებზე და დანიშნულებაში მიუთითეთ შეკვეთის ნომერი.</p>
                     <div className="p-3 bg-white rounded-xl border border-gray-200/60 space-y-1 font-mono text-[11px] text-gray-800">
                       <p>მიმღები: შპს სპილო (Spilo LLC)</p>
                       <p>TBC Bank: GE89TB7749102938102938</p>
                       <p>Bank of Georgia: GE12BG0000000889201928</p>
-                      <p className="text-[#FF5238]">დანიშნულება: მიუთითეთ შეკვეთის ნომერი</p>
                     </div>
                   </div>
                 )}
-
-                {/* Sub-Panel: Installment Banks */}
-                {paymentCategory === "installment" && (
-                  <div className="space-y-3 pt-2">
-                    {/* BOG Installment */}
-                    <div
-                      onClick={() => setSelectedInstallmentBank("bog")}
-                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "bog" ? "border-[#FF5238] bg-white" : "border-transparent"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center">
-                          🦁
-                        </div>
-                        <span className="text-xs md:text-sm text-gray-900">საქართველოს ბანკი</span>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "bog" ? "border-[#FF5238]" : "border-gray-300"
-                      }`}>
-                        {selectedInstallmentBank === "bog" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                      </div>
-                    </div>
-
-                    {/* TBC Installment */}
-                    <div
-                      onClick={() => setSelectedInstallmentBank("tbc")}
-                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "tbc" ? "border-[#FF5238] bg-white" : "border-transparent"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white text-xs flex items-center justify-center">
-                          ▲
-                        </div>
-                        <span className="text-xs md:text-sm text-gray-900">თიბისი ბანკი</span>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "tbc" ? "border-[#FF5238]" : "border-gray-300"
-                      }`}>
-                        {selectedInstallmentBank === "tbc" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                      </div>
-                    </div>
-
-                    {/* TBC Ganatsileba */}
-                    <div
-                      onClick={() => setSelectedInstallmentBank("tbc_ganatsileba")}
-                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-[#FF5238] bg-white" : "border-transparent"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-sky-500 text-white text-xs flex items-center justify-center">
-                          ▲
-                        </div>
-                        <span className="text-xs md:text-sm text-gray-900">თიბისი <span className="text-gray-500 pl-1">განაწილება</span></span>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "tbc_ganatsileba" ? "border-[#FF5238]" : "border-gray-300"
-                      }`}>
-                        {selectedInstallmentBank === "tbc_ganatsileba" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                      </div>
-                    </div>
-
-                    {/* Credo Bank */}
-                    <div
-                      onClick={() => setSelectedInstallmentBank("credo")}
-                      className={`h-16 px-5 bg-[#F1F3F6] rounded-2xl flex items-center justify-between cursor-pointer border transition-colors ${
-                        selectedInstallmentBank === "credo" ? "border-[#FF5238] bg-white" : "border-transparent"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
-                          🔄
-                        </div>
-                        <span className="text-xs md:text-sm text-gray-900">კრედო ბანკი</span>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedInstallmentBank === "credo" ? "border-[#FF5238]" : "border-gray-300"
-                      }`}>
-                        {selectedInstallmentBank === "credo" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Sub-Panel: Card Gateways */}
-                {paymentCategory === "card" && (
-                  <div className="space-y-3 pt-2">
-                    {/* TBC Gateway Accordion */}
-                    <div className="bg-[#F1F3F6] rounded-2xl overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedCardGateway(expandedCardGateway === "tbc" ? "bog" : "tbc")}
-                        className="w-full h-16 px-5 flex items-center justify-between cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-sky-500 text-white text-xs flex items-center justify-center">
-                            ▲
-                          </div>
-                          <span className="text-xs md:text-sm text-gray-900">TBC</span>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${
-                          expandedCardGateway === "tbc" ? "rotate-180" : ""
-                        }`} />
-                      </button>
-
-                      {expandedCardGateway === "tbc" && (
-                        <div className="p-4 pt-0 space-y-3 bg-[#F1F3F6] border-t border-gray-200/60">
-                          <div
-                            onClick={() => setSelectedCardOption("card")}
-                            className="flex items-center justify-between p-3 bg-white rounded-xl cursor-pointer"
-                          >
-                            <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა (Visa / Mastercard)</span>
-                            <div className="w-5 h-5 rounded-full border-2 border-[#FF5238] flex items-center justify-center">
-                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bank of Georgia Gateway Accordion */}
-                    <div className={`rounded-2xl overflow-hidden border-2 transition-colors ${
-                      expandedCardGateway === "bog" ? "border-[#FF5238] bg-[#F1F3F6]" : "border-transparent bg-[#F1F3F6]"
-                    }`}>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedCardGateway(expandedCardGateway === "bog" ? "tbc" : "bog")}
-                        className="w-full h-16 px-5 flex items-center justify-between cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center">
-                            🦁
-                          </div>
-                          <span className="text-xs md:text-sm text-gray-900">Bank of Georgia</span>
-                        </div>
-                        {expandedCardGateway === "bog" ? (
-                          <ChevronUp className="w-4 h-4 text-gray-500" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-gray-500" />
-                        )}
-                      </button>
-
-                      {expandedCardGateway === "bog" && (
-                        <div className="p-4 pt-2 space-y-3 border-t border-gray-200/40">
-                          {/* Option 1: Card Pay */}
-                          <div
-                            onClick={() => setSelectedCardOption("card")}
-                            className="flex items-center justify-between p-3 cursor-pointer"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs tracking-widest text-[#18181B]">VISA</span>
-                              <span className="text-xs md:text-sm text-gray-900">ბარათით გადახდა</span>
-                            </div>
-                            <div className="w-5 h-5 rounded-full border-2 border-[#FF5238] flex items-center justify-center">
-                              {selectedCardOption === "card" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                            </div>
-                          </div>
-
-                          {/* Option 2: Apple Pay */}
-                          <div
-                            onClick={() => setSelectedCardOption("applepay")}
-                            className="flex items-center justify-between p-3 cursor-pointer"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm"></span>
-                              <span className="text-xs md:text-sm text-gray-900">Apple Pay</span>
-                            </div>
-                            <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                              {selectedCardOption === "applepay" && <div className="w-2.5 h-2.5 rounded-full bg-[#FF5238]" />}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sub-Panel: Other payment methods */}
-                {["points", "transfer", "keepz", "crypto"].includes(paymentCategory) && (
-                  <div className="p-6 bg-[#F1F3F6] rounded-2xl text-xs text-gray-600 space-y-2">
-                    <p className="text-gray-900 text-sm">გადახდის ინსტრუქცია</p>
-                    <p>შეკვეთის დადასტურების შემდეგ მიიღებთ შესაბამის რეკვიზიტებს და გადახდის ინსტრუქციას.</p>
-                  </div>
-                )}
-
               </div>
             )}
 
@@ -972,6 +849,12 @@ function CheckoutContent() {
                   <span>მიწოდების ღირებულება</span>
                   <span className="text-[#FF5238] font-mono">უფასო (0 ₾)</span>
                 </div>
+                {paymentCategory === "installment" && step === 2 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>განვადება {installmentMonths} თვე</span>
+                    <span className="text-gray-900 font-mono">{monthlyInstallment.toFixed(2)} ₾/თვე</span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-gray-200/60 flex justify-between items-center">
@@ -1012,7 +895,15 @@ function CheckoutContent() {
                   <span>მუშავდება...</span>
                 </>
               ) : (
-                <span>{step === 1 ? "შემდეგი" : "შეკვეთის გაფორმება"}</span>
+                <span>
+                  {step === 1
+                    ? "შემდეგი"
+                    : paymentCategory === "installment"
+                      ? `განვადების გაფორმება · ${installmentMonths} თვე`
+                      : paymentCategory === "card"
+                        ? "გადახდაზე გადასვლა"
+                        : "შეკვეთის გაფორმება"}
+                </span>
               )}
             </button>
 

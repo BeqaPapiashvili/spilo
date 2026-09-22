@@ -1,22 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
+import { resolveCouponDiscount } from "@/lib/couponApply";
+import { prisma } from "@/lib/prisma";
 
-/**
- * POST /api/coupons/validate
- * Validates coupon code against MySQL Prisma database:
- * - Checks existence and uppercase match
- * - Checks isActive and status === 'ACTIVE'
- * - Checks validUntil / endDate expiration timestamps
- * - Checks minOrderAmount threshold
- * - Checks usedCount against usage limits
- * - Computes authoritative server-side discount amount & final total
- */
 export async function POST(request: Request) {
   try {
     const clientIp = getClientIp(request);
 
-    // Rate limit: max 15 coupon validations per 15 minutes per IP
     const rateLimitRes = await enforceRateLimit(request, {
       namespace: "coupon_validate_ip",
       identifier: clientIp,
@@ -27,8 +17,7 @@ export async function POST(request: Request) {
     if (!rateLimitRes.success && rateLimitRes.response) return rateLimitRes.response;
 
     const body = await request.json();
-
-    const { code, orderTotal = 0 } = body;
+    const { code, orderTotal = 0, productIds = [], items = [] } = body;
 
     if (!code || typeof code !== "string" || !code.trim()) {
       return NextResponse.json(
@@ -37,124 +26,56 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanCode = code.trim().toUpperCase();
-    const currentTotal = Number(orderTotal) || 0;
+    const rawItems = Array.isArray(items) && items.length > 0
+      ? items
+      : (Array.isArray(productIds) ? productIds.map((id: unknown) => ({ id, quantity: 1 })) : []);
+    const ids = rawItems.map((item: { id?: string }) => String(item.id || "")).filter(Boolean);
+    const products = ids.length
+      ? await prisma.product.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, storeId: true, price: true, discountPrice: true },
+        })
+      : [];
+    const qtyById = Object.fromEntries(
+      rawItems.map((item: { id?: string; quantity?: number }) => [String(item.id || ""), Math.max(1, Number(item.quantity) || 1)])
+    );
+    const lines = products.map((product) => ({
+      storeId: product.storeId,
+      price: product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price,
+      quantity: qtyById[product.id] || 1,
+    }));
 
-    // 1. Fetch coupon from MySQL database
-    const coupon = await prisma.coupon.findFirst({
-      where: {
-        code: cleanCode,
-      },
-    });
-
-    if (!coupon) {
+    const result = await resolveCouponDiscount(code, Number(orderTotal) || 0, prisma, lines);
+    if (!result.ok) {
       return NextResponse.json(
-        { success: false, valid: false, error: `პრომო კოდი "${cleanCode}" არ არსებობს` },
-        { status: 404 }
+        { success: false, valid: false, error: result.error },
+        { status: result.error.includes("არ არსებობს") ? 404 : 400 }
       );
     }
 
-    // 2. Validate active status
-    if (!coupon.isActive || coupon.status === "DISABLED" || coupon.status === "EXPIRED") {
+    if (!result.coupon.code) {
       return NextResponse.json(
-        { success: false, valid: false, error: `პრომო კოდი "${cleanCode}" არააქტიურია ან გაუქმებულია` },
+        { success: false, valid: false, error: "გთხოვთ მიუთითოთ პრომო კოდი" },
         { status: 400 }
       );
     }
-
-    // 3. Validate expiration timestamp
-    const now = new Date();
-    if (coupon.validUntil && new Date(coupon.validUntil) < now) {
-      return NextResponse.json(
-        { success: false, valid: false, error: `პრომო კოდს "${cleanCode}" მოქმედების ვადა ამოეწურა` },
-        { status: 400 }
-      );
-    }
-
-    if (coupon.endDate) {
-      const endTimestamp = new Date(coupon.endDate);
-      if (!isNaN(endTimestamp.getTime()) && endTimestamp < now) {
-        return NextResponse.json(
-          { success: false, valid: false, error: `პრომო კოდს "${cleanCode}" მოქმედების ვადა ამოეწურა` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // 4. Validate usage limit
-    if (
-      coupon.usageLimit !== null &&
-      coupon.usageLimit !== undefined &&
-      coupon.usedCount >= coupon.usageLimit
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          valid: false,
-          error: "ამ პრომო კოდის გამოყენების ლიმიტი ამოწურულია",
-        },
-        { status: 400 }
-      );
-    }
-
-    // 5. Validate minimum order amount
-    const minAmount = coupon.minOrderAmount ? Number(coupon.minOrderAmount) : 0;
-    if (minAmount > 0 && currentTotal < minAmount) {
-      return NextResponse.json(
-        {
-          success: false,
-          valid: false,
-          error: `პრომო კოდის გასააქტიურებლად მინიმალური შეკვეთის თანხაა ${minAmount.toFixed(2)} ₾ (თქვენი ჯამია ${currentTotal.toFixed(2)} ₾)`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // 5. Calculate authoritative server-side discount
-    const discountVal =
-      coupon.discountValue !== null && coupon.discountValue !== undefined
-        ? Number(coupon.discountValue)
-        : coupon.discount !== null && coupon.discount !== undefined
-        ? Number(coupon.discount)
-        : 0;
-
-    const discountType = (coupon.discountType || "percentage").toLowerCase();
-    let discountAmount = 0;
-
-    if (discountType === "percentage" || discountType === "percent") {
-      discountAmount = (currentTotal * discountVal) / 100;
-    } else {
-      // Fixed discount
-      discountAmount = discountVal;
-    }
-
-    // Ensure discount never exceeds total order amount
-    discountAmount = Math.min(currentTotal, Math.max(0, discountAmount));
-    const finalTotal = Math.max(0, currentTotal - discountAmount);
 
     return NextResponse.json({
       success: true,
       valid: true,
       coupon: {
-        id: coupon.id,
-        code: coupon.code,
-        discountType,
-        discountValue: discountVal,
-        discountAmount: Number(discountAmount.toFixed(2)),
-        finalTotal: Number(finalTotal.toFixed(2)),
-        minOrderAmount: minAmount,
+        id: result.coupon.id,
+        code: result.coupon.code,
+        discountType: result.coupon.discountType,
+        discountValue: result.coupon.discountValue,
+        discountAmount: result.coupon.discountAmount,
+        finalTotal: result.coupon.finalTotal,
       },
-      message: `პრომო კოდი "${coupon.code}" წარმატებით გააქტიურდა (-${
-        discountType === "percentage" || discountType === "percent"
-          ? `${discountVal}%`
-          : `${discountVal} ₾`
-      })`,
+      message: `პრომო კოდი "${result.coupon.code}" წარმატებით გააქტიურდა`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "პრომო კოდის გადამოწმება ვერ მოხერხდა";
     console.error("POST /api/coupons/validate error:", error);
-    return NextResponse.json(
-      { success: false, valid: false, error: error.message || "პრომო კოდის გადამოწმება ვერ მოხერხდა" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, valid: false, error: message }, { status: 500 });
   }
 }

@@ -52,77 +52,66 @@ export async function GET(request: Request) {
       }
     }
 
-    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+    const storefrontWhere = {
+      AND: [...andConditions, { status: { not: "PENDING_REVIEW" } }],
+    };
 
-    // 1. Fetch Categories & Brands
-    const [allCategories, allBrands, products] = await Promise.all([
-      prisma.category.findMany({
-        where: { parentId: null },
-        orderBy: { createdAt: "asc" },
-        select: { id: true, name: true, slug: true },
-      }),
-      prisma.brand.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true },
-      }),
-      prisma.product.findMany({
-        where,
-        select: {
-          id: true,
-          price: true,
-          colorName: true,
-          storage: true,
-          categoryId: true,
-          brandId: true,
-          category: { select: { id: true, name: true, slug: true } },
-          brand: { select: { id: true, name: true, slug: true } },
-        },
-      }),
-    ]);
+    const [allCategories, allBrands, categoryGroups, brandGroups, colorGroups, storageGroups, priceAgg] =
+      await Promise.all([
+        prisma.category.findMany({
+          where: { parentId: null },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, name: true, slug: true },
+        }),
+        prisma.brand.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, slug: true },
+        }),
+        prisma.product.groupBy({
+          by: ["categoryId"],
+          where: storefrontWhere,
+          _count: { _all: true },
+        }),
+        prisma.product.groupBy({
+          by: ["brandId"],
+          where: storefrontWhere,
+          _count: { _all: true },
+        }),
+        prisma.product.groupBy({
+          by: ["colorName"],
+          where: { AND: [storefrontWhere, { colorName: { not: null } }] },
+          _count: { _all: true },
+        }),
+        prisma.product.groupBy({
+          by: ["storage"],
+          where: { AND: [storefrontWhere, { storage: { not: null } }] },
+          _count: { _all: true },
+        }),
+        prisma.product.aggregate({
+          where: storefrontWhere,
+          _min: { price: true },
+          _max: { price: true },
+          _count: { _all: true },
+        }),
+      ]);
 
-    // 2. Compute dynamic counts
-    const categoryCounts: Record<string, number> = {};
-    const brandCounts: Record<string, number> = {};
+    const categoryCountById = Object.fromEntries(
+      categoryGroups.map((g) => [g.categoryId, g._count._all])
+    );
+    const brandCountById = Object.fromEntries(brandGroups.map((g) => [g.brandId, g._count._all]));
+
     const colorCounts: Record<string, number> = {};
-    const storageCounts: Record<string, number> = {};
-
-    let minPrice = 0;
-    let maxPrice = 10000;
-
-    if (products.length > 0) {
-      minPrice = Math.floor(Math.min(...products.map((p) => p.price)));
-      maxPrice = Math.ceil(Math.max(...products.map((p) => p.price)));
-    }
-
-    products.forEach((p) => {
-      // Category count
-      if (p.category?.name) {
-        categoryCounts[p.category.name] = (categoryCounts[p.category.name] || 0) + 1;
-      }
-      if (p.category?.slug) {
-        categoryCounts[p.category.slug] = (categoryCounts[p.category.slug] || 0) + 1;
-      }
-
-      // Brand count
-      if (p.brand?.name) {
-        brandCounts[p.brand.name] = (brandCounts[p.brand.name] || 0) + 1;
-      }
-      if (p.brand?.slug) {
-        brandCounts[p.brand.slug] = (brandCounts[p.brand.slug] || 0) + 1;
-      }
-
-      // Color count
-      if (p.colorName && p.colorName.trim()) {
-        const c = p.colorName.trim();
-        colorCounts[c] = (colorCounts[c] || 0) + 1;
-      }
-
-      // Storage count
-      if (p.storage && p.storage.trim()) {
-        const s = p.storage.trim().replace(/\s+/, " ");
-        storageCounts[s] = (storageCounts[s] || 0) + 1;
-      }
+    colorGroups.forEach((g) => {
+      if (g.colorName) colorCounts[g.colorName.trim()] = g._count._all;
     });
+
+    const storageCounts: Record<string, number> = {};
+    storageGroups.forEach((g) => {
+      if (g.storage) storageCounts[g.storage.trim().replace(/\s+/, " ")] = g._count._all;
+    });
+
+    const minPrice = Math.floor(priceAgg._min.price ?? 0);
+    const maxPrice = Math.ceil(priceAgg._max.price ?? 10000);
 
     // Format Colors sorted by count descending
     const colorsList = Object.entries(colorCounts)
@@ -151,14 +140,14 @@ export async function GET(request: Request) {
       id: c.id,
       name: c.name,
       slug: c.slug,
-      count: categoryCounts[c.name] || categoryCounts[c.slug] || 0,
+      count: categoryCountById[c.id] || 0,
     }));
 
     const brandsList = allBrands.map((b) => ({
       id: b.id,
       name: b.name,
       slug: b.slug,
-      count: brandCounts[b.name] || brandCounts[b.slug] || 0,
+      count: brandCountById[b.id] || 0,
     }));
 
     return NextResponse.json({
@@ -169,7 +158,7 @@ export async function GET(request: Request) {
         colors: colorsList,
         storages: storagesList,
         price: { min: minPrice, max: maxPrice },
-        totalProducts: products.length,
+        totalProducts: priceAgg._count._all,
       },
     });
   } catch (error: any) {

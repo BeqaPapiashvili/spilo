@@ -33,14 +33,14 @@ export default function FeaturedCategories({
   if (!categories || categories.length === 0) return null;
 
   return (
-    <section className="py-3 sm:py-4">
+    <section className="py-2 sm:py-4">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
             <h2 className="text-lg sm:text-xl md:text-2xl text-gray-900 tracking-tight">
               {title || "პოპულარული კატეგორიები"}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">
               {subtitle || "დაათვალიერე ტოპ კატეგორიები და იპოვე სასურველი ნივთი"}
             </p>
           </div>
@@ -52,7 +52,7 @@ export default function FeaturedCategories({
               }
               toggleMegaMenu();
             }}
-            className="flex items-center gap-1 text-xs md:text-sm text-gray-900 hover:text-[#FF5238] transition-colors cursor-pointer shrink-0"
+            className="flex items-center gap-1 text-[11px] sm:text-xs md:text-sm text-gray-900 hover:text-[#FF5238] transition-colors cursor-pointer shrink-0"
           >
             <span>ყველა კატეგორია</span>
             <ArrowRight className="w-4 h-4" />

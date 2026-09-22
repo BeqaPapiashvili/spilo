@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Check, Eye, EyeOff, AlertCircle, Loader2, ArrowLeft, RotateCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
@@ -40,13 +40,30 @@ export default function AuthModal() {
   // Custom Inline Validation & API Errors State
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthModalOpen || isMobile) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isAuthModalOpen, isMobile]);
+
   const switchMode = (newMode: "login" | "register" | "forgot" | "reset") => {
     setMode(newMode);
     setErrors({});
     setIsLoading(false);
   };
-
-  if (!isAuthModalOpen) return null;
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,8 +106,8 @@ export default function AuthModal() {
       }
 
       setUser(data.user);
-      if (data.adminSession && data.adminToken) {
-        useStore.getState().setAdminSession(data.adminSession, data.adminToken);
+      if (data.adminSession) {
+        useStore.getState().setAdminSession(data.adminSession);
       }
       addToast({
         title: "მოგესალმებით!",
@@ -300,24 +317,47 @@ export default function AuthModal() {
   return (
     <AnimatePresence>
       {isAuthModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop Fade */}
+        <div className={`fixed inset-0 z-[60] flex ${isMobile ? "items-end justify-center px-3" : "items-center justify-center p-4"} pointer-events-none`}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={() => toggleAuthModal(false)}
-            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
+            className="hidden md:block absolute inset-0 bg-black/50 backdrop-blur-xs pointer-events-auto"
           />
 
+          <div
+            className={isMobile ? "w-full max-w-md overflow-hidden pointer-events-none" : "contents"}
+            style={isMobile ? { marginBottom: "max(12px, env(safe-area-inset-bottom))" } : undefined}
+          >
           {/* Auth Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.15 }}
-            className="bg-white rounded-[28px] max-w-[440px] w-full p-7 md:p-8 shadow-2xl relative z-10 space-y-6 overflow-hidden flex flex-col justify-between"
+            initial={
+              isMobile
+                ? { clipPath: "inset(100% 0 0 0 round 26px)" }
+                : { opacity: 0, scale: 0.98 }
+            }
+            animate={
+              isMobile
+                ? { clipPath: "inset(0% 0 0 0 round 26px)" }
+                : { opacity: 1, scale: 1 }
+            }
+            exit={
+              isMobile
+                ? { clipPath: "inset(100% 0 0 0 round 26px)" }
+                : { opacity: 0, scale: 0.98 }
+            }
+            transition={
+              isMobile
+                ? { type: "spring", damping: 30, stiffness: 260, mass: 0.85 }
+                : { duration: 0.15 }
+            }
+            className={`bg-white relative z-10 space-y-6 overflow-y-auto flex flex-col justify-between pointer-events-auto ${
+              isMobile
+                ? "w-full rounded-[26px] border border-gray-200/70 shadow-[0_8px_30px_-10px_rgba(15,23,42,0.22)] p-6 pb-[4.75rem] max-h-[min(86dvh,760px)]"
+                : "w-full max-w-[440px] rounded-[28px] shadow-2xl p-6 sm:p-7 md:p-8 max-h-[min(90dvh,760px)]"
+            }`}
           >
             <div>
               {/* Close Button */}
@@ -992,6 +1032,7 @@ export default function AuthModal() {
             </div>
 
           </motion.div>
+          </div>
         </div>
       )}
     </AnimatePresence>

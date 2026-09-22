@@ -17,6 +17,8 @@ export interface ProductCardProps {
   stock?: number;
   rating?: number;
   reviewsCount?: number;
+  storeName?: string;
+  storeSlug?: string;
 }
 
 export default function ProductCard({
@@ -29,6 +31,10 @@ export default function ProductCard({
   images,
   discountPercentage,
   stock,
+  rating,
+  reviewsCount,
+  storeName,
+  storeSlug,
 }: ProductCardProps) {
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
   const [mounted, setMounted] = useState(false);
@@ -96,14 +102,14 @@ export default function ProductCard({
   return (
     <div
       onMouseLeave={() => setActiveImageIndex(0)}
-      className="group relative flex flex-col h-[340px] sm:h-[380px] w-full max-w-full bg-white rounded-[20px] sm:rounded-[24px] p-3 sm:p-4 select-none border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between shadow-2xs hover:shadow-xs overflow-hidden"
+      className="group relative flex flex-col h-[310px] sm:h-[380px] w-full max-w-full bg-white rounded-[20px] sm:rounded-[24px] p-2.5 sm:p-4 select-none border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between shadow-2xs hover:shadow-xs overflow-hidden"
     >
       
       {/* Top Section: Image Area with Floating Hover Actions */}
-      <div className="relative w-full h-[155px] sm:h-[190px] flex items-center justify-center p-2 overflow-hidden rounded-2xl">
+      <div className="relative w-full h-[138px] sm:h-[190px] flex items-center justify-center p-1.5 sm:p-2 overflow-hidden rounded-2xl">
         
         {/* Top-Right Floating Actions: Wishlist & Compare */}
-        <div className="absolute top-1 right-1 z-30 flex flex-col gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute top-1 right-1 z-30 flex flex-col gap-1.5 opacity-100 transition-opacity duration-200">
           <button
             type="button"
             onClick={handleToggleFavorite}
@@ -113,6 +119,7 @@ export default function ProductCard({
                 : "bg-white/90 backdrop-blur-xs text-zinc-400 hover:text-zinc-800 hover:bg-white"
             }`}
             title="სურვილების სია"
+            aria-label="სურვილების სიაში დამატება"
           >
             <Heart className={`w-4 h-4 ${isLiked ? "fill-[#FF5238]" : ""}`} />
           </button>
@@ -126,6 +133,7 @@ export default function ProductCard({
                 : "bg-white/90 backdrop-blur-xs text-zinc-400 hover:text-zinc-800 hover:bg-white"
             }`}
             title="შედარება"
+            aria-label="შედარების სიაში დამატება"
           >
             <GitCompare className="w-4 h-4" />
           </button>
@@ -152,7 +160,10 @@ export default function ProductCard({
 
         {/* Hover-triggered Segmented Hover Zones - ONLY on desktop (hidden on touch/mobile) */}
         {allImages.length > 1 && (
-          <div className="absolute inset-0 z-10 hidden md:flex cursor-pointer pointer-events-none md:pointer-events-auto">
+          <Link
+            href={`/product/${id}`}
+            className="absolute inset-0 z-10 hidden md:flex cursor-pointer"
+          >
             {allImages.map((_, idx) => (
               <div
                 key={idx}
@@ -160,7 +171,7 @@ export default function ProductCard({
                 className="flex-1 h-full cursor-pointer"
               />
             ))}
-          </div>
+          </Link>
         )}
 
         {/* Segmented Progress Bar at the Bottom of Image (Only on Hover, desktop only) */}
@@ -220,12 +231,13 @@ export default function ProductCard({
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm opacity-100 scale-100 md:opacity-0 md:scale-90 md:group-hover:opacity-100 md:group-hover:scale-100 active:scale-95 ${
+                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm opacity-100 scale-100 active:scale-95 ${
                   isAdded
                     ? "bg-[#10B981] text-white"
                     : "bg-[#FF5238] hover:bg-[#EA3A20] text-white"
                 }`}
                 title={isAdded ? "დამატებულია" : "კალათაში დამატება"}
+                aria-label={isAdded ? "დამატებულია კალათაში" : "კალათაში დამატება"}
               >
                 {isAdded ? (
                   <Check className="w-5 h-5" />
@@ -246,6 +258,22 @@ export default function ProductCard({
         >
           {title}
         </Link>
+
+        {storeName && storeSlug ? (
+          <Link
+            href={`/stores/${storeSlug}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-[11px] text-[#FF5238] hover:underline"
+          >
+            {storeName}
+          </Link>
+        ) : null}
+
+        {typeof reviewsCount === "number" && reviewsCount > 0 && (
+          <p className="text-[11px] text-zinc-500">
+            შეფასება {rating ?? 5} · {reviewsCount} მიმოხილვა
+          </p>
+        )}
 
         {/* Clean Installment & Stock Row */}
         <div className="flex items-center justify-between pt-1 border-t border-zinc-100 text-[11px]">

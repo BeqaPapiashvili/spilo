@@ -95,20 +95,15 @@ export async function POST(request: Request) {
     });
 
     // Send reset instructions via transactional email
-    const emailResult = await sendPasswordResetEmail({
+    await sendPasswordResetEmail({
       to: cleanEmail,
       name: recipientName,
       code: rawCode,
     });
 
-    const isDevMode = !process.env.RESEND_API_KEY && !process.env.BREVO_API_KEY && !process.env.SMTP_HOST;
-
     return NextResponse.json({
       success: true,
-      devCode: isDevMode ? rawCode : undefined,
-      message: isDevMode
-        ? `პაროლის აღდგენის კოდია: ${rawCode} (მეილის რეალურად მისაღებად ჩაამატეთ RESEND_API_KEY .env-ში)`
-        : "პაროლის აღდგენის 6-ნიშნა კოდი გაიგზავნა მითითებულ ელფოსტაზე.",
+      message: "თუ მითითებული ელფოსტით ანგარიში არსებობს, პაროლის აღდგენის კოდი გაიგზავნა.",
     });
   } catch (error: any) {
     console.error("POST /api/auth/forgot-password error:", error);

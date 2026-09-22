@@ -37,9 +37,17 @@ async function sendSmsViaProvider(phone: string, code: string): Promise<{ sent: 
   try {
     const fullPhone = phone.startsWith("995") ? phone : `995${phone}`;
     const messageText = `Spilo.ge - თქვენი ერთჯერადი კოდია: ${code}. მოქმედების ვადა: 5 წუთი.`;
-    const url = `https://smsoffice.ge/api/v2/send/?key=${encodeURIComponent(apiKey)}&destination=${encodeURIComponent(fullPhone)}&sender=${encodeURIComponent(senderId)}&content=${encodeURIComponent(messageText)}`;
-
-    const res = await fetch(url, { method: "GET" });
+    const url = `https://smsoffice.ge/api/v2/send/`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: apiKey,
+        destination: fullPhone,
+        sender: senderId,
+        content: messageText,
+      }),
+    });
     const result = await res.json().catch(() => null);
 
     if (res.ok && result?.Success) {
@@ -122,7 +130,7 @@ export async function POST(request: Request) {
       });
 
       // Generate cryptographically random 4-digit code (1000 to 9999)
-      const rawCode = crypto.randomInt(1000, 10000).toString();
+      const rawCode = crypto.randomInt(100000, 1000000).toString();
       const hashedCode = await bcrypt.hash(rawCode, 10);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
@@ -143,7 +151,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `4-ნიშნა ერთჯერადი კოდი გაიგზავნა ნომერზე: ${phone}`,
+        message: `6-ნიშნა ერთჯერადი კოდი გაიგზავნა ნომერზე: ${phone}`,
       });
     }
 
@@ -171,9 +179,9 @@ export async function POST(request: Request) {
       });
       if (!phoneVerifyLimit.success && phoneVerifyLimit.response) return phoneVerifyLimit.response;
 
-      if (!code || typeof code !== "string" || code.trim().length !== 4) {
+      if (!code || typeof code !== "string" || code.trim().length !== 6) {
         return NextResponse.json(
-          { success: false, verified: false, error: "გთხოვთ მიუთითოთ 4-ნიშნა კოდი" },
+          { success: false, verified: false, error: "გთხოვთ მიუთითოთ 6-ნიშნა კოდი" },
           { status: 400 }
         );
       }

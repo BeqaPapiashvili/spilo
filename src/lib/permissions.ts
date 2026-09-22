@@ -37,6 +37,7 @@ export function isRouteAllowed(role: string = "SUPER_ADMIN", pathname: string): 
       "/admin/products",
       "/admin/categories",
       "/admin/brands",
+      "/admin/stores",
       "/admin/promotions",
       "/admin/coupons",
       "/admin/banners",

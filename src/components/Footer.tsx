@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Truck, ShieldCheck, RefreshCw, CreditCard, Phone, Mail } from "lucide-react";
+import { BrandLogo } from "./BrandLogo";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#111111] text-white pt-16 pb-24 lg:pb-12 mt-20 border-t border-gray-800">
+    <footer className="bg-[#111111] text-white pt-10 sm:pt-16 pb-8 md:pb-12 mt-12 sm:mt-20 border-t border-gray-800">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Features banner */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-12 border-b border-gray-800">
@@ -51,10 +52,7 @@ export default function Footer() {
         {/* Links & Contact */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-12 border-b border-gray-800">
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="text-3xl text-white tracking-tighter flex items-center gap-1">
-              <span>spilo</span>
-              <span className="text-white">.</span>
-            </Link>
+            <BrandLogo inverted imgClassName="h-10 w-auto max-w-[160px]" />
             <p className="text-gray-400 max-w-sm leading-relaxed text-sm">
               spilo.ge - ონლაინ მაღაზია საქართველოში. შეიძინეთ ტექნიკა, თავის მოვლის საშუალებები, სახლისა და ეზოს ნივთები საუკეთესო ფასად.
             </p>
@@ -82,6 +80,7 @@ export default function Footer() {
           <div>
             <h5 className="text-lg mb-4 text-white">ინფორმაცია</h5>
             <ul className="space-y-2 text-sm text-gray-400">
+              <li><Link href="/stores" className="hover:text-white transition-colors">მაღაზიები</Link></li>
               <li><Link href="/page/about" className="hover:text-white transition-colors">ჩვენ შესახებ</Link></li>
               <li><Link href="/page/delivery" className="hover:text-white transition-colors">მიწოდების პირობები</Link></li>
               <li><Link href="/page/privacy" className="hover:text-white transition-colors">კონფიდენციალურობა</Link></li>

@@ -1,79 +1,70 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
-import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
+import { jsonWithIdentity, resolveIdentity } from "@/lib/identity";
+
+function mapMessages(messages: Array<{
+  id: string;
+  senderRole: string;
+  text: string;
+  createdAt: Date;
+  senderName: string | null;
+  isRead: boolean;
+  attachment: unknown;
+}>) {
+  return messages.map((m) => ({
+    id: m.id,
+    sender: m.senderRole as "user" | "admin" | "bot",
+    text: m.text,
+    time: new Date(m.createdAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
+    adminName: m.senderName || undefined,
+    read: m.isRead,
+    attachment: m.attachment,
+    createdAt: m.createdAt,
+  }));
+}
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const customerId = searchParams.get("customerId");
-
-    // Check if user is logged in
-    let userId: string | undefined;
-    try {
-      const cookieStore = await cookies();
-      const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
-      if (token) {
-        const payload = await verifyToken(token);
-        if (payload?.userId) userId = payload.userId;
-      }
-    } catch {}
-
-    const whereConditions: any[] = [];
-    if (userId) whereConditions.push({ userId });
-    if (customerId) whereConditions.push({ customerId });
-
-    if (whereConditions.length === 0) {
-      return NextResponse.json({ success: true, data: null });
-    }
+    const identity = await resolveIdentity(request);
 
     const ticket = await prisma.supportTicket.findFirst({
-      where: {
-        OR: whereConditions,
-      },
+      where: identity.userId
+        ? { userId: identity.userId }
+        : { customerId: identity.sessionId || "" },
       include: {
-        messages: {
-          orderBy: { createdAt: "asc" },
-        },
+        messages: { orderBy: { createdAt: "asc" } },
       },
       orderBy: { updatedAt: "desc" },
     });
 
     if (!ticket) {
-      return NextResponse.json({ success: true, data: null });
+      return jsonWithIdentity({ success: true, data: null }, identity);
     }
 
-    const mappedMessages = ticket.messages.map((m) => ({
-      id: m.id,
-      sender: m.senderRole as "user" | "admin" | "bot",
-      text: m.text,
-      time: new Date(m.createdAt).toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" }),
-      adminName: m.senderName || undefined,
-      read: m.isRead,
-      attachment: m.attachment as any,
-      createdAt: m.createdAt,
-    }));
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        id: ticket.id,
-        customerId: ticket.customerId,
-        userName: ticket.userName,
-        userPhone: ticket.userPhone,
-        userEmail: ticket.userEmail,
-        status: ticket.status,
-        isUserTyping: ticket.isUserTyping,
-        isAdminTyping: ticket.isAdminTyping,
-        typingAdminName: ticket.typingAdminName,
-        assignedToName: ticket.assignedToName,
-        messages: mappedMessages,
-        updatedAt: ticket.updatedAt,
+    return jsonWithIdentity(
+      {
+        success: true,
+        data: {
+          id: ticket.id,
+          customerId: ticket.customerId,
+          userName: ticket.userName,
+          userPhone: ticket.userPhone,
+          userEmail: ticket.userEmail,
+          status: ticket.status,
+          isUserTyping: ticket.isUserTyping,
+          isAdminTyping: ticket.isAdminTyping,
+          typingAdminName: ticket.typingAdminName,
+          assignedToName: ticket.assignedToName,
+          messages: mapMessages(ticket.messages),
+          updatedAt: ticket.updatedAt,
+        },
       },
-    });
-  } catch (error: any) {
+      identity
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "საჩივრის წამოღება ვერ მოხერხდა";
     console.error("GET /api/support error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -81,8 +72,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      id,
-      customerId,
       userName,
       userPhone,
       userEmail,
@@ -91,30 +80,17 @@ export async function POST(request: Request) {
       isUserTyping,
     } = body;
 
-    let userId: string | undefined;
-    try {
-      const cookieStore = await cookies();
-      const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
-      if (token) {
-        const payload = await verifyToken(token);
-        if (payload?.userId) userId = payload.userId;
-      }
-    } catch {}
+    const identity = await resolveIdentity(request);
+    const userId = identity.userId || undefined;
+    const scopedCustomerId = identity.userId ? identity.userId : identity.sessionId;
 
-    let ticket: any = null;
-
-    if (id) {
-      ticket = await prisma.supportTicket.findUnique({
-        where: { id },
-        include: { messages: { orderBy: { createdAt: "asc" } } },
-      });
-    } else if (customerId) {
-      ticket = await prisma.supportTicket.findFirst({
-        where: { customerId },
-        include: { messages: { orderBy: { createdAt: "asc" } } },
-        orderBy: { updatedAt: "desc" },
-      });
-    }
+    const ticket = await prisma.supportTicket.findFirst({
+      where: identity.userId
+        ? { userId: identity.userId }
+        : { customerId: scopedCustomerId || "" },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+      orderBy: { updatedAt: "desc" },
+    });
 
     // 1. Existing ticket: Atomic message insert & ticket update
     if (ticket) {
@@ -165,13 +141,13 @@ export async function POST(request: Request) {
         createdAt: m.createdAt,
       }));
 
-      return NextResponse.json({
+      return jsonWithIdentity({
         success: true,
         data: {
           ...updatedTicket,
           messages: mappedMessages,
         },
-      });
+      }, identity);
     }
 
     // 2. New ticket: Atomic creation with initial message in a single transaction
@@ -179,7 +155,7 @@ export async function POST(request: Request) {
       const createdTicket = await tx.supportTicket.create({
         data: {
           userId: userId || null,
-          customerId: customerId || `guest-${Date.now()}`,
+          customerId: scopedCustomerId || `guest-${crypto.randomUUID()}`,
           userName: userName || "სტუმარი",
           userPhone: userPhone || "+995 5XX XX XX XX",
           userEmail: userEmail || "",
@@ -220,13 +196,13 @@ export async function POST(request: Request) {
       createdAt: m.createdAt,
     }));
 
-    return NextResponse.json({
+    return jsonWithIdentity({
       success: true,
       data: {
         ...fullTicket,
         messages: mappedMessages,
       },
-    });
+    }, identity);
   } catch (error: any) {
     console.error("POST /api/support error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

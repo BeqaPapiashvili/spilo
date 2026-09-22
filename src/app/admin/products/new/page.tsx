@@ -1,8 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { ProductForm } from "@/components/admin/ProductForm";
 
 export default function NewProductPage() {
-  return <ProductForm isEdit={false} />;
+  return (
+    <Suspense fallback={null}>
+      <ProductForm isEdit={false} />
+    </Suspense>
+  );
 }

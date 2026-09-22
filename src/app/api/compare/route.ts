@@ -1,100 +1,87 @@
 import { NextResponse } from "next/server";
 import { getPrismaClient } from "@/lib/prisma";
+import { identityWhere, jsonWithIdentity, resolveIdentity } from "@/lib/identity";
 
 export async function GET(request: Request) {
   try {
-    const prisma = getPrismaClient() as any;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const sessionId = searchParams.get("sessionId");
-
-    if (!userId && !sessionId || !prisma.compareItem) {
-      return NextResponse.json({ success: true, items: [] });
-    }
+    const identity = await resolveIdentity(request);
+    const prisma = getPrismaClient();
 
     const items = await prisma.compareItem.findMany({
-      where: userId ? { userId } : { sessionId },
+      where: identityWhere(identity),
     });
 
-    if (Array.isArray(items) && items.length > 0) {
-      const productIds = items.map((i: any) => i.productId).filter(Boolean);
-      const existingProducts = await prisma.product.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true },
-      });
-      const existingIds = new Set(existingProducts.map((p: any) => p.id));
-      const validItems = items.filter((i: any) => existingIds.has(i.productId));
-      return NextResponse.json({ success: true, items: validItems });
+    if (items.length === 0) {
+      return jsonWithIdentity({ success: true, items: [] }, identity);
     }
 
-    return NextResponse.json({ success: true, items: [] });
-  } catch (error: any) {
-    return NextResponse.json({ success: true, items: [] });
+    const productIds = items.map((i) => i.productId).filter(Boolean);
+    const existingProducts = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true },
+    });
+    const existingIds = new Set(existingProducts.map((p) => p.id));
+    const validItems = items.filter((i) => existingIds.has(i.productId));
+    return jsonWithIdentity({ success: true, items: validItems }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შედარების სია ვერ ჩაიტვირთა";
+    return NextResponse.json({ success: false, error: message, items: [] }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const prisma = getPrismaClient() as any;
+    const identity = await resolveIdentity(request);
+    const prisma = getPrismaClient();
     const body = await request.json();
-    const { userId, sessionId, productId } = body;
+    const { productId } = body;
 
     if (!productId) {
-      return NextResponse.json({ success: false, message: "productId required" }, { status: 400 });
-    }
-
-    if (!prisma.compareItem) {
-      return NextResponse.json({ success: true, isAdded: true });
+      return jsonWithIdentity({ success: false, message: "პროდუქტის ID აუცილებელია" }, identity, {
+        status: 400,
+      });
     }
 
     const existing = await prisma.compareItem.findFirst({
-      where: {
-        productId,
-        ...(userId ? { userId } : { sessionId }),
-      },
+      where: { productId, ...identityWhere(identity) },
     });
 
     if (existing) {
       await prisma.compareItem.delete({ where: { id: existing.id } });
-      return NextResponse.json({ success: true, isAdded: false });
-    } else {
-      const created = await prisma.compareItem.create({
-        data: { userId, sessionId, productId },
-      });
-      return NextResponse.json({ success: true, isAdded: true, item: created });
+      return jsonWithIdentity({ success: true, isAdded: false }, identity);
     }
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+
+    const created = await prisma.compareItem.create({
+      data: {
+        productId,
+        userId: identity.userId,
+        sessionId: identity.sessionId,
+      },
+    });
+    return jsonWithIdentity({ success: true, isAdded: true, item: created }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შედარების სია ვერ განახლდა";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const prisma = getPrismaClient() as any;
+    const identity = await resolveIdentity(request);
+    const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const sessionId = searchParams.get("sessionId");
     const productId = searchParams.get("productId");
-
-    if (!userId && !sessionId || !prisma.compareItem) {
-      return NextResponse.json({ success: true });
-    }
+    const scope = identityWhere(identity);
 
     if (productId) {
-      await prisma.compareItem.deleteMany({
-        where: {
-          productId,
-          ...(userId ? { userId } : { sessionId }),
-        },
-      });
+      await prisma.compareItem.deleteMany({ where: { productId, ...scope } });
     } else {
-      await prisma.compareItem.deleteMany({
-        where: userId ? { userId } : { sessionId },
-      });
+      await prisma.compareItem.deleteMany({ where: scope });
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return jsonWithIdentity({ success: true }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "წაშლა ვერ მოხერხდა";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

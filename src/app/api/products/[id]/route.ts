@@ -17,6 +17,7 @@ export async function GET(
       include: {
         category: true,
         brand: true,
+        store: true,
       },
     });
 
@@ -65,6 +66,10 @@ export async function GET(
       categoryName: product.category?.name,
       brandId: product.brandId,
       brandName: product.brand?.name,
+      storeId: product.storeId || undefined,
+      storeName: product.store?.name,
+      storeSlug: product.store?.slug,
+      storeLogo: product.store?.logo,
       image: imageList[0] || "",
       images: imageList,
       specs: parsedSpecs,
@@ -113,6 +118,7 @@ export async function PUT(
         stock: body.stock !== undefined ? Number(body.stock) : undefined,
         categoryId: body.categoryId !== undefined ? body.categoryId : undefined,
         brandId: body.brandId !== undefined ? body.brandId : undefined,
+        storeId: body.storeId !== undefined ? (body.storeId || null) : undefined,
         images: body.images !== undefined ? (Array.isArray(body.images) ? body.images : [body.images]) : undefined,
         specs: body.specs !== undefined ? body.specs : undefined,
         isFeatured: body.isFeatured !== undefined ? Boolean(body.isFeatured) : undefined,

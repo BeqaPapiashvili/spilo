@@ -539,7 +539,7 @@ function CatalogContent() {
       {/* Top Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200/80">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight flex items-center gap-2 font-sans">
+          <h1 className="text-xl sm:text-2xl md:text-3xl text-gray-900 tracking-tight flex items-center gap-2 font-sans">
             <span>კატალოგი & პროდუქტები</span>
           </h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">
@@ -552,7 +552,7 @@ function CatalogContent() {
           <button
             type="button"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-            className="lg:hidden flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl text-xs text-zinc-700 shadow-sm cursor-pointer border border-zinc-200"
+            className="lg:hidden flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-2xl text-xs text-zinc-700 shadow-sm cursor-pointer border border-zinc-200"
           >
             <SlidersHorizontal className="w-4 h-4 text-[#FF5238]" />
             <span>ფილტრები ({activeFiltersCount})</span>
@@ -826,6 +826,8 @@ function CatalogContent() {
                       images={prodImages}
                       discountPercentage={product.discountPercentage}
                       stock={product.stock}
+                      storeName={product.storeName}
+                      storeSlug={product.storeSlug}
                     />
                   );
                 })}

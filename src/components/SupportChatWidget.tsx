@@ -878,14 +878,14 @@ export default function SupportChatWidget() {
           2. DESKTOP FLOATING ISLAND (Bottom-Right) (Exact Original)
           ========================================================= */}
       <div
-        className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col items-end gap-2.5 select-none ${
+        className={`fixed bottom-[6.5rem] md:bottom-6 right-3 md:right-6 z-50 flex flex-col items-end gap-2.5 select-none ${
           isOpen ? "hidden sm:flex" : "flex"
         }`}
       >
         {/* Floating Compare Button */}
         <Link
           href="/compare"
-          className="relative bg-[#111111] hover:bg-black text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 border border-white/10 active:scale-95"
+          className="relative hidden md:flex bg-[#111111] hover:bg-black text-white p-3.5 rounded-full shadow-2xl items-center justify-center cursor-pointer transition-all hover:scale-110 border border-white/10 active:scale-95"
           title="პროდუქტების შედარება"
         >
           <GitCompare className="w-5 h-5 text-white" />

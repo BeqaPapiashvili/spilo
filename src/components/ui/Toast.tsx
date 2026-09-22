@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertCircle, Info, X, AlertTriangle } from "lucide-react";
+import { Check, AlertCircle, Info, X, AlertTriangle } from "lucide-react";
 import { ToastMessage } from "@/types";
 
 export interface ToastProps {
@@ -10,41 +10,45 @@ export interface ToastProps {
   onDismiss: (id: string) => void;
 }
 
+const ICONS = {
+  success: Check,
+  error: AlertCircle,
+  info: Info,
+  warning: AlertTriangle,
+};
+
+const ICON_COLOR = {
+  success: "text-[#2F9E5C]",
+  error: "text-[#FF5238]",
+  info: "text-[#8B8F97]",
+  warning: "text-[#C9841A]",
+};
+
 export const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
+  const duration = toast.duration || 3200;
+  const Icon = ICONS[toast.type] || Info;
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onDismiss(toast.id);
-    }, toast.duration || 3500);
-
+    const timer = setTimeout(() => onDismiss(toast.id), duration);
     return () => clearTimeout(timer);
-  }, [toast, onDismiss]);
-
-  const icons = {
-    success: <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />,
-    error: <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />,
-    info: <Info className="w-4 h-4 text-sky-400 shrink-0" />,
-    warning: <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />,
-  };
+  }, [toast.id, duration, onDismiss]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -16, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -16, scale: 0.95 }}
-      transition={{ type: "spring", damping: 25, stiffness: 350 }}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
       layout
-      className="flex items-center gap-3 w-auto max-w-[92vw] sm:max-w-sm bg-[#1D1D1F]/95 text-white backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-2xl py-2.5 px-4 pointer-events-auto select-none"
+      role="status"
+      className="pointer-events-auto w-full max-w-[320px] rounded-xl bg-white pl-3.5 pr-2.5 py-2.5 flex items-start gap-2.5 border border-[#E8E8EA] shadow-[0_4px_18px_rgba(17,17,17,0.07)]"
     >
-      <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-        {icons[toast.type] || icons.success}
-      </div>
+      <Icon className={`w-4 h-4 mt-[3px] shrink-0 ${ICON_COLOR[toast.type] || ICON_COLOR.info}`} strokeWidth={2} />
 
-      <div className="flex-1 min-w-0 pr-1">
-        <p className="text-xs text-white leading-tight truncate">
-          {toast.title}
-        </p>
-        {toast.message && (
-          <p className="text-[11px] text-white/70 truncate mt-0.5">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] text-[#1D1D1F] leading-[1.35]">{toast.title}</p>
+        {toast.message && toast.message !== toast.title && (
+          <p className="mt-0.5 text-[12px] text-[#8B8F97] leading-[1.4] line-clamp-2">
             {toast.message}
           </p>
         )}
@@ -53,10 +57,10 @@ export const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+        className="mt-0.5 p-1 text-[#C4C6CB] hover:text-[#1D1D1F] cursor-pointer shrink-0"
         aria-label="დახურვა"
       >
-        <X className="w-3.5 h-3.5" />
+        <X className="w-3.5 h-3.5" strokeWidth={1.75} />
       </button>
     </motion.div>
   );

@@ -1,74 +1,115 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/jwt";
+import {
+  createThreeDPayment,
+  gatewayChargeAmount,
+  getClientIp,
+  getRequestOrigin,
+  isUnitedPaymentConfigured,
+  normalizeGsm,
+} from "@/lib/unitedPayment";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { orderId, amount, method, items, customer, address } = body;
-
-    if (!amount || !method) {
+    if (!isUnitedPaymentConfigured()) {
       return NextResponse.json(
-        { success: false, error: "Amount and payment method are required" },
-        { status: 400 }
+        { success: false, error: "United Payment სატესტო ანგარიში ჯერ არ არის კონფიგურირებული." },
+        { status: 503 }
       );
     }
 
-    let finalOrderId = orderId;
-
-    // Create Order in MySQL if customer & items passed
-    if (!finalOrderId && items && Array.isArray(items) && customer) {
-      const orderNumber = `SP-${Date.now().toString().slice(-6)}`;
-      const newOrder = await prisma.order.create({
-        data: {
-          orderNumber,
-          customerName: customer.name || "მომხმარებელი",
-          contactPhone: customer.phone || "",
-          shippingAddress: address || "თბილისი",
-          paymentMethod: method,
-          paymentStatus: method === "cod" ? "PENDING" : "PAID",
-          status: "PENDING",
-          totalAmount: Number(amount),
-          items: {
-            create: items.map((item: any) => ({
-              productId: item.id || "prod-default",
-              title: item.title || "პროდუქტი",
-              quantity: item.quantity || 1,
-              price: Number(item.price || 0),
-              image: item.image || "",
-            })),
-          },
-        },
-      });
-      finalOrderId = newOrder.id;
+    const session = await getAuthSession(request);
+    if (!session?.userId) {
+      return NextResponse.json({ success: false, error: "ავტორიზაცია აუცილებელია" }, { status: 401 });
     }
 
-    const transactionId = `TXN-${Date.now()}`;
+    const body = await request.json().catch(() => ({}));
+    const orderId = String(body.orderId || body.orderNumber || "").trim();
+    const installmentNumber = Math.max(1, Math.min(12, Number(body.installmentNumber || 1)));
 
-    // Handling by Georgian Payment Gateway Providers:
-    // TBC Checkout / BOG iPay / Payze / COD
-    if (method === "tbc" || method === "bog" || method === "payze") {
-      return NextResponse.json({
-        success: true,
-        transactionId,
-        provider: method.toUpperCase(),
-        redirectUrl: `/checkout/success?orderId=${finalOrderId || transactionId}&status=paid&provider=${method}`,
-        message: `${method.toUpperCase()} გადახდის სესია წარმატებით შეიქმნა`,
-      });
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: "შეკვეთის ID აუცილებელია" }, { status: 400 });
     }
 
-    // Cash on delivery or Installment application
+    const order = await prisma.order.findFirst({
+      where: { OR: [{ id: orderId }, { orderNumber: orderId }] },
+    });
+
+    if (!order) {
+      return NextResponse.json({ success: false, error: "შეკვეთა ვერ მოიძებნა" }, { status: 404 });
+    }
+    if (order.userId !== session.userId) {
+      return NextResponse.json({ success: false, error: "წვდომა შეზღუდულია" }, { status: 403 });
+    }
+    if (order.paymentStatus === "PAID") {
+      return NextResponse.json({ success: false, error: "ეს შეკვეთა უკვე გადახდილია" }, { status: 409 });
+    }
+    if (order.status === "CANCELLED") {
+      return NextResponse.json({ success: false, error: "გაუქმებულ შეკვეთაზე გადახდა შეუძლებელია" }, { status: 409 });
+    }
+
+    const origin = getRequestOrigin(request);
+    const clientIp = getClientIp(request);
+    const buyer = {
+      fullName: order.customerName,
+      email: order.customerEmail || "",
+      gsm: normalizeGsm(order.contactPhone),
+      address: order.shippingAddress,
+    };
+
+    const usedInstallment = installmentNumber;
+    const chargeAmount = gatewayChargeAmount(Number(order.totalAmount), usedInstallment);
+    const otherTrxCode = crypto.randomUUID().replace(/-/g, "").toUpperCase();
+    const installmentLabel =
+      usedInstallment >= 2 ? ` · განვადება ${usedInstallment} თვე` : "";
+
+    const result = await createThreeDPayment({
+      amount: chargeAmount,
+      clientIp,
+      otherTrxCode,
+      redirectUrl: `${origin}/api/payments/united/callback?trx=${encodeURIComponent(otherTrxCode)}`,
+      installmentNumber: usedInstallment,
+      description: `შეკვეთა ${order.orderNumber}${installmentLabel}`,
+      buyer,
+    });
+
+    await prisma.payment.updateMany({
+      where: { orderId: order.id, status: "PENDING" },
+      data: { status: "SUPERSEDED" },
+    });
+
+    const payment = await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        provider: "UNITED_PAYMENT",
+        status: "PENDING",
+        amount: chargeAmount,
+        currency: "GEL",
+        installmentNumber: usedInstallment,
+        otherTrxCode,
+        codeForHash: result.codeForHash,
+        threeDUrl: result.url,
+        rawResponse: JSON.stringify(result.raw),
+      },
+    });
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: "PENDING" },
+    });
+
     return NextResponse.json({
       success: true,
-      transactionId,
-      provider: method,
-      redirectUrl: `/checkout/success?orderId=${finalOrderId || transactionId}&status=pending`,
-      message: "შეკვეთა მიღებულია",
+      redirectUrl: result.url,
+      paymentId: payment.id,
+      orderNumber: order.orderNumber,
+      installmentNumber: usedInstallment,
+      chargeAmount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "გადახდის დაწყება ვერ მოხერხდა";
     console.error("POST /api/checkout/create-payment error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Payment initiation failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: message }, { status: 400 });
   }
 }

@@ -19,7 +19,9 @@ model User {
   address           String?      @db.Text
   smsNotify         Boolean      @default(true)
   emailNotify       Boolean      @default(true)
-  role              String       @default("CUSTOMER") // CUSTOMER | SUPER_ADMIN | STORE_MANAGER
+  role              String       @default("CUSTOMER") // CUSTOMER | SUPER_ADMIN | STORE_MANAGER | MERCHANT
+  storeId           String?
+  store             Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
   orders            Order[]
   cart              Cart?
   addresses         Address[]
@@ -29,6 +31,9 @@ model User {
   supportTickets    SupportTicket[]
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+
+  @@index([storeId])
+  @@index([role])
 }
 
 model Category {
@@ -55,6 +60,37 @@ model Brand {
   updatedAt DateTime  @updatedAt
 }
 
+model Store {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  logo         String?   @db.Text
+  coverImage   String?   @db.Text
+  description  String?   @db.Text
+  phone        String?
+  address      String?   @db.Text
+  facebookUrl  String?
+  instagramUrl String?
+  websiteUrl    String?
+  city          String?
+  email         String?
+  workingHours  String?
+  mapUrl         String?
+  pickupEnabled  Boolean   @default(false)
+  pickupNote     String?
+  sortOrder      Int       @default(0)
+  isActive       Boolean   @default(true)
+  products       Product[]
+  coupons        Coupon[]
+  merchants      User[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([name])
+  @@index([sortOrder])
+}
+
 model Product {
   id                 String           @id @default(cuid())
   title              String
@@ -71,6 +107,8 @@ model Product {
   category           Category         @relation(fields: [categoryId], references: [id])
   brandId            String
   brand              Brand            @relation(fields: [brandId], references: [id])
+  storeId            String?
+  store              Store?           @relation(fields: [storeId], references: [id], onDelete: SetNull)
   images             Json             // Array of image URLs stored as JSON
   specs              Json?            // Structured specifications JSON
   colorName          String?
@@ -86,6 +124,13 @@ model Product {
   priceAlerts        PriceAlert[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([storeId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([isFlashDeal])
 }
 
 model Review {
@@ -190,7 +235,7 @@ model Order {
   contactPhone    String
   shippingAddress String      @db.Text
   paymentMethod   String
-  paymentStatus   String      @default("PAID")
+  paymentStatus   String      @default("PENDING")
   status          OrderStatus @default(PENDING)
   deliveryDate    DateTime?
   deliveryMethod  String?     @default("delivery")
@@ -202,8 +247,40 @@ model Order {
   totalAmount     Float
   items           OrderItem[]
   returns         OrderReturn[]
+  payments        Payment[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String   @default("UNITED_PAYMENT")
+  status            String   @default("PENDING")
+  amount            Float
+  currency          String   @default("GEL")
+  bankCode          Int      @default(1)
+  installmentNumber Int      @default(1)
+  otherTrxCode      String   @unique
+  virtualPosOrderId String?
+  codeForHash       String?
+  threeDUrl         String?  @db.Text
+  resultCode        String?
+  resultMessage     String?  @db.Text
+  refundRequestId   String?
+  rawResponse       String?  @db.Text
+  rawCallback       String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([virtualPosOrderId])
 }
 
 model OrderItem {
@@ -221,15 +298,20 @@ model OrderItem {
   costPrice        Float?   // Sourcing cost price
   selectedVariants Json?    // Chosen variants: color, storage, etc.
   image            String?  @db.Text
-  createdAt        DateTime @default(now())
+  storeId           String?
+  storeName         String?
+  fulfillmentStatus String   @default("PENDING")
+  createdAt         DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([storeId])
 }
 
 model AdminUser {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  password  String   @default("admin123")
+  password  String
   role      String   @default("SUPER_ADMIN") // SUPER_ADMIN | STORE_MANAGER
   status    String   @default("ACTIVE")        // ACTIVE | INACTIVE
   createdAt DateTime @default(now())
@@ -290,8 +372,12 @@ model Coupon {
   status         String    @default("ACTIVE")
   validUntil     DateTime?
   isActive       Boolean   @default(true)
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: SetNull)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  @@index([storeId])
 }
 
 model Banner {
@@ -357,6 +443,10 @@ model WishlistItem {
   sessionId String?
   productId String
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
 }
 
 model CompareItem {
@@ -365,6 +455,10 @@ model CompareItem {
   sessionId String?
   productId String
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
 }
 
 model RecentlyViewed {
@@ -374,6 +468,10 @@ model RecentlyViewed {
   productId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
 }
 
 model CMSPage {

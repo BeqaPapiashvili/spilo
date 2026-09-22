@@ -2,210 +2,304 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Package, Home, ShoppingBag, FileText, Copy, Check } from "lucide-react";
+import {
+  Check,
+  Copy,
+  FileText,
+  Headphones,
+  Home,
+  MapPin,
+  Package,
+  Truck,
+} from "lucide-react";
 import Link from "next/link";
 import OrderInvoiceModal from "@/components/OrderInvoiceModal";
-import { useStore } from "@/store/useStore";
+import { useStore, type CartItem, type OrderRecord } from "@/store/useStore";
+
+type SuccessOrder = OrderRecord & {
+  rawId?: string;
+  paymentStatus?: string;
+  customerName?: string;
+  contactPhone?: string;
+};
+
+function mapStatus(status?: string) {
+  if (status === "DELIVERED") return "ჩაბარებულია";
+  if (status === "SHIPPED") return "გზაშია";
+  if (status === "CANCELLED") return "გაუქმებულია";
+  return "მუშავდება";
+}
+
+function mapItems(items: unknown): CartItem[] {
+  if (!Array.isArray(items)) return [];
+  return items.map((raw, index) => {
+    const item = raw as Record<string, unknown>;
+    const variants =
+      item.selectedVariants && typeof item.selectedVariants === "object"
+        ? (item.selectedVariants as Record<string, unknown>)
+        : {};
+    return {
+      id: String(item.id || item.productId || index),
+      title: String(item.title || "პროდუქტი"),
+      price: Number(item.originalPrice || item.price || 0),
+      discountPrice: Number(item.price || item.discountPrice || 0) || undefined,
+      image: String(item.image || ""),
+      quantity: Number(item.quantity || 1),
+      color: typeof variants.color === "string" ? variants.color : undefined,
+      storage: typeof variants.storage === "string" ? variants.storage : undefined,
+    };
+  });
+}
+
+function paymentLabel(status?: string) {
+  if (status === "PAID") return { text: "გადახდილია", className: "text-emerald-700" };
+  if (status === "FAILED") return { text: "ვერ გადაიხადა", className: "text-red-600" };
+  return { text: "მოლოდინში", className: "text-amber-700" };
+}
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId") || "SP-92841";
-  const { orders, addToast } = useStore();
+  const orderId = searchParams.get("orderId") || "";
+  const { orders, addToast, clearCart } = useStore();
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
-  const [dbOrder, setDbOrder] = useState<any | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [dbOrder, setDbOrder] = useState<SuccessOrder | null>(null);
+  const [loading, setLoading] = useState(Boolean(orderId));
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (orderId) {
-      fetch(`/api/orders/${encodeURIComponent(orderId)}`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.success && res.data) {
-            const o = res.data;
-            const mapped = {
-              id: o.orderNumber || o.id,
-              rawId: o.id,
-              date: new Date(o.createdAt).toLocaleDateString("ka-GE", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }),
-              status:
-                o.status === "DELIVERED"
-                  ? "ჩაბარებულია"
-                  : o.status === "SHIPPED"
-                  ? "გზაშია"
-                  : o.status === "CANCELLED"
-                  ? "გაუქმებულია"
-                  : "მუშავდება",
-              items: Array.isArray(o.items) ? o.items : [],
-              totalAmount: o.totalAmount,
-              paymentMethod: o.paymentMethod || "კურიერთან ანგარიშსწორება",
-              address: o.shippingAddress || "",
-            };
-            setDbOrder(mapped);
-          }
-        })
-        .catch(() => {});
+    if (!orderId) {
+      setLoading(false);
+      return;
     }
+    fetch(`/api/orders/${encodeURIComponent(orderId)}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          const o = res.data;
+          setDbOrder({
+            id: o.orderNumber || o.id,
+            rawId: o.id,
+            date: new Date(o.createdAt).toLocaleDateString("ka-GE", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }),
+            status: mapStatus(o.status) as SuccessOrder["status"],
+            items: mapItems(o.items),
+            totalAmount: Number(o.totalAmount || 0),
+            paymentMethod: o.paymentMethod || "კურიერთან ანგარიშსწორება",
+            paymentStatus: o.paymentStatus || "PENDING",
+            address: o.shippingAddress || "",
+            customerName: o.customerName || "",
+            contactPhone: o.contactPhone || "",
+          });
+          if (o.paymentStatus === "PAID") clearCart();
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [orderId]);
 
   const storeOrder = orders.find((o) => o.id === orderId);
-  const activeOrder = dbOrder || storeOrder || {
-    id: orderId,
-    date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
-    status: "მუშავდება" as const,
-    items: [],
-    totalAmount: 0,
-    paymentMethod: "საბანკო გადარიცხვა",
-    address: "თბილისი, საქართველო",
-  };
+  const activeOrder: SuccessOrder =
+    dbOrder ||
+    (storeOrder ? { ...storeOrder, paymentStatus: undefined } : null) || {
+      id: orderId || "—",
+      date: new Date().toLocaleDateString("ka-GE", { day: "numeric", month: "long", year: "numeric" }),
+      status: "მუშავდება",
+      items: [],
+      totalAmount: 0,
+      paymentMethod: "",
+      address: "",
+    };
 
   const isBankTransfer =
     activeOrder.paymentMethod?.includes("გადარიცხვა") ||
     activeOrder.paymentMethod?.toLowerCase().includes("transfer");
+  const pay = paymentLabel(activeOrder.paymentStatus);
 
-  const copyToClipboard = (text: string, fieldKey: string) => {
+  const copyOrderNumber = () => {
+    if (!activeOrder.id) return;
+    navigator.clipboard.writeText(String(activeOrder.id));
+    setCopied(true);
+    addToast({ title: "დაკოპირებულია", message: String(activeOrder.id), type: "info", duration: 2000 });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedField(fieldKey);
-    addToast({
-      title: "დაკოპირებულია",
-      message: `${text}`,
-      type: "info",
-      duration: 2000,
-    });
-    setTimeout(() => setCopiedField(null), 2500);
+    addToast({ title: "დაკოპირებულია", message: text, type: "info", duration: 2000 });
   };
 
   return (
     <>
-      <div className="bg-white rounded-[32px] p-6 md:p-10 max-w-xl w-full text-center space-y-6 shadow-xs border border-gray-100 animate-in zoom-in-95">
-        
-        {/* Success Icon */}
-        <div className="w-16 h-16 md:w-20 md:h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs">
-          <CheckCircle2 className="w-8 h-8 md:w-10 md:h-10" />
-        </div>
+      <div className="bg-[#F4F5F7] min-h-screen py-6 md:py-12 pb-16">
+        <div className="mx-auto w-full max-w-[720px] px-4 space-y-3 md:space-y-4">
 
-        {/* Text Details */}
-        <div className="space-y-2">
-          <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-            შეკვეთა მიღებულია!
-          </span>
-          <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight pt-1">
-            მადლობა შეკვეთისთვის!
-          </h1>
-          <p className="text-xs md:text-sm text-gray-500 leading-relaxed">
-            თქვენი შეკვეთა ნომრით <span className="font-mono text-gray-900">{orderId}</span> წარმატებით დარეგისტრირდა.
-          </p>
-        </div>
-
-        {/* Status Box */}
-        <div className="bg-[#F1F3F6] rounded-2xl p-4 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2.5 text-gray-700">
-            <Package className="w-4 h-4 text-blue-600" />
-            <span>შეკვეთის სტატუსი:</span>
-          </div>
-          <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg">მუშავდება</span>
-        </div>
-
-        {/* Bank Transfer Details Block if Bank Transfer was selected */}
-        {isBankTransfer && (
-          <div className="bg-blue-50/50 border border-blue-200/80 rounded-2xl p-5 text-left space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs text-blue-900">საბანკო რეკვიზიტები გადარიცხვისთვის</h2>
-              <span className="text-[11px] text-blue-600 font-mono">
-                თანხა: {Number(activeOrder.totalAmount || 0).toLocaleString()} ₾
+          <div className="bg-white rounded-[24px] px-5 py-8 md:px-10 md:py-10 text-center">
+            <div className="relative w-[84px] h-[84px] mx-auto">
+              <span className="absolute inset-0 rounded-full bg-emerald-100/80" />
+              <span className="absolute inset-[10px] rounded-full bg-emerald-50" />
+              <span className="absolute inset-[18px] rounded-full bg-[#22C55E] text-white flex items-center justify-center">
+                <Check className="w-7 h-7" strokeWidth={2.75} />
               </span>
             </div>
+            <h1 className="mt-5 text-[22px] md:text-[28px] text-gray-900 tracking-tight leading-tight">
+              შეკვეთა წარმატებით განთავსდა
+            </h1>
+            <p className="mt-2 text-sm text-gray-500">
+              დადასტურებას გამოგიგზავნით SMS-ით. კურიერი დაგიკავშირდება მიწოდებამდე.
+            </p>
+            <button
+              type="button"
+              onClick={copyOrderNumber}
+              className="mt-5 inline-flex items-center gap-2.5 h-12 px-4 rounded-2xl bg-[#F4F5F7] text-sm text-gray-800 cursor-pointer hover:bg-gray-200"
+            >
+              <span className="text-gray-400 text-xs">შეკვეთის ნომერი</span>
+              <span className="font-mono">{activeOrder.id}</span>
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+            </button>
+          </div>
 
-            <div className="space-y-2 text-xs text-gray-800">
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
-                <div>
-                  <span className="text-[10px] text-gray-400 block">მიმღები</span>
-                  <span>შპს სპილო (Spilo LLC)</span>
+          <div className="bg-white rounded-[24px] px-4 py-5 md:px-6">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { icon: Package, label: "ვამუშავებთ", active: true },
+                { icon: Truck, label: "გამოვგზავნით", active: activeOrder.status === "გზაშია" || activeOrder.status === "ჩაბარებულია" },
+                { icon: Home, label: "ჩაგაბარებთ", active: activeOrder.status === "ჩაბარებულია" },
+              ].map((step) => (
+                <div key={step.label} className="flex flex-col items-center gap-2 py-1">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${step.active ? "bg-[#FFF5F2] text-[#FF5238]" : "bg-[#F4F5F7] text-gray-400"}`}>
+                    <step.icon className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[11px] md:text-xs ${step.active ? "text-gray-900" : "text-gray-400"}`}>{step.label}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[24px] px-4 py-2 md:px-6">
+            <p className="pt-4 pb-1 text-sm text-gray-900">შეკვეთილი ნივთები</p>
+            {loading ? (
+              <div className="py-4 space-y-3">
+                <div className="h-[72px] rounded-2xl bg-[#F4F5F7] animate-pulse" />
+                <div className="h-[72px] rounded-2xl bg-[#F4F5F7] animate-pulse" />
               </div>
-
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
-                <div>
-                  <span className="text-[10px] text-gray-400 block">TBC Bank IBAN</span>
-                  <span className="font-mono">GE89TB7749102938102938</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard("GE89TB7749102938102938", "tbc")}
-                  className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  title="დაკოპირება"
-                >
-                  {copiedField === "tbc" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
+            ) : activeOrder.items.length === 0 ? (
+              <p className="py-6 text-sm text-gray-400">ნივთები იტვირთება...</p>
+            ) : (
+              <div>
+                {activeOrder.items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-3.5 py-4 ${index !== activeOrder.items.length - 1 ? "border-b border-gray-100" : ""}`}
+                  >
+                    <div className="w-[72px] h-[72px] rounded-2xl bg-[#F4F5F7] border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+                      {item.image ? (
+                        <img src={item.image} alt="" className="w-full h-full object-contain p-1.5" />
+                      ) : (
+                        <Package className="w-6 h-6 text-gray-300" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-gray-900 leading-snug line-clamp-2">{item.title}</p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        {[item.color, item.storage, `${item.quantity} ცალი`].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <p className="text-sm text-[#FF5238] font-mono shrink-0">
+                      {((item.discountPrice || item.price) * item.quantity).toFixed(2)} ₾
+                    </p>
+                  </div>
+                ))}
               </div>
-
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
-                <div>
-                  <span className="text-[10px] text-gray-400 block">Bank of Georgia IBAN</span>
-                  <span className="font-mono">GE12BG0000000889201928</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard("GE12BG0000000889201928", "bog")}
-                  className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  title="დაკოპირება"
-                >
-                  {copiedField === "bog" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
+            )}
+            <div className="border-t border-gray-100 py-4 space-y-2.5">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>მიწოდება</span>
+                <span className="text-[#FF5238]">უფასო</span>
               </div>
-
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-blue-100">
-                <div>
-                  <span className="text-[10px] text-gray-400 block">დანიშნულება (აუცილებელი)</span>
-                  <span className="font-mono text-blue-600">#{orderId}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(`#${orderId}`, "ref")}
-                  className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  title="დაკოპირება"
-                >
-                  {copiedField === "ref" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-900">ჯამი</span>
+                <span className="text-xl text-[#FF5238] font-mono">{Number(activeOrder.totalAmount || 0).toFixed(2)} ₾</span>
               </div>
             </div>
-            
-            <p className="text-[11px] text-blue-700/80 leading-relaxed">
-              თანხის ასახვის შემდეგ შეკვეთა გადაეცემა საკურიერო სამსახურს.
-            </p>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="pt-2 space-y-3">
-          <button
-            onClick={() => setIsInvoiceOpen(true)}
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
-          >
-            <FileText className="w-4 h-4" />
-            <span>🧾 PDF ინვოისის ჩამოტვირთვა / ბეჭდვა</span>
-          </button>
+          <div className="bg-white rounded-[24px] px-5 py-2 md:px-6">
+            {[
+              { icon: MapPin, label: "მიწოდება", value: [activeOrder.customerName, activeOrder.address].filter(Boolean).join(" · ") || "მისამართი მითითებულია შეკვეთაში", extra: activeOrder.contactPhone },
+              { icon: Package, label: "გადახდა", value: activeOrder.paymentMethod || "გადახდის მეთოდი", extra: pay.text, extraClass: pay.className },
+            ].map((row, i, arr) => (
+              <div key={row.label} className={`flex gap-3 py-4 ${i < arr.length - 1 ? "border-b border-gray-100" : ""}`}>
+                <div className="w-10 h-10 rounded-2xl bg-[#F4F5F7] text-[#FF5238] flex items-center justify-center shrink-0">
+                  <row.icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-400">{row.label}</p>
+                  <p className="mt-0.5 text-sm text-gray-900 leading-snug">{row.value}</p>
+                  {row.extra && <p className={`mt-0.5 text-xs ${row.extraClass || "text-gray-400"}`}>{row.extra}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/profile"
-              className="flex-1 py-3 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>ჩემი შეკვეთები</span>
-            </Link>
+          {isBankTransfer && (
+            <div className="bg-white rounded-[24px] px-5 py-5 md:px-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-900">გადარიცხვის რეკვიზიტები</p>
+                <span className="font-mono text-sm text-[#FF5238]">{Number(activeOrder.totalAmount || 0).toFixed(2)} ₾</span>
+              </div>
+              {[
+                { label: "მიმღები", value: "შპს სპილო (Spilo LLC)" },
+                { label: "TBC Bank", value: "GE89TB7749102938102938" },
+                { label: "Bank of Georgia", value: "GE12BG0000000889201928" },
+                { label: "დანიშნულება", value: `#${activeOrder.id}` },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between gap-3 bg-[#F4F5F7] rounded-2xl px-3.5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-gray-400">{row.label}</p>
+                    <p className="text-xs text-gray-900 font-mono truncate">{row.value}</p>
+                  </div>
+                  <button type="button" onClick={() => copyToClipboard(row.value)} className="p-1.5 text-gray-400 hover:text-[#FF5238] cursor-pointer">
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-2.5 pt-1">
             <Link
               href="/"
-              className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              className="flex h-14 items-center justify-center rounded-2xl bg-[#FF5238] hover:bg-[#EA3A20] text-white text-sm"
             >
-              <Home className="w-4 h-4" />
-              <span>მთავარი გვერდი</span>
+              განაგრძე შოპინგი
             </Link>
+            <Link
+              href="/profile?tab=orders"
+              className="flex h-14 items-center justify-center rounded-2xl bg-white text-gray-900 text-sm hover:bg-gray-50"
+            >
+              ჩემი შეკვეთები
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsInvoiceOpen(true)}
+              className="w-full h-11 text-sm text-gray-500 hover:text-[#FF5238] cursor-pointer inline-flex items-center justify-center gap-1.5"
+            >
+              <FileText className="w-4 h-4" />
+              ინვოისის ნახვა
+            </button>
           </div>
-        </div>
 
+          <a
+            href="tel:+995322000000"
+            className="flex items-center justify-center gap-2 pt-2 pb-4 text-xs text-gray-500 hover:text-gray-800"
+          >
+            <Headphones className="w-4 h-4" />
+            კითხვა გაქვს? +995 32 2 00 00 00
+          </a>
+        </div>
       </div>
 
       <OrderInvoiceModal
@@ -219,10 +313,8 @@ function SuccessContent() {
 
 export default function CheckoutSuccessPage() {
   return (
-    <div className="bg-[#F8FAFC] min-h-[80vh] flex items-center justify-center py-16 px-4">
-      <Suspense fallback={<div className="text-gray-500 text-sm">იტვირთება...</div>}>
-        <SuccessContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div className="min-h-[50vh] bg-[#F4F5F7]" />}>
+      <SuccessContent />
+    </Suspense>
   );
 }

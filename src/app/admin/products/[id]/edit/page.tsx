@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useEffect } from "react";
+import React, { use, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { ProductForm } from "@/components/admin/ProductForm";
@@ -64,5 +64,9 @@ export default function EditProductPage({ params }: EditPageProps) {
     );
   }
 
-  return <ProductForm initialProduct={product} isEdit={true} />;
+  return (
+    <Suspense fallback={null}>
+      <ProductForm initialProduct={product} isEdit={true} />
+    </Suspense>
+  );
 }

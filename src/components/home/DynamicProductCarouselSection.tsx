@@ -39,10 +39,10 @@ export default function DynamicProductCarouselSection({
   return (
     <section className="py-2">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
-              <h2 className="text-xl md:text-2xl text-gray-900 tracking-tight">
+              <h2 className="text-lg sm:text-xl md:text-2xl text-gray-900 tracking-tight pr-2 line-clamp-2">
                 {title || "პროდუქტების კოლექცია"}
               </h2>
               {config?.isFlash && (
@@ -63,10 +63,10 @@ export default function DynamicProductCarouselSection({
           
           <Link
             href={targetLink}
-            className="flex items-center gap-1.5 text-xs md:text-sm text-gray-600 hover:text-[#FF5238] transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-[11px] sm:text-xs md:text-sm text-gray-600 hover:text-[#FF5238] transition-colors cursor-pointer shrink-0 ml-3"
           >
-            <span>სრულად ნახვა</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">სრულად ნახვა</span>
+            <ArrowRight className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           </Link>
         </div>
 

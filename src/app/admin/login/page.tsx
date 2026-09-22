@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      setAdminSession(data.admin, data.token);
+      setAdminSession(data.admin);
       if (data.user) {
         setUser(data.user);
       }
@@ -161,7 +161,7 @@ export default function AdminLoginPage() {
         {/* Demo Credentials Tip */}
         <div className="pt-2 text-center border-t border-slate-800/80">
           <p className="text-[11px] text-slate-500">
-            საჩვენებელი მონაცემები: <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">admin@spilo.ge</code> / <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">admin123</code>
+            ადმინ პანელი დაცულია. გამოიყენეთ თქვენი სამუშაო ანგარიში.
           </p>
         </div>
       </div>

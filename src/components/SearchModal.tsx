@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, History, TrendingUp, ArrowRight, Tag, Loader2 } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -17,6 +18,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   const { recentSearches, addRecentSearch, clearRecentSearches } = useStore();
   const [query, setQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [matchedStores, setMatchedStores] = useState<{ name: string; slug: string; logo?: string | null }[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -51,6 +53,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
 
     if (!cleanQuery) {
       setFilteredProducts([]);
+      setMatchedStores([]);
       setIsSearching(false);
       return;
     }
@@ -58,10 +61,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     setIsSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/products?q=${encodeURIComponent(cleanQuery)}`);
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data) && isMounted) {
-          setFilteredProducts(json.data);
+        const [res, storeRes] = await Promise.all([
+          fetch(`/api/products?q=${encodeURIComponent(cleanQuery)}`),
+          fetch(`/api/stores?q=${encodeURIComponent(cleanQuery)}`),
+        ]);
+        const [json, storeJson] = await Promise.all([res.json(), storeRes.json()]);
+        if (isMounted) {
+          if (json.success && Array.isArray(json.data)) setFilteredProducts(json.data);
+          if (storeJson.success && Array.isArray(storeJson.data)) setMatchedStores(storeJson.data);
         }
       } catch (err) {
         console.error("SearchModal: Live search error:", err);
@@ -89,7 +96,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-[90] overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -104,10 +111,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="relative min-h-screen sm:min-h-0 sm:max-w-2xl sm:mx-auto sm:mt-16 bg-white sm:rounded-2xl shadow-2xl z-10 overflow-hidden flex flex-col"
+            className="relative min-h-dvh sm:min-h-0 sm:max-w-2xl sm:mx-auto sm:mt-16 bg-white sm:rounded-2xl shadow-2xl z-10 overflow-hidden flex flex-col"
           >
             {/* Search Bar Input */}
-            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center gap-3" style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}>
               {isSearching ? (
                 <Loader2 className="w-5 h-5 text-blue-600 animate-spin shrink-0" />
               ) : (
@@ -143,10 +150,30 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             </div>
 
             {/* Results / Suggestions Container */}
-            <div className="p-5 overflow-y-auto max-h-[70vh] flex flex-col gap-6">
+            <div className="p-5 overflow-y-auto flex-1 max-h-[calc(100dvh-88px)] sm:max-h-[70vh] flex flex-col gap-6">
               {/* If query exists, show live suggestions */}
               {cleanQuery ? (
                 <div>
+                  {matchedStores.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">მაღაზიები</p>
+                      <div className="flex flex-col gap-2">
+                        {matchedStores.slice(0, 3).map((store) => (
+                          <Link
+                            key={store.slug}
+                            href={`/stores/${store.slug}`}
+                            onClick={onClose}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-gray-50 overflow-hidden flex items-center justify-center">
+                              {store.logo ? <img src={store.logo} alt="" className="w-full h-full object-contain p-1" /> : null}
+                            </div>
+                            <span className="text-sm text-gray-900">{store.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">
                     ძიების შედეგები ({filteredProducts.length})
                   </p>
@@ -160,12 +187,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       {filteredProducts.slice(0, 5).map((product) => {
                         const prodImage = product.images?.[0] || product.image || "/placeholder.png";
                         return (
-                          <div
+                          <Link
                             key={product.id}
+                            href={`/product/${product.id}`}
                             onClick={() => {
                               addRecentSearch(product.title);
                               onClose();
-                              router.push(`/product/${product.id}`);
                             }}
                             className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 cursor-pointer transition-all"
                           >
@@ -193,7 +220,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                               </div>
                             </div>
                             <ArrowRight className="w-4 h-4 text-gray-300" />
-                          </div>
+                          </Link>
                         );
                       })}
 

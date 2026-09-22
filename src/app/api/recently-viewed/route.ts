@@ -1,44 +1,38 @@
 import { NextResponse } from "next/server";
 import { getPrismaClient } from "@/lib/prisma";
+import { identityWhere, jsonWithIdentity, resolveIdentity } from "@/lib/identity";
 
 export async function GET(request: Request) {
   try {
+    const identity = await resolveIdentity(request);
     const prisma = getPrismaClient();
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const sessionId = searchParams.get("sessionId");
-
-    if (!userId && !sessionId) {
-      return NextResponse.json({ success: true, items: [] });
-    }
-
     const items = await prisma.recentlyViewed.findMany({
-      where: userId ? { userId } : { sessionId },
+      where: identityWhere(identity),
       orderBy: { updatedAt: "desc" },
       take: 10,
     });
-
-    return NextResponse.json({ success: true, items });
-  } catch (error: any) {
-    return NextResponse.json({ success: true, items: [] });
+    return jsonWithIdentity({ success: true, items }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "ისტორია ვერ ჩაიტვირთა";
+    return NextResponse.json({ success: false, error: message, items: [] }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const identity = await resolveIdentity(request);
     const prisma = getPrismaClient();
     const body = await request.json();
-    const { userId, sessionId, productId } = body;
+    const { productId } = body;
 
     if (!productId) {
-      return NextResponse.json({ success: false, message: "productId required" }, { status: 400 });
+      return jsonWithIdentity({ success: false, message: "პროდუქტის ID აუცილებელია" }, identity, {
+        status: 400,
+      });
     }
 
     const existing = await prisma.recentlyViewed.findFirst({
-      where: {
-        productId,
-        ...(userId ? { userId } : { sessionId }),
-      },
+      where: { productId, ...identityWhere(identity) },
     });
 
     if (existing) {
@@ -48,12 +42,17 @@ export async function POST(request: Request) {
       });
     } else {
       await prisma.recentlyViewed.create({
-        data: { userId, sessionId, productId },
+        data: {
+          productId,
+          userId: identity.userId,
+          sessionId: identity.sessionId,
+        },
       });
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return jsonWithIdentity({ success: true }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შენახვა ვერ მოხერხდა";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

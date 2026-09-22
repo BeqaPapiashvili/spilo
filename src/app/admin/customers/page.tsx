@@ -55,35 +55,35 @@ interface UserRecord {
 const ROLES_INFO = [
   { 
     key: "SUPER_ADMIN", 
-    label: "Super Admin", 
+    label: "სუპერ ადმინი", 
     badgeBg: "bg-purple-50 text-purple-700 border-purple-200/80", 
     icon: <Crown className="w-3.5 h-3.5 text-purple-600" />,
     desc: "სრული წვდომა სისტემის ყველა მოდულზე, ფინანსებსა და პარამეტრებზე"
   },
   { 
     key: "STORE_MANAGER", 
-    label: "Store Manager", 
+    label: "მაღაზიის მენეჯერი", 
     badgeBg: "bg-blue-50 text-blue-700 border-blue-200/80", 
     icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />,
     desc: "შეკვეთების, პროდუქტების, აქციებისა და კლიენტების მართვა"
   },
   { 
     key: "SUPPORT_AGENT", 
-    label: "Support Agent", 
+    label: "მხარდაჭერის აგენტი", 
     badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200/80", 
     icon: <Headphones className="w-3.5 h-3.5 text-emerald-600" />,
     desc: "ჩატები, მხარდაჭერის თიკეტები და შეკვეთების სტატუსის კონტროლი"
   },
   { 
     key: "CATALOG_MANAGER", 
-    label: "Catalog Manager", 
+    label: "კატალოგის მენეჯერი", 
     badgeBg: "bg-amber-50 text-amber-700 border-amber-200/80", 
     icon: <Package className="w-3.5 h-3.5 text-amber-600" />,
     desc: "მხოლოდ პროდუქტების, კატეგორიების და ბრენდების მართვა"
   },
   { 
     key: "CUSTOMER", 
-    label: "Customer (მყიდველი)", 
+    label: "მყიდველი", 
     badgeBg: "bg-zinc-100 text-zinc-700 border-zinc-200/80", 
     icon: <Users className="w-3.5 h-3.5 text-zinc-500" />,
     desc: "ჩვეულებრივი დარეგისტრირებული ონლაინ მყიდველი"
@@ -337,11 +337,11 @@ export default function AdminCustomersPage() {
   // Role Filter Options for CustomSelect
   const roleSelectOptions: CustomSelectOption[] = [
     { value: "ALL", label: "ყველა როლი" },
-    { value: "CUSTOMER", label: "მყიდველი (Customer)", badge: `${totalCustomers}` },
-    { value: "SUPER_ADMIN", label: "Super Admin" },
-    { value: "STORE_MANAGER", label: "Store Manager" },
-    { value: "SUPPORT_AGENT", label: "Support Agent" },
-    { value: "CATALOG_MANAGER", label: "Catalog Manager" },
+    { value: "CUSTOMER", label: "მყიდველი", badge: `${totalCustomers}` },
+    { value: "SUPER_ADMIN", label: "სუპერ ადმინი" },
+    { value: "STORE_MANAGER", label: "მაღაზიის მენეჯერი" },
+    { value: "SUPPORT_AGENT", label: "მხარდაჭერის აგენტი" },
+    { value: "CATALOG_MANAGER", label: "კატალოგის მენეჯერი" },
   ];
 
   const sortSelectOptions: CustomSelectOption[] = [
@@ -352,7 +352,7 @@ export default function AdminCustomersPage() {
   ];
 
   const handleExportCSV = () => {
-    const headers = ["ID", "Name", "Email", "Phone", "Role", "Orders Count", "Total Spent (GEL)", "Registered Date"];
+    const headers = ["ID", "სახელი", "ელფოსტა", "ტელეფონი", "როლი", "შეკვეთები", "ჯამური ხარჯი (₾)", "რეგისტრაცია"];
     const rows = filteredUsers.map((u) => [
       u.id,
       `"${u.name.replace(/"/g, '""')}"`,

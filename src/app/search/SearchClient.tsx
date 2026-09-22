@@ -13,6 +13,7 @@ function SearchContent() {
   const query = filters.searchQuery;
 
   const [productsList, setProductsList] = useState<Product[]>([]);
+  const [matchedStores, setMatchedStores] = useState<{ name: string; slug: string; logo?: string | null }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,15 +30,18 @@ function SearchContent() {
           queryParams.set("sort", filters.sort);
         }
 
-        const res = await fetch(`/api/products?${queryParams.toString()}`);
+        const [res, storeRes] = await Promise.all([
+          fetch(`/api/products?${queryParams.toString()}`),
+          query.trim()
+            ? fetch(`/api/stores?q=${encodeURIComponent(query.trim())}`)
+            : Promise.resolve(null),
+        ]);
         const json = await res.json();
+        const storeJson = storeRes ? await storeRes.json() : { success: false };
 
         if (isMounted) {
-          if (json.success && Array.isArray(json.data)) {
-            setProductsList(json.data);
-          } else {
-            setProductsList([]);
-          }
+          setProductsList(json.success && Array.isArray(json.data) ? json.data : []);
+          setMatchedStores(storeJson.success && Array.isArray(storeJson.data) ? storeJson.data : []);
         }
       } catch (err) {
         console.error("SearchContent: fetch error:", err);
@@ -84,10 +88,30 @@ function SearchContent() {
         </div>
       </div>
 
+      {matchedStores.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs text-gray-400 uppercase tracking-wider">მაღაზიები</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {matchedStores.map((store) => (
+              <Link
+                key={store.slug}
+                href={`/stores/${store.slug}`}
+                className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-100 hover:border-[#FF5238]/30"
+              >
+                <div className="w-12 h-12 rounded-full bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
+                  {store.logo ? <img src={store.logo} alt="" className="w-full h-full object-contain p-1" /> : null}
+                </div>
+                <span className="text-sm text-gray-900">{store.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Loading Skeleton */}
       {isLoading ? (
         <ProductGridSkeleton count={8} />
-      ) : productsList.length > 0 ? (
+      ) : productsList.length > 0 || matchedStores.length > 0 ? (
         /* Search Results Grid */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {productsList.map((product) => {
@@ -105,6 +129,8 @@ function SearchContent() {
                 images={prodImages}
                 discountPercentage={product.discountPercentage}
                 stock={product.stock}
+                storeName={product.storeName}
+                storeSlug={product.storeSlug}
               />
             );
           })}

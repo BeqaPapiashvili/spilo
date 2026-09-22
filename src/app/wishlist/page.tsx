@@ -22,7 +22,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen py-10">
+    <div className="bg-[#F8FAFC] min-h-screen py-6 sm:py-10">
       <div className="container mx-auto px-4 lg:px-8">
         
         {/* Page Header */}
@@ -32,26 +32,27 @@ export default function WishlistPage() {
               <Heart className="w-5 h-5 fill-red-500" />
               <span className="text-xs uppercase tracking-wider text-gray-500">შენახული ნივთები</span>
             </div>
-            <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl text-gray-900 tracking-tight">
               სურვილების სია ({wishlist.length})
             </h1>
           </div>
 
           {wishlist.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={handleMoveAllToCart}
-                className="bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-colors"
+                className="bg-[#111111] hover:bg-black text-white px-3.5 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-colors"
               >
                 <ShoppingBag className="w-4 h-4 text-[#60A5FA]" />
-                <span>ყველას კალათაში გადატანა</span>
+                <span className="hidden sm:inline">ყველას კალათაში გადატანა</span>
+                <span className="sm:hidden">კალათაში</span>
               </button>
               <button
                 onClick={clearWishlist}
-                className="bg-white border border-gray-200 text-gray-600 hover:text-red-600 px-4 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="bg-white border border-gray-200 text-gray-600 hover:text-red-600 px-3 sm:px-4 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>გასუფთავება</span>
+                <span className="hidden sm:inline">გასუფთავება</span>
               </button>
             </div>
           )}

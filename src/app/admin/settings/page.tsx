@@ -66,7 +66,7 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <div className="adm-card" style={{ padding: "1.5rem 1.75rem" }}>
         <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}><Settings size={13} /> სისტემა</div>
-        <h1 className="adm-page-title">მაღაზიის პარამეტრები (Store Settings)</h1>
+        <h1 className="adm-page-title">მაღაზიის პარამეტრები</h1>
         <p className="adm-page-desc">მაღაზიის ძირითადი ინფორმაცია, საკონტაქტო მონაცემები და ლოკალიზაცია.</p>
       </div>
 

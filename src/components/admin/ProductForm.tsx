@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, 
@@ -119,10 +119,12 @@ const SPEC_PRESETS: Record<string, { label: string; specs: SpecGroup[] }> = {
 
 export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit = false }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Live Metadata
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [stores, setStores] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -156,6 +158,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
   const [subcategoryId, setSubcategoryId] = useState("");
   const [level3Id, setLevel3Id] = useState("");
   const [brandId, setBrandId] = useState(initialProduct?.brandId || "");
+  const [storeId, setStoreId] = useState(initialProduct?.storeId || searchParams.get("storeId") || "");
 
   // Media Gallery
   const [images, setImages] = useState<string[]>(
@@ -205,21 +208,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
     let isMounted = true;
     const fetchMetadata = async () => {
       try {
-        const [catRes, brandRes] = await Promise.all([
+        const [catRes, brandRes, storeRes] = await Promise.all([
           fetch("/api/categories"),
           fetch("/api/brands"),
+          fetch("/api/admin/stores"),
         ]);
-        const [catJson, brandJson] = await Promise.all([
+        const [catJson, brandJson, storeJson] = await Promise.all([
           catRes.json(),
           brandRes.json(),
+          storeRes.json(),
         ]);
 
         if (isMounted) {
           const loadedCats: Category[] = catJson.success && Array.isArray(catJson.data) ? catJson.data : [];
           const loadedBrands = brandJson.success && Array.isArray(brandJson.data) ? brandJson.data : [];
+          const loadedStores = storeJson.success && Array.isArray(storeJson.data) ? storeJson.data : [];
           
           setCategories(loadedCats);
           setBrands(loadedBrands);
+          setStores(loadedStores);
 
           if (!categoryId && loadedCats.length > 0) {
             setCategoryId(loadedCats[0].id);
@@ -277,6 +284,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
       label: b.name,
     }));
   }, [brands]);
+
+  const storeOptions: CustomSelectOption[] = useMemo(() => {
+    return [
+      { value: "", label: "მაღაზია არ არის მინიჭებული" },
+      ...stores.map((s) => ({
+        value: s.id,
+        label: s.name,
+        subLabel: s.slug,
+      })),
+    ];
+  }, [stores]);
 
   const warrantyOptions: CustomSelectOption[] = [
     { value: "0", label: "საგარანტიო ვადის გარეშე" },
@@ -394,6 +412,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
         code,
         categoryId,
         brandId,
+        storeId: storeId || null,
         images,
         specs,
         variants,
@@ -886,7 +905,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
                 )}
 
                 {/* Brand */}
-                <div className="pt-2">
+                <div className="pt-2 space-y-4">
                   <CustomSelect
                     label="მწარმოებელი ბრენდი"
                     placeholder="აირჩიეთ ბრენდი..."
@@ -894,6 +913,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
                     value={brandId}
                     onChange={setBrandId}
                     required
+                  />
+                  <CustomSelect
+                    label="პარტნიორი მაღაზია"
+                    placeholder="აირჩიეთ მაღაზია..."
+                    options={storeOptions}
+                    value={storeId}
+                    onChange={setStoreId}
+                    clearable
                   />
                 </div>
               </div>
@@ -1129,7 +1156,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
               <CustomToggle
                 checked={isFeatured}
                 onChange={setIsFeatured}
-                label="Featured პროდუქტი"
+                label="რჩეული პროდუქტი"
                 description="გამოჩნდება მთავარი გვერდის პოპულარულ სექციებში"
                 badge="მთავარი"
               />
@@ -1137,7 +1164,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialProduct, isEdit
               <CustomToggle
                 checked={isFlashDeal}
                 onChange={setIsFlashDeal}
-                label="Flash Deals აქცია"
+                label="დღის შეთავაზება"
                 description="ჩაერთვება დღის შეთავაზებებისა და ფასდაკლებების სექციაში"
                 badge="აქცია"
               />

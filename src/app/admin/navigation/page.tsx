@@ -204,13 +204,13 @@ export default function AdminNavigationBuilderPage() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">
             <Navigation className="w-3.5 h-3.5" />
-            <span>Storefront მენიუ</span>
+            <span>საიტის მენიუ</span>
           </div>
           <h1 className="text-2xl md:text-3xl text-slate-900 tracking-tight">
             ნავიგაციის მართვა ({items.length})
           </h1>
           <p className="text-xs md:text-sm text-slate-500">
-            Storefront Header და MegaMenu-ს მთავარი ბმულების და რიგითობის მართვა.
+            საიტის ჰედერისა და მეგამენიუს ბმულების და რიგითობის მართვა.
           </p>
         </div>
 
@@ -419,7 +419,7 @@ export default function AdminNavigationBuilderPage() {
                   className="w-4 h-4 rounded text-blue-600 cursor-pointer"
                 />
                 <label htmlFor="navIsActive" className="text-slate-700 cursor-pointer">
-                  აქტიურია (ჩანს Storefront მენიუში)
+                  აქტიურია (ჩანს საიტის მენიუში)
                 </label>
               </div>
 

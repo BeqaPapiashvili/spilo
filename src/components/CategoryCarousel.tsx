@@ -97,7 +97,32 @@ export default function CategoryCarousel() {
   const { toggleMegaMenu, isMegaMenuOpen } = useStore();
 
   return (
-    <section className="w-full pt-3 sm:pt-6 relative select-none">
+    <>
+    <section className="sm:hidden w-full pt-2.5 pb-1 select-none">
+      <div className="px-4 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-3 w-max pr-2">
+          {CAROUSEL_CATEGORIES.map((cat) => {
+            const IconComponent = cat.icon;
+            return (
+              <Link
+                key={cat.slug}
+                href={`/catalog?category=${cat.slug}`}
+                className="flex flex-col items-center gap-1.5 w-[68px] shrink-0 active:scale-95 transition-transform"
+              >
+                <span className="w-[52px] h-[52px] rounded-full bg-[#F4F5F7] text-[#1D1D1F] flex items-center justify-center">
+                  <IconComponent className="w-[22px] h-[22px] stroke-[1.7]" />
+                </span>
+                <span className="text-[10px] leading-none text-gray-600 text-center w-full truncate whitespace-nowrap">
+                  {cat.title}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <section className="hidden sm:block w-full pt-3 sm:pt-6 relative select-none">
       <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
         <div className="flex items-center gap-2.5 sm:gap-3.5 relative overflow-hidden">
 
@@ -147,7 +172,7 @@ export default function CategoryCarousel() {
 
             <Swiper
               modules={[Navigation, FreeMode, Mousewheel]}
-              spaceBetween={8}
+              spaceBetween={12}
               slidesPerView="auto"
               freeMode={{
                 enabled: true,
@@ -164,11 +189,6 @@ export default function CategoryCarousel() {
               resistance={true}
               resistanceRatio={0.85}
               watchSlidesProgress={true}
-              breakpoints={{
-                640: {
-                  spaceBetween: 12,
-                },
-              }}
               onSwiper={(swiper) => {
                 swiperRef.current = swiper;
                 setIsBeginning(swiper.isBeginning);
@@ -184,45 +204,26 @@ export default function CategoryCarousel() {
               }}
               className="w-full py-1 overflow-visible"
             >
-              {/* Mobile Lead Card (Included in carousel slide flow on mobile) */}
-              <SwiperSlide className="sm:!hidden !w-[88px] shrink-0">
-                <Link
-                  href="/categories"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="group w-[88px] h-[108px] bg-[#111111] text-white rounded-2xl p-2 flex flex-col justify-between items-center text-center cursor-pointer border border-zinc-800 relative overflow-hidden select-none active:scale-95"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-[#FF5238] flex items-center justify-center text-white mt-1">
-                    <LayoutGrid className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-[11px] text-white leading-tight line-clamp-2 pb-0.5">
-                    ყველა
-                  </span>
-                </Link>
-              </SwiperSlide>
-
               {CAROUSEL_CATEGORIES.map((cat, idx) => {
                 const IconComponent = cat.icon;
 
                 return (
-                  <SwiperSlide key={idx} className="!w-[88px] sm:!w-[135px] md:!w-[145px] shrink-0">
+                  <SwiperSlide key={idx} className="!w-[135px] md:!w-[145px] shrink-0">
                     <Link
                       href={`/catalog?category=${cat.slug}`}
                       draggable={false}
                       onDragStart={(e) => e.preventDefault()}
-                      className="group w-[88px] sm:w-[135px] md:w-[145px] h-[108px] sm:h-[155px] md:h-[165px] bg-white border border-zinc-200/80 rounded-2xl sm:rounded-[22px] p-2.5 sm:p-3.5 flex flex-col justify-between items-center sm:items-start cursor-pointer select-none text-center sm:text-left active:scale-95 sm:active:scale-100"
+                      className="group w-[135px] md:w-[145px] h-[155px] md:h-[165px] bg-white border border-zinc-200/80 rounded-[22px] p-3.5 flex flex-col justify-between items-start cursor-pointer select-none text-left"
                     >
-                      {/* Top Category Title */}
-                      <div className="z-10 w-full order-2 sm:order-1 mt-1 sm:mt-0">
-                        <h4 className="text-[11px] sm:text-xs md:text-[13px] text-zinc-800 leading-tight line-clamp-2">
+                      <div className="z-10 w-full">
+                        <h4 className="text-xs md:text-[13px] text-zinc-800 leading-tight line-clamp-2">
                           {cat.title}
                         </h4>
                       </div>
 
-                      {/* Clean minimalist Icon: no background, no shadow, no hover color shift */}
-                      <div className="w-full flex items-center sm:items-end justify-center sm:justify-end z-10 order-1 sm:order-2 pt-0.5 sm:pt-2">
+                      <div className="w-full flex items-end justify-end z-10 pt-2">
                         {IconComponent && (
-                          <IconComponent className="w-5 h-5 sm:w-7 sm:h-7 text-zinc-700 stroke-[1.6]" />
+                          <IconComponent className="w-7 h-7 text-zinc-700 stroke-[1.6]" />
                         )}
                       </div>
                     </Link>
@@ -250,6 +251,7 @@ export default function CategoryCarousel() {
         </div>
       </div>
     </section>
+    </>
   );
 }
 

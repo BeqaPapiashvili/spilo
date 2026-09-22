@@ -1,15 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthSession } from "@/lib/jwt";
+import { getAuthSession, requireAdminSession } from "@/lib/jwt";
 import { ADMIN_ROLES } from "@/lib/permissions";
-import { OrderStatus } from "@prisma/client";
 import { recordAuditLog } from "@/lib/audit";
+import { OrderStatus, Prisma } from "@prisma/client";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { incrementCouponUsage, resolveCouponDiscount } from "@/lib/couponApply";
+
+function unitPrice(product: { price: number; discountPrice: number | null }): number {
+  if (product.discountPrice !== null && product.discountPrice !== undefined && product.discountPrice > 0) {
+    return Number(product.discountPrice);
+  }
+  return Number(product.price);
+}
+
+function makeOrderNumber(): string {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const rand = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+  return `SP-${stamp}-${rand}`;
+}
 
 /**
  * GET /api/orders
- * Admin: View all orders or filter by query parameters
- * Customer: View only own orders bound to session
+ * Admin: all orders. Customer: own orders only. Phone lookup is admin-only.
  */
 export async function GET(request: Request) {
   try {
@@ -19,16 +32,15 @@ export async function GET(request: Request) {
     const phone = searchParams.get("phone");
     const status = searchParams.get("status");
 
-    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
-
-    if (!session && !phone) {
+    if (!session?.userId) {
       return NextResponse.json(
-        { success: false, error: "ავტორიზაცია აუცილებელია (Unauthorized)" },
+        { success: false, error: "ავტორიზაცია აუცილებელია" },
         { status: 401 }
       );
     }
 
-    let where: any = {};
+    const isAdmin = Boolean(session.role && ADMIN_ROLES.includes(session.role));
+    const where: Record<string, unknown> = {};
 
     if (id) {
       where.OR = [{ id }, { orderNumber: id }];
@@ -37,10 +49,8 @@ export async function GET(request: Request) {
     if (isAdmin) {
       if (phone) where.contactPhone = phone;
       if (status) where.status = status;
-    } else if (session?.userId) {
+    } else {
       where.userId = session.userId;
-    } else if (phone) {
-      where.contactPhone = phone;
     }
 
     const orders = await prisma.order.findMany({
@@ -55,62 +65,54 @@ export async function GET(request: Request) {
                 sku: true,
                 price: true,
                 discountPrice: true,
-                costPrice: true,
+                ...(isAdmin ? { costPrice: true } : {}),
                 category: { select: { name: true } },
                 brand: { select: { name: true } },
               },
             },
           },
         },
+        payments: { orderBy: { createdAt: "desc" as const } },
         user: {
           select: { id: true, name: true, email: true, phone: true },
         },
         returns: {
           include: {
             logs: {
-              orderBy: { createdAt: "desc" },
+              orderBy: { createdAt: "desc" as const },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: "desc" as const },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const sanitizedOrders = orders.map((order) => {
-      if (isAdmin) return order;
-      return {
-        ...order,
-        items: order.items.map(({ costPrice, product, ...itemRest }: any) => ({
-          ...itemRest,
-          product: product ? { ...product, costPrice: undefined } : undefined,
-        })),
-      };
-    });
-
     return NextResponse.json({
       success: true,
-      count: sanitizedOrders.length,
-      data: sanitizedOrders,
+      count: orders.length,
+      data: orders,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შეკვეთების წამოღება ვერ მოხერხდა";
     console.error("GET /api/orders error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "შეკვეთების წამოღება ვერ მოხერხდა" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-/**
- * POST /api/orders
- * Atomic order creation, product validation, stock availability checks, and stock decrements inside prisma.$transaction
- */
 export async function POST(request: Request) {
   try {
     const session = await getAuthSession(request);
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, error: "შეკვეთის გასაფორმებლად გაიარეთ ავტორიზაცია" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { items, customer, paymentMethod, totalAmount, address, couponCode } = body;
+    const { items, customer, paymentMethod, address, couponCode, deferSettlement } = body;
+    const shouldDeferSettlement = Boolean(deferSettlement);
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -119,98 +121,106 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!customer || !totalAmount) {
+    if (!customer) {
       return NextResponse.json(
-        { success: false, error: "საკონტაქტო მონაცემები ან ჯამური თანხა არასწორია" },
+        { success: false, error: "საკონტაქტო მონაცემები არასწორია" },
         { status: 400 }
       );
     }
 
-    const phone = (customer.phone || customer.contactPhone || "").trim();
-    const name = (customer.name || customer.customerName || "მომხმარებელი").trim();
-    const shippingAddress = (address || customer.address || "თბილისი, საქართველო").trim();
+    const phone = String(customer.phone || customer.contactPhone || "").trim();
+    const name = String(customer.name || customer.customerName || session.name || "მომხმარებელი").trim();
+    const shippingAddress = String(address || customer.address || "").trim();
 
-    // 1. Resolve User ID (prefer active session, fallback to guest phone upsert)
-    let userId: string | null = session?.userId || null;
-    if (!userId && phone) {
-      const user = await prisma.user.upsert({
-        where: { phone },
-        update: { name: name || undefined },
-        create: {
-          phone,
-          name,
-          role: "CUSTOMER",
-        },
-      });
-      userId = user.id;
+    if (!phone || phone.length < 9) {
+      return NextResponse.json(
+        { success: false, error: "გთხოვთ მიუთითოთ სწორი ტელეფონის ნომერი" },
+        { status: 400 }
+      );
+    }
+    if (!shippingAddress) {
+      return NextResponse.json(
+        { success: false, error: "გთხოვთ მიუთითოთ მიწოდების მისამართი" },
+        { status: 400 }
+      );
     }
 
-    // Generate unique order number (e.g. SP-849201)
-    const orderNumber = `SP-${Date.now().toString().slice(-6)}`;
+    const userId = session.userId;
+    const orderNumber = makeOrderNumber();
 
-    // 2. Execute entire order placement and stock decrement inside an atomic Prisma Transaction
     const newOrder = await prisma.$transaction(async (tx) => {
-      // Step A: Fetch and validate all products from MySQL database
-      const productIds = items.map((i: any) => i.id || i.productId).filter(Boolean);
-      
+      const productIds = items
+        .map((item: { id?: string; productId?: string }) => item.id || item.productId)
+        .filter(Boolean) as string[];
+
       const dbProducts = await tx.product.findMany({
         where: { id: { in: productIds } },
+        include: { store: { select: { id: true, name: true } } },
       });
-
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-      // Verify every order item exists in the database
+      let subtotal = 0;
+      const lineItems: Prisma.OrderItemUncheckedCreateWithoutOrderInput[] = [];
+
       for (const item of items) {
         const pId = item.id || item.productId;
         const dbProduct = productMap.get(pId);
-
         if (!dbProduct) {
-          throw new Error(`პროდუქტი "${item.title || pId}" ვერ მოიძებნა ბაზაში. გთხოვთ წაშალოთ კალათიდან და სცადოთ ხელახლა.`);
+          throw new Error(`პროდუქტი "${item.title || pId}" ვერ მოიძებნა ბაზაში.`);
         }
 
-        // Validate stock availability
-        const requestedQuantity = Number(item.quantity) || 1;
-        if (dbProduct.stock < requestedQuantity) {
+        const requestedQuantity = Math.max(1, Number(item.quantity) || 1);
+        const decremented = await tx.product.updateMany({
+          where: { id: pId, stock: { gte: requestedQuantity } },
+          data: { stock: { decrement: requestedQuantity } },
+        });
+        if (decremented.count !== 1) {
           throw new Error(
-            `პროდუქტი "${dbProduct.title}" არ არის საკმარისი რაოდენობით საწყობში (დარჩენილია ${dbProduct.stock} ცალი, მოთხოვნილია ${requestedQuantity}).`
+            `პროდუქტი "${dbProduct.title}" არ არის საკმარისი რაოდენობით საწყობში (მოთხოვნილია ${requestedQuantity}).`
           );
         }
-      }
 
-      // Step B: Atomically decrement stock for each product
-      for (const item of items) {
-        const pId = item.id || item.productId;
-        const requestedQuantity = Number(item.quantity) || 1;
-        await tx.product.update({
-          where: { id: pId },
-          data: {
-            stock: {
-              decrement: requestedQuantity,
-            },
-          },
+        const price = unitPrice(dbProduct);
+        subtotal += price * requestedQuantity;
+
+        const images = Array.isArray(dbProduct.images) ? (dbProduct.images as string[]) : [];
+        lineItems.push({
+          productId: dbProduct.id,
+          title: dbProduct.title,
+          sku: dbProduct.sku || null,
+          quantity: requestedQuantity,
+          price,
+          originalPrice: Number(dbProduct.price),
+          discountPrice: dbProduct.discountPrice ? Number(dbProduct.discountPrice) : null,
+          costPrice: dbProduct.costPrice || null,
+          selectedVariants: (item.selectedVariants as Prisma.InputJsonValue) || Prisma.JsonNull,
+          image: images[0] || item.image || null,
+          storeId: dbProduct.storeId || null,
+          storeName: dbProduct.store?.name || null,
         });
       }
 
-      // Step C: Validate and increment coupon usage if applied
-      if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
-        const cleanCoupon = couponCode.trim().toUpperCase();
-        const couponRecord = await tx.coupon.findFirst({
-          where: {
-            code: cleanCoupon,
-            isActive: true,
-          },
-        });
-
-        if (couponRecord) {
-          await tx.coupon.update({
-            where: { id: couponRecord.id },
-            data: { usedCount: { increment: 1 } },
-          });
-        }
+      const couponResult = await resolveCouponDiscount(
+        couponCode,
+        subtotal,
+        tx,
+        lineItems.map((line) => ({
+          storeId: line.storeId,
+          price: line.price,
+          quantity: line.quantity,
+        }))
+      );
+      if (!couponResult.ok) {
+        throw new Error(couponResult.error);
       }
 
-      // Step D: Create Order and OrderItems atomically
-      const customerEmail = (customer.email || customer.customerEmail || session?.email || "").trim() || null;
+      if (couponResult.coupon.id) {
+        await incrementCouponUsage(tx, couponResult.coupon.id);
+      }
+
+      const customerEmail =
+        String(customer.email || customer.customerEmail || session.email || "").trim() || null;
+
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
@@ -219,64 +229,39 @@ export async function POST(request: Request) {
           customerEmail,
           contactPhone: phone,
           shippingAddress,
-          paymentMethod: paymentMethod || "ბარათით გადახდა",
-          paymentStatus: "PAID",
+          paymentMethod: paymentMethod || "კურიერთან ანგარიშსწორება",
+          paymentStatus: "PENDING",
           status: "PENDING",
           deliveryDate: null,
           deliveryMethod: body.deliveryMethod || "delivery",
           personType: customer.personType || "physical",
           idNumber: customer.idNumber || null,
           notes: body.notes || body.comment || null,
-          couponCode: couponCode || null,
-          discountAmount: body.discountAmount ? Number(body.discountAmount) : 0,
-          totalAmount: Number(totalAmount),
-          items: {
-            create: items.map((item: any) => {
-              const pId = item.id || item.productId;
-              const dbProduct = productMap.get(pId)!;
-              return {
-                productId: dbProduct.id,
-                title: dbProduct.title || item.title,
-                sku: dbProduct.sku || item.sku || null,
-                quantity: Number(item.quantity) || 1,
-                price: Number(item.price ?? item.discountPrice ?? dbProduct.discountPrice ?? dbProduct.price),
-                originalPrice: Number(dbProduct.price),
-                discountPrice: dbProduct.discountPrice ? Number(dbProduct.discountPrice) : null,
-                costPrice: dbProduct.costPrice || null,
-                selectedVariants: item.selectedVariants || null,
-                image: dbProduct.images && Array.isArray(dbProduct.images) && dbProduct.images.length > 0
-                  ? (dbProduct.images[0] as string)
-                  : item.image || null,
-              };
-            }),
-          },
+          couponCode: couponResult.coupon.code || null,
+          discountAmount: couponResult.coupon.discountAmount,
+          totalAmount: couponResult.coupon.finalTotal,
+          items: { create: lineItems },
         },
-        include: {
-          items: true,
-        },
+        include: { items: true },
       });
 
-      // Step E: Clear cart for the user if exists
-      if (userId) {
-        const userCart = await tx.cart.findUnique({ where: { userId } });
-        if (userCart) {
-          await tx.cartItem.deleteMany({ where: { cartId: userCart.id } });
-        }
+      const userCart = await tx.cart.findUnique({ where: { userId } });
+      if (userCart && !shouldDeferSettlement) {
+        await tx.cartItem.deleteMany({ where: { cartId: userCart.id } });
       }
 
       return createdOrder;
     });
 
-    // Dispatch transactional order confirmation email asynchronously
-    const targetEmail = (customer.email || session?.email || "").trim();
-    if (targetEmail && targetEmail.includes("@")) {
+    const targetEmail = (customer.email || session.email || "").trim();
+    if (!shouldDeferSettlement && targetEmail.includes("@")) {
       sendOrderConfirmationEmail({
         to: targetEmail,
         name,
         orderNumber: newOrder.orderNumber,
         totalAmount: newOrder.totalAmount,
         paymentMethod: newOrder.paymentMethod,
-        items: newOrder.items.map((i: any) => ({
+        items: newOrder.items.map((i) => ({
           title: i.title,
           quantity: i.quantity,
           price: i.price,
@@ -292,53 +277,43 @@ export async function POST(request: Request) {
         orderNumber: newOrder.orderNumber,
         createdAt: newOrder.createdAt.toISOString(),
         status: "მუშავდება",
-        items: newOrder.items,
+        items: newOrder.items.map((item) => {
+          const { costPrice, ...safeItem } = item;
+          void costPrice;
+          return safeItem;
+        }),
         customer: { name, phone },
         paymentMethod: newOrder.paymentMethod,
+        paymentStatus: newOrder.paymentStatus,
         totalAmount: newOrder.totalAmount,
         address: newOrder.shippingAddress,
       },
-      message: "შეკვეთა წარმატებით დარეგისტრირდა და მარაგები განახლდა",
+      message: shouldDeferSettlement
+        ? "შეკვეთა შეიქმნა. გადახდაზე გადამისამართება..."
+        : "შეკვეთა წარმატებით დარეგისტრირდა. გადახდა დადასტურდება მოგვიანებით.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შეკვეთის გაფორმება ვერ მოხერხდა";
     console.error("POST /api/orders error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "შეკვეთის გაფორმება ვერ მოხერხდა" },
-      { status: 400 }
-    );
+    return NextResponse.json({ success: false, error: message }, { status: 400 });
   }
 }
 
-/**
- * PUT /api/orders
- * Status update by Admin with stock restoration on cancellation
- */
 export async function PUT(request: Request) {
   try {
-    const session = await getAuthSession(request);
-    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { success: false, error: "წვდომა შეზღუდულია: მხოლოდ ადმინისტრატორს შეუძლია შეკვეთის სტატუსის შეცვლა (Forbidden)" },
-        { status: 403 }
-      );
-    }
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
 
     const body = await request.json();
     const { id, status, deliveryDate } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, error: "Order ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "შეკვეთის ID აუცილებელია" }, { status: 400 });
     }
 
-    let existingOrder = await prisma.order.findUnique({
-      where: { id },
-      include: { items: true },
-    }).catch(() => null);
+    let existingOrder = await prisma.order
+      .findUnique({ where: { id }, include: { items: true } })
+      .catch(() => null);
 
     if (!existingOrder) {
       existingOrder = await prisma.order.findFirst({
@@ -348,10 +323,7 @@ export async function PUT(request: Request) {
     }
 
     if (!existingOrder) {
-      return NextResponse.json(
-        { success: false, error: "შეკვეთა ვერ მოიძებნა ბაზაში" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "შეკვეთა ვერ მოიძებნა ბაზაში" }, { status: 404 });
     }
 
     const previousStatus = existingOrder.status;
@@ -359,48 +331,50 @@ export async function PUT(request: Request) {
 
     if (status) {
       const statusMap: Record<string, OrderStatus> = {
-        "მუშავდება": "PROCESSING",
-        "PROCESSING": "PROCESSING",
-        "გზაშია": "SHIPPED",
-        "SHIPPED": "SHIPPED",
-        "ჩაბარებულია": "DELIVERED",
-        "DELIVERED": "DELIVERED",
-        "გაუქმებულია": "CANCELLED",
-        "CANCELLED": "CANCELLED",
-        "PENDING": "PENDING",
+        მუშავდება: "PROCESSING",
+        PROCESSING: "PROCESSING",
+        გზაშია: "SHIPPED",
+        SHIPPED: "SHIPPED",
+        ჩაბარებულია: "DELIVERED",
+        DELIVERED: "DELIVERED",
+        გაუქმებულია: "CANCELLED",
+        CANCELLED: "CANCELLED",
+        PENDING: "PENDING",
       };
       targetStatus = statusMap[status] || previousStatus;
     }
 
-    // Transactionally update status, deliveryDate, and restore stock if cancelling
     const updatedOrder = await prisma.$transaction(async (tx) => {
-      // If moving to CANCELLED from non-cancelled status, restore stock
       if (targetStatus === "CANCELLED" && previousStatus !== "CANCELLED") {
-        for (const item of existingOrder!.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          }).catch(() => {});
+        for (const item of existingOrder.items) {
+          await tx.product
+            .update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
+            })
+            .catch(() => {});
         }
       }
 
-      // If re-activating a CANCELLED order, re-decrement stock
       if (previousStatus === "CANCELLED" && targetStatus !== "CANCELLED") {
-        for (const item of existingOrder!.items) {
-          await tx.product.update({
-            where: { id: item.productId },
+        for (const item of existingOrder.items) {
+          const decremented = await tx.product.updateMany({
+            where: { id: item.productId, stock: { gte: item.quantity } },
             data: { stock: { decrement: item.quantity } },
-          }).catch(() => {});
+          });
+          if (decremented.count !== 1) {
+            throw new Error(`მარაგი არ არის საკმარისი პროდუქტისთვის ${item.title}`);
+          }
         }
       }
 
-      const updateData: any = { status: targetStatus };
+      const updateData: { status: OrderStatus; deliveryDate?: Date | null } = { status: targetStatus };
       if (deliveryDate !== undefined) {
         updateData.deliveryDate = deliveryDate ? new Date(deliveryDate) : null;
       }
 
       return await tx.order.update({
-        where: { id: existingOrder!.id },
+        where: { id: existingOrder.id },
         data: updateData,
         include: { items: true },
       });
@@ -413,7 +387,7 @@ export async function PUT(request: Request) {
       action: "ORDER_UPDATE",
       entity: "Order",
       target: `#${updatedOrder.orderNumber}`,
-      details: `შეკვეთის მონაცემები განახლდა (სტატუსი: ${targetStatus}, ჩაბარების თარიღი: ${updatedOrder.deliveryDate ? updatedOrder.deliveryDate.toISOString().split('T')[0] : 'არ არის მითითებული'})`,
+      details: `შეკვეთის მონაცემები განახლდა (სტატუსი: ${targetStatus})`,
     });
 
     return NextResponse.json({
@@ -421,45 +395,28 @@ export async function PUT(request: Request) {
       data: updatedOrder,
       message: "შეკვეთა წარმატებით განახლდა",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შეკვეთის განახლება ვერ მოხერხდა";
     console.error("PUT /api/orders error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Failed to update order status" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-/**
- * DELETE /api/orders
- * Safe order deletion by admin with order item cleanup
- */
 export async function DELETE(request: Request) {
   try {
-    const session = await getAuthSession(request);
-    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { success: false, error: "წვდომა შეზღუდულია: მხოლოდ ადმინისტრატორს შეუძლია შეკვეთის წაშლა" },
-        { status: 403 }
-      );
-    }
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, error: "შეკვეთის ID აუცილებელია" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "შეკვეთის ID აუცილებელია" }, { status: 400 });
     }
 
-    let existingOrder = await prisma.order.findUnique({
-      where: { id },
-      include: { items: true },
-    }).catch(() => null);
+    let existingOrder = await prisma.order
+      .findUnique({ where: { id }, include: { items: true } })
+      .catch(() => null);
 
     if (!existingOrder) {
       existingOrder = await prisma.order.findFirst({
@@ -469,25 +426,15 @@ export async function DELETE(request: Request) {
     }
 
     if (!existingOrder) {
-      return NextResponse.json(
-        { success: false, error: "შეკვეთა ვერ მოიძებნა" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "შეკვეთა ვერ მოიძებნა" }, { status: 404 });
     }
 
     const targetId = existingOrder.id;
     const orderNum = existingOrder.orderNumber;
 
     await prisma.$transaction(async (tx) => {
-      // Delete order items
-      await tx.orderItem.deleteMany({
-        where: { orderId: targetId },
-      });
-
-      // Delete order
-      await tx.order.delete({
-        where: { id: targetId },
-      });
+      await tx.orderItem.deleteMany({ where: { orderId: targetId } });
+      await tx.order.delete({ where: { id: targetId } });
     });
 
     await recordAuditLog({
@@ -504,11 +451,9 @@ export async function DELETE(request: Request) {
       success: true,
       message: `შეკვეთა #${orderNum} წარმატებით წაიშალა`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "შეკვეთის წაშლა ვერ მოხერხდა";
     console.error("DELETE /api/orders error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Failed to delete order" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

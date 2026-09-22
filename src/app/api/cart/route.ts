@@ -1,66 +1,55 @@
 import { NextResponse } from "next/server";
 import { getPrismaClient } from "@/lib/prisma";
+import { identityWhere, jsonWithIdentity, resolveIdentity } from "@/lib/identity";
 
 export async function GET(request: Request) {
   try {
+    const identity = await resolveIdentity(request);
     const prisma = getPrismaClient();
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const sessionId = searchParams.get("sessionId");
-
-    if (!userId && !sessionId) {
-      return NextResponse.json({ success: true, items: [] });
-    }
-
     const cart = await prisma.cart.findFirst({
-      where: userId ? { userId } : { sessionId },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
+      where: identityWhere(identity),
+      include: { items: { include: { product: true } } },
     });
 
-    return NextResponse.json({ success: true, items: cart?.items || [] });
-  } catch (error: any) {
-    return NextResponse.json({ success: true, items: [] });
+    return jsonWithIdentity({ success: true, items: cart?.items || [] }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "კალათის წამოღება ვერ მოხერხდა";
+    return NextResponse.json({ success: false, error: message, items: [] }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const identity = await resolveIdentity(request);
     const prisma = getPrismaClient();
     const body = await request.json();
-    const { userId, sessionId, productId, quantity = 1 } = body;
+    const { productId, quantity = 1 } = body;
 
     if (!productId) {
-      return NextResponse.json({ success: false, error: "productId required" }, { status: 400 });
+      return jsonWithIdentity({ success: false, error: "პროდუქტის ID აუცილებელია" }, identity, {
+        status: 400,
+      });
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
-
+    const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
-      return NextResponse.json({ success: false, error: "პროდუქტი ვერ მოიძებნა" }, { status: 404 });
+      return jsonWithIdentity({ success: false, error: "პროდუქტი ვერ მოიძებნა" }, identity, {
+        status: 404,
+      });
     }
 
     if (product.stock <= 0) {
-      return NextResponse.json(
+      return jsonWithIdentity(
         { success: false, error: "პროდუქტი არ არის მარაგში (ამოწურულია)" },
+        identity,
         { status: 400 }
       );
     }
 
-    let cart = await prisma.cart.findFirst({
-      where: userId ? { userId } : { sessionId },
-    });
-
+    let cart = await prisma.cart.findFirst({ where: identityWhere(identity) });
     if (!cart) {
       cart = await prisma.cart.create({
-        data: { userId, sessionId },
+        data: identity.userId ? { userId: identity.userId } : { sessionId: identity.sessionId },
       });
     }
 
@@ -70,8 +59,9 @@ export async function POST(request: Request) {
 
     const newQuantity = (existingItem?.quantity || 0) + Number(quantity);
     if (newQuantity > product.stock) {
-      return NextResponse.json(
+      return jsonWithIdentity(
         { success: false, error: `მარაგში დარჩენილია მხოლოდ ${product.stock} ცალი` },
+        identity,
         { status: 400 }
       );
     }
@@ -91,36 +81,43 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, message: "დაემატა კალათაში" });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return jsonWithIdentity({ success: true, message: "დაემატა კალათაში" }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "კალათაში დამატება ვერ მოხერხდა";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
+    const identity = await resolveIdentity(request);
     const prisma = getPrismaClient();
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("itemId");
     const productId = searchParams.get("productId");
-    const userId = searchParams.get("userId");
-    const sessionId = searchParams.get("sessionId");
 
     if (itemId) {
-      await prisma.cartItem.delete({ where: { id: itemId } }).catch(() => {});
-    } else if (productId) {
-      const cart = await prisma.cart.findFirst({
-        where: userId ? { userId } : { sessionId },
+      const item = await prisma.cartItem.findUnique({
+        where: { id: itemId },
+        include: { cart: true },
       });
+      const ownsCart =
+        item &&
+        ((identity.userId && item.cart.userId === identity.userId) ||
+          (identity.sessionId && item.cart.sessionId === identity.sessionId));
+      if (ownsCart) {
+        await prisma.cartItem.delete({ where: { id: itemId } });
+      }
+    } else if (productId) {
+      const cart = await prisma.cart.findFirst({ where: identityWhere(identity) });
       if (cart) {
-        await prisma.cartItem.deleteMany({
-          where: { cartId: cart.id, productId },
-        });
+        await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
       }
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return jsonWithIdentity({ success: true }, identity);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "წაშლა ვერ მოხერხდა";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

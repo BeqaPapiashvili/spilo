@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { X, Search, MapPin, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AddAddressModalProps {
   isOpen: boolean;
@@ -57,7 +58,14 @@ export default function AddAddressModal({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [isOpen]);
 
   // Georgian Latin to Georgian script transliteration dictionary
   const transliterateKa = (text: string): string => {
@@ -230,134 +238,149 @@ export default function AddAddressModal({
   )}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-[32px] w-full max-w-[750px] overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
-        
-        {/* Modal Header */}
-        <div className="p-6 pb-4 text-center relative border-b border-gray-100/60">
-          <h3 className="text-xl text-gray-900 tracking-tight">
-            მისამართის დამატება
-          </h3>
-          <button
-            onClick={onClose}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center sm:p-6">
+          <motion.button
             type="button"
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#111111] hover:bg-black text-white flex items-center justify-center cursor-pointer transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+            aria-label="დახურვა"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/45"
+          />
 
-        {/* Modal Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
-          
-          {/* Address Title / Search Input */}
-          <div className="relative" ref={dropdownRef}>
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                value={addressTitle}
-                onChange={handleInputChange}
-                onFocus={() => setIsDropdownOpen(true)}
-                placeholder="მისამართის დასახელება"
-                className="w-full h-14 pl-4 pr-10 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-              />
-              <div className="absolute right-4 text-gray-400 pointer-events-none">
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
-              </div>
+          <motion.div
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 32, stiffness: 340, mass: 0.85 }}
+            className="relative z-10 w-full sm:max-w-[720px] bg-white rounded-t-[28px] sm:rounded-[28px] shadow-2xl flex flex-col h-[96dvh] sm:h-[min(88vh,820px)] overflow-hidden"
+          >
+            <div className="sm:hidden flex justify-center pt-3 shrink-0">
+              <span className="w-10 h-1 rounded-full bg-gray-200" />
             </div>
 
-            {/* Dropdown Suggestions matching Google Places Layout */}
-            {isDropdownOpen && (suggestions.length > 0 || isSearching) && (
-              <div className="absolute z-30 left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-gray-200/80 shadow-2xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-gray-100">
-                {isSearching && suggestions.length === 0 && (
-                  <div className="p-4 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    <span>Google Maps-ზე ძებნა...</span>
-                  </div>
-                )}
-
-                {suggestions.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectSuggestion(item)}
-                    className="w-full text-left px-4 py-3 hover:bg-[#F8FAFC] text-xs transition-colors flex items-center gap-3 cursor-pointer group"
-                  >
-                    <MapPin className="w-4 h-4 text-gray-400 shrink-0 group-hover:text-blue-600 transition-colors" />
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-gray-900">{item.mainText}</span>
-                      <span className="text-gray-500 text-[11px]">{item.secondaryText}</span>
-                    </div>
-                  </button>
-                ))}
-
-                {/* Powered by Google Footer Watermark */}
-                <div className="px-3 py-2 bg-[#F8FAFC] border-t border-gray-100 flex justify-end items-center text-[10px] text-gray-400 gap-1 select-none">
-                  <span>powered by</span>
-                  <span className="tracking-tight font-sans text-[11px]">
-                    <span className="text-[#4285F4]">G</span>
-                    <span className="text-[#EA4335]">o</span>
-                    <span className="text-[#FBBC05]">o</span>
-                    <span className="text-[#4285F4]">g</span>
-                    <span className="text-[#34A853]">l</span>
-                    <span className="text-[#EA4335]">e</span>
-                  </span>
+            <div className="px-5 pt-3 pb-4 sm:p-6 sm:pb-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="w-10 h-10 rounded-full bg-[#F4F5F7] flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-[#1D1D1F]" strokeWidth={1.7} />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-[17px] text-[#1D1D1F] leading-tight">
+                    მისამართის დამატება
+                  </h3>
+                  <p className="text-[12px] text-gray-400 mt-0.5 truncate">
+                    აირჩიე მისამართი რუკაზე ან მოძებნე
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
+              <button
+                onClick={onClose}
+                type="button"
+                className="w-9 h-9 rounded-full bg-[#F4F5F7] text-gray-700 hover:bg-[#EAECEF] flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                aria-label="დახურვა"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Additional Comment Input */}
-          <div>
-            <input
-              type="text"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="დამატებითი კომენტარი"
-              className="w-full h-14 px-4 bg-[#F1F3F6] rounded-2xl text-xs md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="px-5 py-4 sm:p-6 flex flex-col gap-3.5 flex-1 min-h-0">
+              <div className="relative shrink-0" ref={dropdownRef}>
+                <label className="text-[11px] text-gray-500 block px-1 mb-1.5">მისამართი</label>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={addressTitle}
+                    onChange={handleInputChange}
+                    onFocus={() => setIsDropdownOpen(true)}
+                    placeholder="მაგ: ჭავჭავაძის გამზირი 17"
+                    className="w-full h-12 pl-4 pr-11 bg-[#F4F5F7] rounded-2xl text-[14px] md:text-sm text-[#1D1D1F] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238] transition-all"
+                  />
+                  <div className="absolute right-3.5 text-gray-400 pointer-events-none">
+                    {isSearching ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#FF5238]" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                  </div>
+                </div>
 
-          {/* Authentic Google Maps Embed View */}
-          <div className="w-full h-64 md:h-72 rounded-2xl overflow-hidden border border-gray-200/80 relative shadow-inner bg-gray-100">
-            <iframe
-              title="Google Maps Location"
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              scrolling="no"
-              marginHeight={0}
-              marginWidth={0}
-              src={googleMapsUrl}
-              className="w-full h-full border-none"
-            />
-          </div>
+                {isDropdownOpen && (suggestions.length > 0 || isSearching) && (
+                  <div className="absolute z-30 left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+                    {isSearching && suggestions.length === 0 && (
+                      <div className="p-4 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-[#FF5238]" />
+                        <span>მისამართის ძებნა...</span>
+                      </div>
+                    )}
 
-          {/* Modal Footer / Save Action */}
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={isSaving || !addressTitle.trim()}
-              className="px-8 h-13 bg-[#111111] hover:bg-black disabled:opacity-50 text-white rounded-2xl text-xs md:text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>ინახება...</span>
-                </>
-              ) : (
-                <span>მისამართის დამატება</span>
-              )}
-            </button>
-          </div>
+                    {suggestions.map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectSuggestion(item)}
+                        className="w-full text-left px-4 py-3 hover:bg-[#F4F5F7] text-[13px] transition-colors flex items-start gap-3 cursor-pointer group border-b border-gray-50 last:border-0"
+                      >
+                        <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5 group-hover:text-[#FF5238] transition-colors" />
+                        <div className="min-w-0">
+                          <p className="text-[#1D1D1F] leading-snug">{item.mainText}</p>
+                          {item.secondaryText ? (
+                            <p className="text-gray-400 text-[11px] mt-0.5">{item.secondaryText}</p>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-        </form>
+              <div className="shrink-0">
+                <label className="text-[11px] text-gray-500 block px-1 mb-1.5">დამატებითი კომენტარი</label>
+                <input
+                  type="text"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="სადარბაზო, სართული, კოდი..."
+                  className="w-full h-12 px-4 bg-[#F4F5F7] rounded-2xl text-[14px] md:text-sm text-[#1D1D1F] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5238] transition-all"
+                />
+              </div>
 
-      </div>
-    </div>
+              <div className="w-full flex-1 min-h-[240px] rounded-2xl overflow-hidden bg-[#F4F5F7] relative">
+                <iframe
+                  title="რუკა"
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  scrolling="no"
+                  marginHeight={0}
+                  marginWidth={0}
+                  src={googleMapsUrl}
+                  className="absolute inset-0 w-full h-full border-none"
+                />
+              </div>
+
+              <div className="pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] shrink-0">
+                <button
+                  type="submit"
+                  disabled={isSaving || !addressTitle.trim()}
+                  className="w-full h-12 bg-[#FF5238] hover:bg-[#EA3A20] disabled:opacity-50 text-white rounded-2xl text-[15px] cursor-pointer transition-colors flex items-center justify-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>ინახება...</span>
+                    </>
+                  ) : (
+                    <span>მისამართის შენახვა</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

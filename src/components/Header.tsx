@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SearchModal } from "./SearchModal";
 import { MegaMenu } from "./MegaMenu";
 import AddAddressModal from "./AddAddressModal";
+import { BrandLogo } from "./BrandLogo";
 
 /* =========================================================================
    CUSTOM PIXEL-PERFECT SVG ICONS (Exact matches to reference screenshot)
@@ -182,52 +183,40 @@ export default function Header() {
 
   return (
     <>
-      {/* Top Micro Announcement Bar */}
-      <div className="bg-[#1D1D1F] text-white text-xs py-1.5 px-4 flex justify-end items-center gap-4">
-        <div className="w-full max-w-[1560px] mx-auto flex justify-end items-center gap-4 px-4 lg:px-6">
-          <span className="text-gray-300">უფასო მიწოდება მთელ საქართველოში</span>
-          <button
-            onClick={() => setLang(lang === "GE" ? "EN" : "GE")}
-            className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer text-xs"
-          >
-            <span>{lang}</span>
-            <div className="w-7 h-4 bg-white/20 rounded-full relative p-0.5 border border-white/20">
-              <div className={`w-3 h-3 rounded-full bg-white transition-transform ${lang === "EN" ? "translate-x-3" : ""}`} />
-            </div>
-          </button>
-        </div>
-      </div>
-
       {/* Main Header Container */}
       <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200/70 shadow-2xs">
         
         {/* Tier 1: Main Header Bar (Height 88px, Expanded to 1560px max width) */}
-        <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-[72px] sm:h-[88px] flex items-center justify-between gap-3 sm:gap-4 lg:gap-8 relative z-50">
-
+        <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-16 sm:h-[88px] flex items-center justify-between gap-3 sm:gap-4 lg:gap-8 relative z-50">
           {/* Left Side: Hamburger (Mobile) + Brand Logo & Address Button */}
           <div className="flex items-center gap-2.5 sm:gap-5 lg:gap-8 shrink-0">
             {/* Mobile Hamburger Menu Button (lg:hidden) */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden w-11 h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-gray-800 transition-colors shrink-0 cursor-pointer"
+              className="lg:hidden w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-gray-800 transition-colors shrink-0 cursor-pointer"
               aria-label="მენიუს გახსნა"
               title="მენიუ"
             >
               <Menu className="w-5 h-5 text-gray-800" />
             </button>
 
-            {/* Logo (120x42) */}
-            <Link href="/" className="w-[100px] sm:w-[120px] h-[36px] sm:h-[42px] text-2xl md:text-3xl text-gray-900 tracking-tighter shrink-0 flex items-center gap-0.5">
-              <span>spilo</span>
-              <span className="text-[#1D1D1F]">.</span>
+            <BrandLogo
+              className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0"
+              imgClassName="h-7 sm:h-[38px] md:h-[42px] w-auto max-w-[120px] sm:max-w-[160px]"
+            />
+            <Link
+              href="/stores"
+              className="hidden lg:inline-flex text-[13px] text-gray-700 hover:text-[#FF5238] shrink-0"
+            >
+              მაღაზიები
             </Link>
 
             {/* Address Selector Pill Button (Icon 48x48) */}
             <button
               type="button"
               onClick={() => setIsAddressModalOpen(true)}
-              className="hidden sm:flex items-center gap-2.5 text-gray-700 hover:text-gray-900 transition-colors cursor-pointer text-[13px] group"
+              className="hidden md:flex items-center gap-2.5 text-gray-700 hover:text-gray-900 transition-colors cursor-pointer text-[13px] group"
               title="მიწოდების მისამართის არჩევა"
             >
               <div className="w-12 h-12 rounded-full bg-[#F2F3F5] group-hover:bg-[#E5E7EB] flex items-center justify-center text-[#212121] shrink-0 transition-colors">
@@ -239,8 +228,8 @@ export default function Header() {
             </button>
           </div>
 
-          {/* Center Search Input (Desktop/Tablet Only) */}
-          <div className="flex-1 max-w-[800px] w-full min-w-0 hidden sm:flex">
+          {/* Center Search Input (tablet/desktop) */}
+          <div className="flex-1 max-w-[800px] w-full min-w-0 hidden md:flex">
             <button
               type="button"
               onClick={() => setIsSearchModalOpen(true)}
@@ -254,21 +243,35 @@ export default function Header() {
           {/* Right Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 shrink-0">
 
-            {/* Mobile Search Button (sm:hidden - circular icon button matching Cart) */}
+            {/* Mobile Search Button */}
             <button
               type="button"
               onClick={() => setIsSearchModalOpen(true)}
-              className="sm:hidden w-11 h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors cursor-pointer"
+              className="md:hidden w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors cursor-pointer"
               title="ძიება"
               aria-label="ძიება"
             >
               <CustomSearchIcon className="w-5 h-5 text-[#212121]" />
             </button>
 
-            {/* Wishlist Button (48x48) - visible from sm: */}
             <Link
               href="/wishlist"
-              className="hidden sm:flex w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
+              className="md:hidden w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] flex items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
+              title="სურვილების სია"
+              aria-label="სურვილების სია"
+            >
+              <CustomHeartIcon className="w-5 h-5 text-[#212121]" />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-[#FF5238] text-white text-[9px] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center shadow-xs font-mono">
+                  {wishlist.length > 99 ? "99+" : wishlist.length}
+                </span>
+              )}
+            </Link>
+
+            {/* Wishlist Button (48x48) */}
+            <Link
+              href="/wishlist"
+              className="hidden md:flex w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#F4F5F7] hover:bg-[#EAECEF] items-center justify-center text-[#212121] hover:text-[#FF5238] transition-colors relative cursor-pointer"
               title="სურვილების სია"
             >
               <CustomHeartIcon className="w-5 h-5 text-[#212121]" />
@@ -281,7 +284,7 @@ export default function Header() {
 
             {/* Cart Button (48x48 with Hover Dropdown) */}
             <div
-              className="relative"
+              className="relative hidden md:block"
               onMouseEnter={() => setIsCartHovered(true)}
               onMouseLeave={() => setIsCartHovered(false)}
             >
@@ -407,7 +410,7 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
-            {/* User Auth / Profile Pill Button (hidden on mobile, visible from md:) */}
+            {/* User Auth / Profile Pill Button */}
             {user ? (
               <Link
                 href="/profile"
@@ -472,14 +475,10 @@ export default function Header() {
             >
               {/* Drawer Top Header */}
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <Link
-                  href="/"
+                <BrandLogo
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-2xl text-gray-900 tracking-tighter flex items-center gap-0.5"
-                >
-                  <span>spilo</span>
-                  <span className="text-[#FF5238]">.</span>
-                </Link>
+                  imgClassName="h-8 w-auto max-w-[130px]"
+                />
 
                 <button
                   type="button"
@@ -620,6 +619,18 @@ export default function Header() {
                     <div className="flex items-center gap-3">
                       <BrandsBadgeIcon className="w-5 h-5" />
                       <span>ბრენდები</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </Link>
+
+                  <Link
+                    href="/stores"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-2xl text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <PickupPointBadgeIcon className="w-5 h-5" />
+                      <span>მაღაზიები</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </Link>

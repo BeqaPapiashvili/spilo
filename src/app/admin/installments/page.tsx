@@ -465,7 +465,7 @@ export default function AdminInstallmentsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-slate-600 block">ჩვენების სათაური (Storefront Title)</label>
+                <label className="text-slate-600 block">ჩვენების სათაური</label>
                 <input
                   type="text"
                   value={formName}

@@ -106,25 +106,25 @@ export default function CartPage() {
   };
 
   return (
-    <div className="bg-gray-50/50 min-h-screen py-10">
+    <div className="bg-gray-50/50 min-h-screen py-6 sm:py-10">
       <div className="container mx-auto px-4 lg:px-8 max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl text-gray-900 tracking-tight">
               ჩემი კალათა ({cart.reduce((sum, item) => sum + item.quantity, 0)})
             </h1>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
               გადაამოწმეთ არჩეული ნივთები შეკვეთის გაფორმებამდე
             </p>
           </div>
           {cart.length > 0 && (
             <button
               onClick={clearCart}
-              className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1.5 cursor-pointer transition-colors shrink-0"
             >
               <Trash2 className="w-4 h-4" />
-              <span>კალათის გასუფთავება</span>
+              <span className="hidden sm:inline">კალათის გასუფთავება</span>
             </button>
           )}
         </div>

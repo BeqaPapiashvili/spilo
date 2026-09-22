@@ -6,7 +6,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Skip public login endpoints
-  if (pathname === "/admin/login" || pathname === "/api/admin/auth") {
+  if (
+    pathname === "/admin/login" ||
+    pathname === "/merchant/login" ||
+    (pathname === "/api/admin/auth" && request.method === "POST") ||
+    (pathname === "/api/merchant/auth" && request.method === "POST")
+  ) {
     return NextResponse.next();
   }
 
@@ -82,6 +87,9 @@ export async function middleware(request: NextRequest) {
     }
 
     const role = payload.role || "CUSTOMER";
+    if (role === "MERCHANT") {
+      return NextResponse.redirect(new URL("/merchant", request.url));
+    }
     if (!ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
@@ -150,13 +158,40 @@ export async function middleware(request: NextRequest) {
     });
   }
 
+  if (pathname.startsWith("/api/merchant")) {
+    if (!token) {
+      return NextResponse.json({ success: false, error: "ავტორიზაცია აუცილებელია" }, { status: 401 });
+    }
+    const payload = await verifyToken(token);
+    if (!payload?.userId || payload.role !== "MERCHANT") {
+      return NextResponse.json({ success: false, error: "პარტნიორის წვდომა შეზღუდულია" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/merchant")) {
+    if (!token) {
+      const loginUrl = new URL("/merchant/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    const payload = await verifyToken(token);
+    if (!payload?.userId || payload.role !== "MERCHANT") {
+      return NextResponse.redirect(new URL("/merchant/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     "/admin/:path*",
+    "/merchant",
+    "/merchant/:path*",
     "/api/admin/:path*",
+    "/api/merchant/:path*",
     "/api/products/:path*",
     "/api/products",
     "/api/categories/:path*",

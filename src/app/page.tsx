@@ -217,7 +217,7 @@ export default async function Home() {
   };
 
   return (
-    <div className="flex flex-col gap-10 pb-24 bg-white min-h-[50vh]">
+    <div className="flex flex-col gap-6 sm:gap-10 pb-8 sm:pb-24 bg-white min-h-[50vh]">
       {sections.map((sec) => renderSection(sec))}
     </div>
   );

@@ -50,6 +50,10 @@ export interface Product {
   brandId: string;
   brandName: string;
   brandLogo?: string;
+  storeId?: string;
+  storeName?: string;
+  storeSlug?: string;
+  storeLogo?: string;
   image?: string;
   images: string[];
   specs?: SpecGroup[];

@@ -77,7 +77,7 @@ interface StorefrontSection {
 const SECTION_TYPES = [
   { 
     id: "HERO_BANNER", 
-    label: "მთავარი სლაიდერი (Hero Slider)", 
+    label: "მთავარი სლაიდერი", 
     icon: Sparkles, 
     color: "#2563eb", 
     desc: "საიტის ყველაზე მთავარი ფლაგმანური ბლოკი საიტის თავში. მოიცავს ზედა მრგვალი კატეგორიების ზოლსა და დიდ ბანერს მცურავი საჩუქრის ბარათით.",
@@ -85,7 +85,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "PROMO_CAROUSEL", 
-    label: "პასტელური პრომო ბარათები (Pastel Cards)", 
+    label: "პასტელური პრომო ბარათები", 
     icon: Tag, 
     color: "#ea580c", 
     desc: "თანამედროვე პასტელური სარეკლამო ბარათები (ვარდისფერი, იასამნისფერი, ატმისფერი...) ფასდაკლების პილულითა და გამჭვირვალე PNG პროდუქტებით.",
@@ -93,15 +93,15 @@ const SECTION_TYPES = [
   },
   { 
     id: "PRODUCT_CAROUSEL", 
-    label: "პროდუქტების კარუსელი (Carousel)", 
+    label: "პროდუქტების კარუსელი", 
     icon: ShoppingBag, 
     color: "#059669", 
-    desc: "პროდუქტების ჰორიზონტალური სენსორული სლაიდერი (მაგ: DJI ტექნიკა, სმარტფონები, Flash Deals). მხარს უჭერს ბრენდით, კატეგორიით ან ხელით ფილტრაციას.",
+    desc: "პროდუქტების ჰორიზონტალური სენსორული სლაიდერი (მაგ: DJI ტექნიკა, სმარტფონები, დღის შეთავაზება). მხარს უჭერს ბრენდით, კატეგორიით ან ხელით ფილტრაციას.",
     storefrontPosition: "პროდუქტების დინამიური სექცია (სლაიდერი)"
   },
   { 
     id: "PRODUCT_GRID", 
-    label: "პროდუქტების ბადე (Grid)", 
+    label: "პროდუქტების ბადე", 
     icon: Grid, 
     color: "#0284c7", 
     desc: "პროდუქტების რესპონსიული ბადე (2, 3, 4 ან 6 სვეტი). იდეალურია დიდი კატალოგების ან რჩეული პროდუქტების სრული ბადით გამოსატანად.",
@@ -109,7 +109,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "PROMO_BANNER_GRID", 
-    label: "პრომო ბანერების ბადე (Banner Grid)", 
+    label: "პრომო ბანერების ბადე", 
     icon: ImageIcon, 
     color: "#d97706", 
     desc: "1, 2 ან 3 სარეკლამო ბანერი გვერდიგვერდ (მაგ: PS5 Slim, AirPods Max, Tech Deals) ფოტოთი, სათაურითა და ღილაკით.",
@@ -117,7 +117,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "BANNER", 
-    label: "სრული ბანერი (Full Banner)", 
+    label: "სრული ბანერი", 
     icon: ImageIcon, 
     color: "#4f46e5", 
     desc: "სრული სიგანის დიდი ფლაგმანური სარეკლამო ბლოკი (მაგ: Apple iPhone 16 Pro ბანერი, DJI Ecosystem).",
@@ -125,7 +125,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "CATEGORY_GRID", 
-    label: "კატეგორიების ბლოკი (Categories)", 
+    label: "კატეგორიების ბლოკი", 
     icon: Grid, 
     color: "#9333ea", 
     desc: "სწრაფი ნავიგაციის კატეგორიების ვიზუალური ბარათები (სმარტფონები, ლეპტოპები, გეიმინგი, აუდიო...).",
@@ -133,7 +133,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "BRAND_GRID", 
-    label: "ბრენდების ზოლი (Brands)", 
+    label: "ბრენდების ზოლი", 
     icon: Flame, 
     color: "#0d9488", 
     desc: "ოფიციალური პარტნიორი ბრენდების ლოგოების ზოლი (Apple, Samsung, DJI, Sony, JBL, Marshall...).",
@@ -141,7 +141,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "TRUST_STRIP", 
-    label: "გარანტიები & სერვისები (Trust Strip)", 
+    label: "გარანტიები და სერვისები", 
     icon: Sparkles, 
     color: "#2563eb", 
     desc: "მაღაზიის სანდოობის 4 მთავარი ბარათი: სწრაფი მიწოდება, 0% განვადება, ოფიციალური გარანტია და 24/7 მხარდაჭერა.",
@@ -149,7 +149,7 @@ const SECTION_TYPES = [
   },
   { 
     id: "RECENTLY_VIEWED", 
-    label: "ბოლოს ნანახი (Recently Viewed)", 
+    label: "ბოლოს ნანახი", 
     icon: Layers, 
     color: "#475569", 
     desc: "მომხმარებლის მიერ ბოლოს დათვალიერებული პროდუქტების პერსონალიზებული სექცია.",
@@ -1102,7 +1102,7 @@ export default function AdminHomepageCMSPage() {
         <div>
           <div className="adm-eyebrow mb-1.5 flex items-center gap-1.5">
             <LayoutTemplate size={13} />
-            <span>Storefront Dynamic Builder</span>
+            <span>მთავარი გვერდის კონსტრუქტორი</span>
           </div>
           <h1 className="adm-page-title text-xl md:text-2xl text-slate-900">
             მთავარი გვერდის სექციების მართვა
@@ -1135,7 +1135,7 @@ export default function AdminHomepageCMSPage() {
 
           <Link href="/" target="_blank" className="adm-btn-secondary">
             <Eye size={14} />
-            <span>Storefront ნახვა</span>
+            <span>საიტის ნახვა</span>
           </Link>
 
           <button
@@ -1487,7 +1487,7 @@ export default function AdminHomepageCMSPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-slate-100">
                     <div>
                       <label className="block text-xs text-slate-700 mb-1.5">
-                        სექციის სათაური (Storefront Title)
+                        სექციის სათაური
                       </label>
                       <input
                         type="text"
@@ -1500,7 +1500,7 @@ export default function AdminHomepageCMSPage() {
 
                     <div>
                       <label className="block text-xs text-slate-700 mb-1.5">
-                        სექციის ქვესათაური (Storefront Subtitle)
+                        სექციის ქვესათაური
                       </label>
                       <input
                         type="text"
@@ -1641,14 +1641,14 @@ export default function AdminHomepageCMSPage() {
                           <ImageUploadField
                             value={activeHeroSlide.image}
                             onChange={(url) => handleUpdateHeroSlide(selectedHeroSlideIndex, "image", url)}
-                            label="მთავარი ბანერის სურათი (Desktop Banner Image)"
+                            label="მთავარი ბანერის სურათი"
                             placeholder="https://... ან ატვირთეთ ბანერის ფოტო"
                           />
 
                           <ImageUploadField
                             value={activeHeroSlide.mobileImage || ""}
                             onChange={(url) => handleUpdateHeroSlide(selectedHeroSlideIndex, "mobileImage", url)}
-                            label="მობილურის ბანერის სურათი (Mobile Banner Image, არასავალდებულო)"
+                            label="მობილურის ბანერის სურათი (არასავალდებულო)"
                             placeholder="https://... ან ატვირთეთ მობილურის ვერსია"
                           />
 
@@ -2049,7 +2049,7 @@ export default function AdminHomepageCMSPage() {
                                 value={formOrderBy}
                                 onChange={setFormOrderBy}
                                 options={[
-                                  { value: "createdAt_desc", label: "უახლესი (Newest First)" },
+                                  { value: "createdAt_desc", label: "უახლესი" },
                                   { value: "price_asc", label: "ფასი: დაბლიდან მაღლა" },
                                   { value: "price_desc", label: "ფასი: მაღლიდან დაბლა" },
                                 ]}

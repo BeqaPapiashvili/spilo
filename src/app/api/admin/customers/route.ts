@@ -100,7 +100,8 @@ export async function POST(request: Request) {
     if (errorResponse) return errorResponse;
 
     const body = await request.json();
-    const { name, email, phone, address, role = "CUSTOMER", password = "password123" } = body;
+    const { password, role = "CUSTOMER" } = body;
+    const { name, email, phone, address } = body;
 
     if (!email || !name) {
       return NextResponse.json(
@@ -109,8 +110,15 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!password || String(password).trim().length < 8) {
+      return NextResponse.json(
+        { success: false, error: "პაროლი უნდა შეიცავდეს მინიმუმ 8 სიმბოლოს" },
+        { status: 400 }
+      );
+    }
+
     const cleanEmail = email.trim().toLowerCase();
-    const hashedPassword = await bcrypt.hash(password.trim() || "password123", 10);
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
     // Check if email exists
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -223,16 +231,23 @@ export async function PUT(request: Request) {
         const adminData: any = { role: targetRole, name: targetName };
         if (updateData.password) adminData.password = updateData.password;
 
-        await prisma.adminUser.upsert({
-          where: { email: targetEmail.toLowerCase() },
-          update: adminData,
-          create: {
-            name: targetName,
-            email: targetEmail.toLowerCase(),
-            role: targetRole,
-            password: updateData.password || "admin123",
-          },
-        }).catch(() => {});
+        if (updateData.password) {
+          await prisma.adminUser.upsert({
+            where: { email: targetEmail.toLowerCase() },
+            update: adminData,
+            create: {
+              name: targetName,
+              email: targetEmail.toLowerCase(),
+              role: targetRole,
+              password: updateData.password,
+            },
+          }).catch(() => {});
+        } else {
+          await prisma.adminUser.update({
+            where: { email: targetEmail.toLowerCase() },
+            data: adminData,
+          }).catch(() => {});
+        }
       } else {
         await prisma.adminUser.delete({
           where: { email: targetEmail.toLowerCase() },

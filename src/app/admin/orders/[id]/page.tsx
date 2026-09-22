@@ -55,6 +55,8 @@ export default function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
   const [deliveryDate, setDeliveryDate] = useState<string>("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingDelivery, setIsUpdatingDelivery] = useState(false);
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [refundAmount, setRefundAmount] = useState("");
 
   // ONLY SUPER_ADMIN and STORE_MANAGER can edit order status
   const canManageOrders = adminUser?.role === "SUPER_ADMIN" || adminUser?.role === "STORE_MANAGER";
@@ -818,6 +820,89 @@ export default function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
                   <p className="text-blue-700 font-mono mt-0.5">
                     {order.couponCode} {order.discountAmount ? `(-${order.discountAmount} ₾)` : ""}
                   </p>
+                </div>
+              )}
+
+              {Array.isArray(order.payments) && order.payments.length > 0 && (
+                <div className="pt-2 space-y-2">
+                  <span className="text-[11px] text-zinc-400 block">United Payment:</span>
+                  {order.payments.slice(0, 3).map((p: any) => (
+                    <p key={p.id} className="text-[11px] font-mono text-zinc-600">
+                      {p.status} · {p.amount} ₾ · {p.virtualPosOrderId || p.otherTrxCode}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {canManageOrders && order.paymentStatus === "PAID" && (
+                <div className="pt-3 space-y-2 border-t border-zinc-100">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    placeholder={`დაბრუნების თანხა (ცარიელი = სრული ${order.totalAmount} ₾)`}
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 text-xs"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={paymentBusy}
+                      onClick={async () => {
+                        setPaymentBusy(true);
+                        try {
+                          const res = await fetch("/api/admin/payments", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              orderId: order.id,
+                              action: "refund",
+                              amount: refundAmount ? Number(refundAmount) : undefined,
+                            }),
+                          });
+                          const data = await res.json();
+                          addToast({
+                            title: data.success ? "დაბრუნება გაიგზავნა" : "შეცდომა",
+                            message: data.message || data.error || "",
+                            type: data.success ? "success" : "error",
+                          });
+                          if (data.success) window.location.reload();
+                        } finally {
+                          setPaymentBusy(false);
+                        }
+                      }}
+                      className="flex-1 h-10 rounded-xl bg-[#FFF5F2] text-[#FF5238] text-xs cursor-pointer disabled:opacity-60"
+                    >
+                      {paymentBusy ? "..." : "თანხის დაბრუნება"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={paymentBusy}
+                      onClick={async () => {
+                        setPaymentBusy(true);
+                        try {
+                          const res = await fetch("/api/admin/payments", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ orderId: order.id, action: "void" }),
+                          });
+                          const data = await res.json();
+                          addToast({
+                            title: data.success ? "გაუქმდა" : "შეცდომა",
+                            message: data.message || data.error || "",
+                            type: data.success ? "success" : "error",
+                          });
+                          if (data.success) window.location.reload();
+                        } finally {
+                          setPaymentBusy(false);
+                        }
+                      }}
+                      className="flex-1 h-10 rounded-xl bg-zinc-100 text-zinc-800 text-xs cursor-pointer disabled:opacity-60"
+                    >
+                      Void
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

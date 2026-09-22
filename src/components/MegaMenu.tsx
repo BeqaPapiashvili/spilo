@@ -148,7 +148,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Subcategories & Items List */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-5">
+                <div className="flex-1 overflow-y-auto p-4 space-y-5 pb-24">
                   {/* View All Products in this category quick tile */}
                   <Link
                     href={`/catalog?category=${mobileCategory.slug || mobileCategory.id}`}
@@ -219,7 +219,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-3.5 space-y-1">
+                <div className="flex-1 overflow-y-auto p-3.5 space-y-1 pb-24">
                   <div className="px-2 py-2 text-xs text-gray-400">
                     აირჩიეთ კატეგორია:
                   </div>

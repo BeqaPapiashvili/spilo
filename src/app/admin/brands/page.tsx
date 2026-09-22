@@ -129,7 +129,7 @@ export default function AdminBrandsPage() {
             ბრენდები ({filtered.length})
           </h1>
           <p className="text-xs md:text-sm text-slate-500">
-            პარტნიორი ბრენდების მართვა, ლოგოები და Storefront-ის ბრენდ ფილტრი.
+            პარტნიორი ბრენდების მართვა, ლოგოები და საიტის ბრენდ ფილტრი.
           </p>
         </div>
 

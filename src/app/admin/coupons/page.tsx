@@ -14,6 +14,8 @@ interface CouponItem {
   usedCount?: number;
   usageLimit?: number | null;
   status: "ACTIVE" | "EXPIRED" | "DISABLED";
+  storeId?: string | null;
+  storeName?: string | null;
 }
 
 export default function AdminCouponsPage() {
@@ -26,6 +28,8 @@ export default function AdminCouponsPage() {
   const [usageLimit, setUsageLimit] = useState<number | "">("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [storeId, setStoreId] = useState("");
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
 
   const loadCoupons = async () => {
     setIsLoading(true);
@@ -44,6 +48,14 @@ export default function AdminCouponsPage() {
 
   useEffect(() => {
     loadCoupons();
+    fetch("/api/admin/stores")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && Array.isArray(json.data)) {
+          setStores(json.data.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -61,6 +73,7 @@ export default function AdminCouponsPage() {
         endDate: "2026-12-31",
         usageLimit: usageLimit !== "" ? Number(usageLimit) : null,
         status: "ACTIVE",
+        storeId: storeId || null,
       };
 
       const res = await fetch("/api/coupons", {
@@ -76,6 +89,7 @@ export default function AdminCouponsPage() {
 
       setIsModalOpen(false);
       setCode("");
+      setStoreId("");
       loadCoupons();
     } catch (err: any) {
       console.error("Failed to save coupon:", err);
@@ -204,6 +218,9 @@ export default function AdminCouponsPage() {
                       ლიმიტი: {coupon.usedCount || 0} / {coupon.usageLimit}
                     </p>
                   )}
+                  {coupon.storeName && (
+                    <p className="text-slate-400 text-[11px]">მაღაზია: {coupon.storeName}</p>
+                  )}
                 </div>
               </div>
 
@@ -279,6 +296,22 @@ export default function AdminCouponsPage() {
                   onChange={(e) => setMinOrder(Number(e.target.value))}
                   className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">მაღაზია (არასავალდებულო)</label>
+                <select
+                  value={storeId}
+                  onChange={(e) => setStoreId(e.target.value)}
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">ყველა მაღაზია</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.id}>
+                      {store.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

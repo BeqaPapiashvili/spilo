@@ -84,6 +84,8 @@ const NAVIGATION_TABS: MenuTab[] = [
           { title: "ახალი პროდუქტი", href: "/admin/products/new", icon: <Package className="w-4 h-4" /> },
           { title: "კატეგორიები", href: "/admin/categories", icon: <FolderTree className="w-4 h-4" /> },
           { title: "ბრენდები", href: "/admin/brands", icon: <Award className="w-4 h-4" /> },
+          { title: "მაღაზიები", href: "/admin/stores", icon: <Store className="w-4 h-4" /> },
+          { title: "პარტნიორები", href: "/admin/stores/partners", icon: <Store className="w-4 h-4" /> },
         ],
       },
       {
@@ -236,7 +238,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               >
                 <span className="flex items-center gap-2">
                   <Store className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Storefront-ზე დაბრუნება</span>
+                  <span>საიტზე დაბრუნება</span>
                 </span>
                 <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
               </Link>

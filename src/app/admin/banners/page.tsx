@@ -231,7 +231,7 @@ export default function AdminBannersPage() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>მარკეტინგი & Storefront</span>
+            <span>მარკეტინგი და საიტი</span>
           </div>
           <h1 className="text-2xl md:text-3xl text-slate-900 tracking-tight">
             ბანერები ({banners.length})
@@ -291,7 +291,7 @@ export default function AdminBannersPage() {
         <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-slate-200/80">
           <ImageIcon className="w-10 h-10 text-slate-300 mx-auto" />
           <h3 className="text-sm text-slate-700">ბანერები ვერ მოიძებნა</h3>
-          <p className="text-xs text-slate-400">დაამატეთ პირველი ბანერი Storefront-ისთვის</p>
+          <p className="text-xs text-slate-400">დაამატეთ პირველი ბანერი საიტისთვის</p>
           <button
             type="button"
             onClick={handleOpenCreate}
@@ -454,7 +454,7 @@ export default function AdminBannersPage() {
               {/* Position & CTA Text */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 mb-1">პოზიცია Storefront-ზე</label>
+                  <label className="block text-slate-700 mb-1">პოზიცია საიტზე</label>
                   <select
                     value={position}
                     onChange={(e) => setPosition(e.target.value as any)}
@@ -511,7 +511,7 @@ export default function AdminBannersPage() {
                   className="w-4 h-4 rounded text-blue-600 cursor-pointer"
                 />
                 <label htmlFor="bannerIsActive" className="text-slate-700 cursor-pointer">
-                  აქტიურია (ჩანს Storefront-ზე)
+                  აქტიურია (ჩანს საიტზე)
                 </label>
               </div>
 

@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Spilo
 
-## Getting Started
+ქართული e-commerce პლატფორმა (Spilo.ge): კატალოგი, CMS მთავარი გვერდი, ადმინ პანელი, კალათა და შეკვეთები.
 
-First, run the development server:
+## გაშვება
 
 ```bash
+npm install
+npx prisma generate
+npx prisma db push
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+დეველოპმენტი: [http://localhost:3000](http://localhost:3000)  
+პროდაქშენის start სკრიპტი იყენებს პორტს **3002**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## გარემოს ცვლადები
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+სავალდებულო პროდაქშენში:
 
-## Learn More
+- `DATABASE_URL`
+- `JWT_SECRET` (მინიმუმ 32 სიმბოლო)
 
-To learn more about Next.js, take a look at the following resources:
+სურვილისამებრ:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `NEXT_PUBLIC_SITE_URL` (ნაგულისხმევი `https://spilo.ge`)
+- `RESEND_API_KEY`, `EMAIL_FROM`
+- `SMS_OFFICE_API_KEY`, `SMS_SENDER_ID`
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+- `ADMIN_SEED_PASSWORD` — ადმინის შექმნა `prisma db seed`-ისას
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+გადახდა (United Payment, სატესტო BOG 3D):
 
-## Deploy on Vercel
+- `UNITED_PAYMENT_DEALER_CODE`
+- `UNITED_PAYMENT_USERNAME`
+- `UNITED_PAYMENT_PASSWORD`
+- `UNITED_PAYMENT_BANK_CODE` (ნაგულისხმევი `1` — Bank of Georgia)
+- `UNITED_PAYMENT_BASE_URL` (ნაგულისხმევი `https://service.unitedpayment.ge`)
+- `UNITED_PAYMENT_REDIRECT_BASE` — სურვილისამებრ, callback-ის საჯარო origin
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+ბარათით გადახდა ჩექაუთზე გადამისამართებს United Payment-ის 3D გვერდზე. COD და გადარიცხვა იგივე რჩება.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## სკრიპტები
+
+- `npm run dev` — dev სერვერი
+- `npm run build` — პროდაქშენ ბილდი
+- `npm start` — გაშვება პორტზე 3002
+- `npm run lint` — ESLint

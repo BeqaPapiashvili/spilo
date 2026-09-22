@@ -1,14 +1,16 @@
 import { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = getSiteUrl();
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin/", "/checkout/", "/profile/"],
+        disallow: ["/admin/", "/merchant/", "/checkout/", "/profile/", "/api/"],
       },
     ],
-    sitemap: "https://spilo.ge/sitemap.xml",
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

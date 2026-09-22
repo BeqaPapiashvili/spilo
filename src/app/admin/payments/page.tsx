@@ -66,8 +66,22 @@ export default function AdminPaymentsPage() {
   const [gateways, setGateways] = useState<PaymentGateway[]>(DEFAULT_GATEWAYS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [united, setUnited] = useState<{ configured: boolean; dealerCode: string | null; bankCode: number } | null>(null);
 
   useEffect(() => {
+    fetch("/api/admin/payments")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          setUnited({
+            configured: Boolean(res.configured),
+            dealerCode: res.dealerCode || null,
+            bankCode: Number(res.bankCode || 1),
+          });
+        }
+      })
+      .catch(() => {});
+
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((res) => {
@@ -141,6 +155,21 @@ export default function AdminPaymentsPage() {
           )}
         </button>
       </div>
+
+      {united && (
+        <div className="adm-card" style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <h2 style={{ fontSize: "0.9rem", color: "#0f172a" }}>United Payment (BOG 3D) — სატესტო</h2>
+          <p style={{ fontSize: "0.75rem", color: "#64748b", lineHeight: 1.5 }}>
+            ჩექაუთის ბარათით გადახდა და BOG განვადება მუშაობს `DoDirectPaymentThreeDGE` სერვისზე.
+            კრედენშალები იკითხება სერვერის გარემოს ცვლადებიდან, არა ამ ფორმიდან.
+          </p>
+          <p style={{ fontSize: "0.75rem", color: united.configured ? "#166534" : "#b45309" }}>
+            {united.configured
+              ? `აქტიურია · DealerCode ${united.dealerCode} · BankCode ${united.bankCode}`
+              : "გარემოს ცვლადები არ არის მითითებული"}
+          </p>
+        </div>
+      )}
 
       {/* Gateway Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>

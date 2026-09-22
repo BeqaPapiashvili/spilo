@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import * as fs from "fs";
 import * as path from "path";
+import bcrypt from "bcryptjs";
 import "dotenv/config";
 
 const connectionString = process.env.DATABASE_URL || "mysql://root:@127.0.0.1:3306/spilo_db";
@@ -1561,31 +1562,36 @@ async function main() {
   }
   console.log("✅ Seeded Products");
 
-  // 4. Seed Admin Users
-  await prisma.adminUser.upsert({
-    where: { email: "admin@spilo.ge" },
-    update: { password: "admin123" },
-    create: {
-      name: "Admin User",
-      email: "admin@spilo.ge",
-      password: "admin123",
-      role: "SUPER_ADMIN",
-      status: "ACTIVE",
-    },
-  });
+  // 4. Seed Admin Users (password from ADMIN_SEED_PASSWORD, never overwrite existing hashes)
+  const seedPassword = process.env.ADMIN_SEED_PASSWORD;
+  if (!seedPassword || seedPassword.length < 8) {
+    console.warn("Skipping admin seed: set ADMIN_SEED_PASSWORD (min 8 chars) to create admin users.");
+  } else {
+    const hashed = await bcrypt.hash(seedPassword, 10);
+    await prisma.adminUser.upsert({
+      where: { email: "admin@spilo.ge" },
+      update: {},
+      create: {
+        name: "Admin User",
+        email: "admin@spilo.ge",
+        password: hashed,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+      },
+    });
 
-  await prisma.adminUser.upsert({
-    where: { email: "beka@spilo.ge" },
-    update: { password: "admin123" },
-    create: {
-      name: "Beka Papiashvili",
-      email: "beka@spilo.ge",
-      password: "admin123",
-      role: "SUPER_ADMIN",
-      status: "ACTIVE",
-    },
-  });
-  console.log("✅ Seeded Admin Users");
+    await prisma.user.upsert({
+      where: { email: "admin@spilo.ge" },
+      update: {},
+      create: {
+        name: "Admin User",
+        email: "admin@spilo.ge",
+        password: hashed,
+        role: "SUPER_ADMIN",
+      },
+    });
+    console.log("✅ Seeded Admin Users (password not printed)");
+  }
 
   // 5. Seed Installment Options
   const installmentOptions = [

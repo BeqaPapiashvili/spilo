@@ -1,10 +1,40 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { signToken, setAuthCookie } from "@/lib/jwt";
+import { signToken, setAuthCookie, requireAdminSession } from "@/lib/jwt";
+import { enforceRateLimit } from "@/lib/rateLimit";
+
+export async function GET(request: Request) {
+  try {
+    const { session, errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
+    return NextResponse.json({
+      success: true,
+      admin: {
+        id: session?.userId,
+        name: session?.name || "Admin",
+        email: session?.email || "",
+        role: session?.role,
+        status: "ACTIVE",
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "სესიის შემოწმება ვერ მოხერხდა";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {
+    const rate = await enforceRateLimit(request, {
+      namespace: "admin_login",
+      limit: 8,
+      windowSeconds: 15 * 60,
+      customMessage: "ძალიან ბევრი ავტორიზაციის მცდელობა. გთხოვთ სცადოთ 15 წუთის შემდეგ.",
+    });
+    if (!rate.success && rate.response) return rate.response;
+
     const body = await request.json();
     const { email, password } = body;
 
@@ -50,6 +80,13 @@ export async function POST(request: Request) {
     const activeRole = user?.role || admin?.role || "CUSTOMER";
     const allowedAdminRoles = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"];
     
+    if (activeRole === "MERCHANT") {
+      return NextResponse.json(
+        { success: false, error: "პარტნიორის შესასვლელი: /merchant/login" },
+        { status: 403 }
+      );
+    }
+
     if (!allowedAdminRoles.includes(activeRole)) {
       return NextResponse.json(
         { success: false, error: "თქვენ არ გაქვთ ადმინ პანელში შესვლის უფლება" },
@@ -125,7 +162,6 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      token,
       admin: adminPayload,
       user: {
         id: userId,

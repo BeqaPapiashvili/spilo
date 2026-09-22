@@ -70,7 +70,7 @@ export default function AdminProductsPage() {
     setIsLoading(true);
     try {
       const [prodRes, catRes, brandRes] = await Promise.all([
-        fetch("/api/products?status=ALL"),
+        fetch("/api/products?status=ALL&limit=200"),
         fetch("/api/categories"),
         fetch("/api/brands"),
       ]);
@@ -230,7 +230,7 @@ export default function AdminProductsPage() {
     { value: "LOW_STOCK", label: `იწურება (${metrics.lowStock})` },
     { value: "OUT_OF_STOCK", label: `ამოწურულია (${metrics.outOfStock})` },
     { value: "DISCOUNTED", label: `ფასდაკლებული (${metrics.discounted})` },
-    { value: "FEATURED", label: `Featured (${metrics.featured})` },
+    { value: "FEATURED", label: `რჩეული (${metrics.featured})` },
   ];
 
   const sortOptions: CustomSelectOption[] = [
@@ -532,7 +532,7 @@ export default function AdminProductsPage() {
           { label: "მარაგი იწურება", value: metrics.lowStock, icon: AlertTriangle, filter: "LOW_STOCK", bg: "bg-amber-50/70 border-amber-200/80 text-amber-800" },
           { label: "ამოწურულია", value: metrics.outOfStock, icon: X, filter: "OUT_OF_STOCK", bg: "bg-red-50/70 border-red-200/80 text-red-800" },
           { label: "ფასდაკლებული", value: metrics.discounted, icon: TrendingDown, filter: "DISCOUNTED", bg: "bg-[#FFF5F2] border-[#FED7CC] text-[#FF5238]" },
-          { label: "Featured / აქცია", value: metrics.featured, icon: Sparkles, filter: "FEATURED", bg: "bg-purple-50/70 border-purple-200/80 text-purple-800" },
+          { label: "რჩეული / აქცია", value: metrics.featured, icon: Sparkles, filter: "FEATURED", bg: "bg-purple-50/70 border-purple-200/80 text-purple-800" },
         ].map((m, idx) => {
           const Icon = m.icon;
           const isActive = stockFilter === m.filter;
@@ -817,7 +817,7 @@ export default function AdminProductsPage() {
                                 </span>
                               )}
                               {p.isFeatured && (
-                                <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded font-sans">Featured</span>
+                                <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded font-sans">რჩეული</span>
                               )}
                               {p.isFlashDeal && (
                                 <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded font-sans">Flash Deal</span>

@@ -153,7 +153,7 @@ export async function PUT(request: Request) {
           name: admin.name,
           email: admin.email,
           role: admin.role,
-          password: hashedPassword || "admin123",
+          password: hashedPassword || admin.password,
         },
       }).catch(() => {});
     }

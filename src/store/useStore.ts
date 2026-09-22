@@ -62,7 +62,7 @@ interface StoreState {
   compareList: string[];
   highlightDifferencesOnly: boolean;
   user: UserProfile | null;
-  adminUser: { id: string; name: string; email: string; role: string } | null;
+  adminUser: { id: string; name: string; email: string; role: string; store?: { name?: string; slug?: string; logo?: string | null } } | null;
   adminToken: string | null;
   isAuthModalOpen: boolean;
   isMegaMenuOpen: boolean;
@@ -72,10 +72,10 @@ interface StoreState {
 
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
-  hydrateUserData: (userId: string) => Promise<void>;
+  hydrateUserData: (userId?: string) => Promise<void>;
 
   // Admin & User Auth Actions
-  setAdminSession: (admin: { id: string; name: string; email: string; role: string } | null, token: string | null) => void;
+  setAdminSession: (admin: { id: string; name: string; email: string; role: string; store?: { name?: string; slug?: string; logo?: string | null } } | null) => void;
   updateUserRole: (email: string, role: string) => void;
   logoutAdmin: () => void;
   logout: () => void;
@@ -159,16 +159,20 @@ export const useStore = create<StoreState>()(
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
 
-      hydrateUserData: async (userId: string) => {
+      hydrateUserData: async (_userId?: string) => {
         try {
           const [cartRes, wishlistRes, compareRes] = await Promise.all([
-            fetch(`/api/cart?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
-            fetch(`/api/wishlist?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
-            fetch(`/api/compare?userId=${encodeURIComponent(userId)}`).then((r) => r.json()).catch(() => null),
+            fetch("/api/cart").then((r) => r.json()).catch(() => null),
+            fetch("/api/wishlist").then((r) => r.json()).catch(() => null),
+            fetch("/api/compare").then((r) => r.json()).catch(() => null),
           ]);
 
           if (cartRes && cartRes.success && Array.isArray(cartRes.items) && cartRes.items.length > 0) {
-            const dbCartItems: CartItem[] = cartRes.items.map((ci: any) => ({
+            const dbCartItems: CartItem[] = cartRes.items.map((ci: {
+              product?: { id?: string; title?: string; price?: number; discountPrice?: number; images?: string[] | string };
+              productId?: string;
+              quantity?: number;
+            }) => ({
               id: ci.product?.id || ci.productId,
               title: ci.product?.title || "Product",
               price: ci.product?.price || 0,
@@ -190,7 +194,10 @@ export const useStore = create<StoreState>()(
           }
 
           if (wishlistRes && wishlistRes.success && Array.isArray(wishlistRes.items) && wishlistRes.items.length > 0) {
-            const dbWishlistItems: WishlistItem[] = wishlistRes.items.map((wi: any) => ({
+            const dbWishlistItems: WishlistItem[] = wishlistRes.items.map((wi: {
+              product?: { id?: string; title?: string; price?: number; discountPrice?: number; images?: string[] | string; monthlyInstallment?: number; discountPercentage?: number };
+              productId?: string;
+            }) => ({
               id: wi.product?.id || wi.productId,
               title: wi.product?.title || "Product",
               price: wi.product?.price || 0,
@@ -214,8 +221,8 @@ export const useStore = create<StoreState>()(
 
           if (compareRes && compareRes.success && Array.isArray(compareRes.items)) {
             const dbCompareIds: string[] = compareRes.items
-              .map((ci: any) => ci.product?.id || ci.productId)
-              .filter((id: any): id is string => typeof id === "string" && Boolean(id));
+              .map((ci: { product?: { id?: string }; productId?: string }) => ci.product?.id || ci.productId)
+              .filter((id: string | undefined): id is string => typeof id === "string" && Boolean(id));
 
             set((state) => {
               const merged = Array.from(new Set([...state.compareList, ...dbCompareIds]));
@@ -227,7 +234,7 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      setAdminSession: (adminUser, adminToken) => set({ adminUser, adminToken }),
+      setAdminSession: (adminUser) => set({ adminUser }),
       updateUserRole: (email, role) =>
         set((state) => {
           const targetEmail = email.trim().toLowerCase();
@@ -290,13 +297,10 @@ export const useStore = create<StoreState>()(
         });
 
         // Async sync with SQL backend API
-        const sessId = get().getSessionId();
         fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: get().user?.id,
-            sessionId: sessId,
             productId: item.id,
             quantity: 1,
           }),
@@ -304,9 +308,8 @@ export const useStore = create<StoreState>()(
       },
 
       removeFromCart: (id) => {
-        const sessId = get().getSessionId();
         set((state) => ({ cart: state.cart.filter((i) => i.id !== id) }));
-        fetch(`/api/cart?productId=${encodeURIComponent(id)}&userId=${encodeURIComponent(get().user?.id || "")}&sessionId=${encodeURIComponent(sessId)}`, {
+        fetch(`/api/cart?productId=${encodeURIComponent(id)}`, {
           method: "DELETE",
         }).catch(() => {});
       },
@@ -320,7 +323,6 @@ export const useStore = create<StoreState>()(
 
       // Wishlist
       toggleWishlist: (item) => {
-        const sessId = get().getSessionId();
         set((state) => {
           const exists = state.wishlist.some((i) => i.id === item.id);
           if (exists) {
@@ -344,8 +346,6 @@ export const useStore = create<StoreState>()(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: get().user?.id,
-            sessionId: sessId,
             productId: item.id,
           }),
         }).catch(() => {});
@@ -399,8 +399,6 @@ export const useStore = create<StoreState>()(
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              userId: get().user?.id,
-              sessionId: get().getSessionId(),
               productId: id,
             }),
           }).catch(() => {});
@@ -413,9 +411,7 @@ export const useStore = create<StoreState>()(
           compareList: state.compareList.filter((i) => i !== id),
         }));
 
-        const userId = get().user?.id || "";
-        const sessionId = get().getSessionId();
-        fetch(`/api/compare?productId=${encodeURIComponent(id)}&userId=${encodeURIComponent(userId)}&sessionId=${encodeURIComponent(sessionId)}`, {
+        fetch(`/api/compare?productId=${encodeURIComponent(id)}`, {
           method: "DELETE",
         }).catch(() => {});
       },
@@ -450,8 +446,6 @@ export const useStore = create<StoreState>()(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: get().user?.id,
-            sessionId: get().getSessionId(),
             productId: id,
           }),
         }).catch(() => {});
@@ -460,9 +454,7 @@ export const useStore = create<StoreState>()(
       clearCompare: () => {
         set({ compareList: [] });
 
-        const userId = get().user?.id || "";
-        const sessionId = get().getSessionId();
-        fetch(`/api/compare?userId=${encodeURIComponent(userId)}&sessionId=${encodeURIComponent(sessionId)}`, {
+        fetch("/api/compare", {
           method: "DELETE",
         }).catch(() => {});
       },
@@ -500,8 +492,6 @@ export const useStore = create<StoreState>()(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: get().user?.id,
-            sessionId: get().getSessionId(),
             productId: item.id,
           }),
         }).catch(() => {});
@@ -527,7 +517,6 @@ export const useStore = create<StoreState>()(
         highlightDifferencesOnly: state.highlightDifferencesOnly,
         user: state.user,
         adminUser: state.adminUser,
-        adminToken: state.adminToken,
         recentlyViewed: state.recentlyViewed,
         recentSearches: state.recentSearches,
       }),

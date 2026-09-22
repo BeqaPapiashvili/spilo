@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
       static: 30,
     },
   },
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:filename",
+        destination: "/api/uploads/:filename",
+      },
+    ];
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

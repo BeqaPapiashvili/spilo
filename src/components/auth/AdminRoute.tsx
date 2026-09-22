@@ -11,30 +11,39 @@ import Link from "next/link";
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { adminUser, adminToken, _hasHydrated, addToast } = useStore();
-  const [isMounted, setIsMounted] = useState(false);
+  const { adminUser, _hasHydrated, addToast, setAdminSession } = useStore();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   const isLoginPage = pathname === "/admin/login";
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
+    if (isLoginPage) return;
     const isStoreHydrated = _hasHydrated || (useStore.persist?.hasHydrated ? useStore.persist.hasHydrated() : true);
-    if (!isMounted || !isStoreHydrated) return;
+    if (!isStoreHydrated) return;
 
-    // Bypass check if already on /admin/login
-    if (isLoginPage) {
-      setIsAuthorized(true);
-      return;
-    }
+    let cancelled = false;
 
-    // Check Admin Authentication
-    const hasAdminAccess = adminUser !== null && adminToken !== null;
+    const restoreSession = async () => {
+      if (adminUser) {
+        if (!cancelled) setIsAuthorized(true);
+        return;
+      }
 
-    if (!hasAdminAccess) {
+      try {
+        const res = await fetch("/api/admin/auth", { credentials: "include" });
+        const data = await res.json();
+        if (res.ok && data.success && data.admin) {
+          if (!cancelled) {
+            setAdminSession(data.admin);
+            setIsAuthorized(true);
+          }
+          return;
+        }
+      } catch {
+        // fall through to login
+      }
+
+      if (cancelled) return;
       setIsAuthorized(false);
       addToast({
         title: "ავტორიზაცია აუცილებელია",
@@ -42,10 +51,13 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
         type: "warning",
       });
       router.push("/admin/login");
-    } else {
-      setIsAuthorized(true);
-    }
-  }, [adminUser, adminToken, _hasHydrated, isMounted, isLoginPage, router, addToast]);
+    };
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [adminUser, _hasHydrated, isLoginPage, router, addToast, setAdminSession]);
 
   // Bypass layout skeleton if rendering /admin/login page directly
   if (isLoginPage) {
@@ -53,7 +65,7 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
   }
 
   // Loading Skeleton before check completes
-  if (!isMounted || !_hasHydrated || isAuthorized === null || !isAuthorized) {
+  if (!_hasHydrated || isAuthorized === null || !isAuthorized) {
     return (
       <div className="min-h-screen bg-[#F4F6F9] p-8 flex items-center justify-center">
         <div className="bg-white rounded-3xl p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4 text-center">

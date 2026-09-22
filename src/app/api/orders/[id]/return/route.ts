@@ -40,15 +40,14 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json(
-        { success: false, error: "შეკვეთა ვერ მოიძებნა (Order not found)" },
+        { success: false, error: "შეკვეთა ვერ მოიძებნა" },
         { status: 404 }
       );
     }
 
-    const isAdmin =
-      (session?.role && ADMIN_ROLES.includes(session.role)) ||
-      (process.env.NODE_ENV !== "production" && !session);
-    if (order.userId && !isAdmin && (!session || session.userId !== order.userId)) {
+    const isAdmin = Boolean(session?.role && ADMIN_ROLES.includes(session.role));
+    const isOwner = Boolean(session?.userId && order.userId === session.userId);
+    if (!isAdmin && !isOwner) {
       return NextResponse.json(
         { success: false, error: "წვდომა შეზღუდულია (Forbidden)" },
         { status: 403 }
@@ -109,7 +108,7 @@ export async function POST(
 
     if (!order) {
       return NextResponse.json(
-        { success: false, error: "შეკვეთა ვერ მოიძებნა (Order not found)" },
+        { success: false, error: "შეკვეთა ვერ მოიძებნა" },
         { status: 404 }
       );
     }
@@ -221,7 +220,7 @@ export async function PATCH(
 
     if (!order) {
       return NextResponse.json(
-        { success: false, error: "შეკვეთა ვერ მოიძებნა (Order not found)" },
+        { success: false, error: "შეკვეთა ვერ მოიძებნა" },
         { status: 404 }
       );
     }

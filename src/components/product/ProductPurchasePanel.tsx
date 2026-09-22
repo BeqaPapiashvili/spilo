@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Check,
   Heart,
@@ -29,6 +30,9 @@ interface ProductPurchasePanelProps {
     id: string;
     title: string;
     brandName?: string;
+    storeName?: string;
+    storeSlug?: string;
+    storeLogo?: string;
     stock: number;
     sku?: string;
     code?: string;
@@ -133,6 +137,14 @@ export function ProductPurchasePanel({
                 {product.brandName}
               </span>
             )}
+            {product.storeName && product.storeSlug && (
+              <Link
+                href={`/stores/${product.storeSlug}`}
+                className="text-xs text-gray-700 bg-gray-50 ring-1 ring-gray-200 px-3 py-1 rounded-full hover:text-[#FF5238]"
+              >
+                {product.storeName}
+              </Link>
+            )}
             {product.stock > 0 ? (
               <span className="text-xs text-emerald-700 bg-emerald-50/80 ring-1 ring-emerald-600/15 px-3 py-1 rounded-full flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -221,6 +233,25 @@ export function ProductPurchasePanel({
           </span>
         )}
       </div>
+
+      {product.storeName && product.storeSlug && (
+        <Link
+          href={`/stores/${product.storeSlug}`}
+          className="flex items-center gap-3 p-3 rounded-2xl bg-[#F4F5F7] hover:bg-[#EEF0F3]"
+        >
+          <div className="w-11 h-11 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0">
+            {product.storeLogo ? (
+              <img src={product.storeLogo} alt="" className="w-full h-full object-contain p-1" />
+            ) : (
+              <span className="text-xs text-gray-400">მაღაზია</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm text-gray-900 truncate">{product.storeName}</p>
+            <p className="text-xs text-[#FF5238]">ყველა პროდუქტი ამ მაღაზიიდან</p>
+          </div>
+        </Link>
+      )}
 
       {/* 3. Modern Variant Selection (Colors, Storage, Specs) */}
       {product.variants && product.variants.length > 0 && (

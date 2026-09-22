@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { expandSearchTerms } from "@/lib/transliteration";
+import { getAuthSession, requireAdminSession } from "@/lib/jwt";
+import { ADMIN_ROLES } from "@/lib/permissions";
+import { recordAuditLog } from "@/lib/audit";
 
 export async function GET(request: Request) {
   try {
@@ -9,6 +12,7 @@ export async function GET(request: Request) {
     const idsParam = searchParams.get("ids");
     const categoryParam = searchParams.get("category");
     const brandParam = searchParams.get("brand");
+    const storeParam = searchParams.get("store");
     const colorParam = searchParams.get("color");
     const storageParam = searchParams.get("storage");
     const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
@@ -19,10 +23,13 @@ export async function GET(request: Request) {
     const isFlashDeal = searchParams.get("flash") === "true";
     const statusParam = searchParams.get("status");
     const sort = searchParams.get("sort") || "default";
+    const session = await getAuthSession(request);
+    const isAdmin = Boolean(session?.role && ADMIN_ROLES.includes(session.role));
 
-    // Optional pagination params (only applied if limit is provided)
     const limitParam = searchParams.get("limit");
-    const limit = limitParam ? Math.max(1, Number(limitParam)) : undefined;
+    const requestedLimit = limitParam ? Math.max(1, Number(limitParam)) : isAdmin ? 200 : 48;
+    const maxLimit = isAdmin ? 500 : 60;
+    const limit = Math.min(requestedLimit, maxLimit);
     const pageParam = searchParams.get("page");
     const page = pageParam ? Math.max(1, Number(pageParam)) : 1;
 
@@ -74,6 +81,19 @@ export async function GET(request: Request) {
             { brand: { slug: { in: brands } } },
             { brand: { name: { in: brands } } },
             { brandId: { in: brands } },
+          ],
+        });
+      }
+    }
+
+    if (storeParam) {
+      const stores = storeParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (stores.length > 0) {
+        andConditions.push({
+          OR: [
+            { store: { slug: { in: stores } } },
+            { store: { name: { in: stores } } },
+            { storeId: { in: stores } },
           ],
         });
       }
@@ -134,14 +154,19 @@ export async function GET(request: Request) {
       andConditions.push({ isFlashDeal: true });
     }
 
-    if (statusParam === "PENDING_REVIEW") {
-      andConditions.push({ status: "PENDING_REVIEW" });
+    if (statusParam === "ALL" || statusParam === "PENDING_REVIEW") {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { success: false, error: "წვდომა შეზღუდულია" },
+          { status: 403 }
+        );
+      }
+      if (statusParam === "PENDING_REVIEW") {
+        andConditions.push({ status: "PENDING_REVIEW" });
+      }
     } else if (statusParam === "PUBLISHED") {
       andConditions.push({ OR: [{ status: "PUBLISHED" }, { status: null }] });
-    } else if (statusParam === "ALL") {
-      // no status filter
     } else {
-      // Default (Storefront): hide pending review products
       andConditions.push({ status: { not: "PENDING_REVIEW" } });
     }
 
@@ -157,7 +182,7 @@ export async function GET(request: Request) {
     } else if (sort === "discount") {
       orderBy = { discountPercentage: "desc" };
     } else if (sort === "rating") {
-      orderBy = { rating: "desc" };
+      orderBy = { reviews: { _count: "desc" } };
     } else if (sort === "newest") {
       orderBy = { createdAt: "desc" };
     }
@@ -169,20 +194,16 @@ export async function GET(request: Request) {
       include: {
         category: true,
         brand: true,
+        store: true,
+        _count: { select: { reviews: true } },
       },
     };
 
-    if (limit !== undefined) {
-      totalCount = await prisma.product.count({ where });
-      findOptions.skip = (page - 1) * limit;
-      findOptions.take = limit;
-    }
+    totalCount = await prisma.product.count({ where });
+    findOptions.skip = (page - 1) * limit;
+    findOptions.take = limit;
 
     const products = await prisma.product.findMany(findOptions);
-
-    if (limit === undefined) {
-      totalCount = products.length;
-    }
 
     // Format products for frontend consumption
     const formattedProducts = products.map((p: any) => {
@@ -220,6 +241,10 @@ export async function GET(request: Request) {
         categoryName: p.category?.name,
         brandId: p.brandId,
         brandName: p.brand?.name,
+        storeId: p.storeId || undefined,
+        storeName: p.store?.name,
+        storeSlug: p.store?.slug,
+        storeLogo: p.store?.logo,
         image: imageList[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80",
         images: imageList,
         specs: parsedSpecs,
@@ -229,8 +254,8 @@ export async function GET(request: Request) {
         isFlashDeal: p.isFlashDeal,
         status: p.status || "PUBLISHED",
         isApproved: p.isApproved !== false,
-        rating: p.rating || 5,
-        reviewCount: p.reviewCount || 0,
+        rating: p._count?.reviews ? 5 : 0,
+        reviewCount: p._count?.reviews || 0,
       };
     });
 
@@ -238,8 +263,8 @@ export async function GET(request: Request) {
       success: true,
       count: formattedProducts.length,
       total: totalCount,
-      page: limit !== undefined ? page : 1,
-      totalPages: limit !== undefined ? Math.ceil(totalCount / limit) : 1,
+      page,
+      totalPages: Math.ceil(totalCount / limit) || 1,
       data: formattedProducts,
     });
   } catch (error: any) {
@@ -250,9 +275,6 @@ export async function GET(request: Request) {
     );
   }
 }
-
-import { requireAdminSession } from "@/lib/jwt";
-import { recordAuditLog } from "@/lib/audit";
 
 export async function POST(request: Request) {
   try {
@@ -275,6 +297,7 @@ export async function POST(request: Request) {
         stock: body.stock !== undefined ? Number(body.stock) : 10,
         categoryId: body.categoryId,
         brandId: body.brandId,
+        storeId: body.storeId || null,
         images: Array.isArray(body.images) ? body.images : [body.image || ""],
         specs: body.specs || null,
         isFeatured: Boolean(body.isFeatured),

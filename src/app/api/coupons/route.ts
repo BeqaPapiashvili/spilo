@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/jwt";
+import { recordAuditLog } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
     const coupons = await prisma.coupon.findMany({
       orderBy: { createdAt: "desc" },
+      include: { store: { select: { name: true } } },
     });
 
     const mapped = coupons.map((c) => ({
@@ -21,6 +26,8 @@ export async function GET() {
       status: (c.status as "ACTIVE" | "EXPIRED" | "DISABLED") || (c.isActive ? "ACTIVE" : "DISABLED"),
       validUntil: c.validUntil,
       isActive: c.isActive,
+      storeId: c.storeId || null,
+      storeName: c.store?.name || null,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     }));
@@ -33,14 +40,11 @@ export async function GET() {
   } catch (error: any) {
     console.error("GET /api/coupons error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch coupons" },
+      { success: false, error: error.message || "კუპონების წამოღება ვერ მოხერხდა" },
       { status: 500 }
     );
   }
 }
-
-import { requireAdminSession } from "@/lib/jwt";
-import { recordAuditLog } from "@/lib/audit";
 
 export async function POST(request: Request) {
   try {
@@ -60,6 +64,7 @@ export async function POST(request: Request) {
     const status = body.status || "ACTIVE";
     const isActive = body.isActive !== undefined ? Boolean(body.isActive) : status === "ACTIVE";
     const validUntil = body.validUntil ? new Date(body.validUntil) : null;
+    const storeId = body.storeId ? String(body.storeId) : null;
 
     let coupon;
 
@@ -79,6 +84,7 @@ export async function POST(request: Request) {
           status,
           isActive,
           validUntil,
+          storeId,
         },
         create: {
           id,
@@ -94,6 +100,7 @@ export async function POST(request: Request) {
           status,
           isActive,
           validUntil,
+          storeId,
         },
       });
 
@@ -121,6 +128,7 @@ export async function POST(request: Request) {
           status,
           isActive,
           validUntil,
+          storeId,
         },
         create: {
           code,
@@ -135,6 +143,7 @@ export async function POST(request: Request) {
           status,
           isActive,
           validUntil,
+          storeId,
         },
       });
 

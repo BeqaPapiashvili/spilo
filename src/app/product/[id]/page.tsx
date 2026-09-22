@@ -74,6 +74,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
     include: {
       brand: true,
       category: true,
+      store: true,
       reviews: true,
     },
   }).catch(() => null);
@@ -122,6 +123,10 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                   categoryName: product.category?.name,
                   brandId: product.brandId,
                   brandName: product.brand?.name,
+                  storeId: product.storeId || undefined,
+                  storeName: product.store?.name,
+                  storeSlug: product.store?.slug,
+                  storeLogo: product.store?.logo,
                   images: parsedImages,
                   specs: parsedSpecs as any,
                   colorName: product.colorName || undefined,

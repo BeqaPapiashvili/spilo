@@ -7,42 +7,27 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 export const NetworkStatusToast: React.FC = () => {
   const { isOnline, wasOffline } = useNetworkStatus();
-
-  // Show banner if offline OR if connection just recovered (wasOffline is true)
   const showToast = !isOnline || wasOffline;
 
   return (
     <AnimatePresence>
       {showToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none px-4 w-full max-w-md flex justify-center">
+        <div className="fixed top-[72px] sm:top-[100px] left-1/2 -translate-x-1/2 z-[80] pointer-events-none px-3 w-full max-w-[320px]">
           <motion.div
-            initial={{ opacity: 0, y: -24, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -24, scale: 0.95 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className={`pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md border text-xs md:text-sm ${
-              !isOnline
-                ? "bg-red-600/90 border-red-500/40 text-white"
-                : "bg-emerald-600/90 border-emerald-500/40 text-white"
-            }`}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="pointer-events-auto flex items-start gap-2.5 rounded-xl bg-white pl-3.5 pr-3 py-2.5 border border-[#E8E8EA] shadow-[0_4px_18px_rgba(17,17,17,0.07)]"
           >
-            <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0">
-              {!isOnline ? (
-                <WifiOff className="w-4 h-4 text-white animate-pulse" />
-              ) : (
-                <Wifi className="w-4 h-4 text-white" />
-              )}
-            </div>
-
-            <div className="flex-1">
-              {!isOnline ? (
-                <p className="leading-snug">
-                  ინტერნეტთან კავშირი შეწყდა. გთხოვთ შეამოწმოთ ქსელი.
-                </p>
-              ) : (
-                <p className="leading-snug">ინტერნეტთან კავშირი აღდგა</p>
-              )}
-            </div>
+            {!isOnline ? (
+              <WifiOff className="w-4 h-4 mt-[3px] text-[#FF5238] shrink-0" strokeWidth={2} />
+            ) : (
+              <Wifi className="w-4 h-4 mt-[3px] text-[#2F9E5C] shrink-0" strokeWidth={2} />
+            )}
+            <p className="text-[13px] text-[#1D1D1F] leading-[1.35]">
+              {!isOnline ? "ინტერნეტთან კავშირი შეწყდა" : "ინტერნეტთან კავშირი აღდგა"}
+            </p>
           </motion.div>
         </div>
       )}

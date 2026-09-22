@@ -17,25 +17,25 @@ interface DBAdminUser {
 const ROLES_LIST: { id: string; name: string; description: string; permissions: string[] }[] = [
   {
     id: "SUPER_ADMIN",
-    name: "Super Admin",
+    name: "სუპერ ადმინი",
     description: "სრული წვდომა სისტემის ყველა ფუნქციაზე და პარამეტრზე.",
     permissions: ["all:read", "all:write", "users:manage", "settings:manage", "finance:full"],
   },
   {
     id: "STORE_MANAGER",
-    name: "Store Manager",
+    name: "მაღაზიის მენეჯერი",
     description: "შეკვეთების, პროდუქტების და მარკეტინგის სრული მართვა.",
     permissions: ["products:write", "orders:write", "marketing:write", "analytics:read"],
   },
   {
     id: "SUPPORT_AGENT",
-    name: "Support Agent",
+    name: "მხარდაჭერის აგენტი",
     description: "მომხმარებელთა მხარდაჭერა და ონლაინ ჩათის ოპერირება.",
     permissions: ["support:write", "orders:read", "customers:read"],
   },
   {
     id: "CATALOG_MANAGER",
-    name: "Catalog Manager",
+    name: "კატალოგის მენეჯერი",
     description: "პროდუქტების, კატეგორიების და ბრენდების მართვა.",
     permissions: ["products:write", "categories:write", "brands:write", "inventory:write"],
   },
@@ -203,13 +203,13 @@ export default function AdminUsersPage() {
   const getRoleBadge = (roleKey: string) => {
     switch (roleKey) {
       case "SUPER_ADMIN":
-        return <span className="adm-badge adm-badge-purple">Super Admin</span>;
+        return <span className="adm-badge adm-badge-purple">სუპერ ადმინი</span>;
       case "STORE_MANAGER":
-        return <span className="adm-badge adm-badge-blue">Store Manager</span>;
+        return <span className="adm-badge adm-badge-blue">მაღაზიის მენეჯერი</span>;
       case "SUPPORT_AGENT":
-        return <span className="adm-badge adm-badge-green">Support Agent</span>;
+        return <span className="adm-badge adm-badge-green">მხარდაჭერის აგენტი</span>;
       case "CATALOG_MANAGER":
-        return <span className="adm-badge adm-badge-amber">Catalog Manager</span>;
+        return <span className="adm-badge adm-badge-amber">კატალოგის მენეჯერი</span>;
       default:
         return <span className="adm-badge adm-badge-slate">{roleKey}</span>;
     }
@@ -418,10 +418,10 @@ export default function AdminUsersPage() {
                 <div>
                   <label className="adm-label">როლი</label>
                   <select value={role} onChange={(e) => setRole(e.target.value)} className="adm-select" style={{ width: "100%" }}>
-                    <option value="SUPER_ADMIN">Super Admin</option>
-                    <option value="STORE_MANAGER">Store Manager</option>
-                    <option value="SUPPORT_AGENT">Support Agent</option>
-                    <option value="CATALOG_MANAGER">Catalog Manager</option>
+                    <option value="SUPER_ADMIN">სუპერ ადმინი</option>
+                    <option value="STORE_MANAGER">მაღაზიის მენეჯერი</option>
+                    <option value="SUPPORT_AGENT">მხარდაჭერის აგენტი</option>
+                    <option value="CATALOG_MANAGER">კატალოგის მენეჯერი</option>
                   </select>
                 </div>
                 <div>
@@ -471,10 +471,10 @@ export default function AdminUsersPage() {
                 <div>
                   <label className="adm-label">როლი</label>
                   <select value={role} onChange={(e) => setRole(e.target.value)} className="adm-select" style={{ width: "100%" }}>
-                    <option value="SUPER_ADMIN">Super Admin</option>
-                    <option value="STORE_MANAGER">Store Manager</option>
-                    <option value="SUPPORT_AGENT">Support Agent</option>
-                    <option value="CATALOG_MANAGER">Catalog Manager</option>
+                    <option value="SUPER_ADMIN">სუპერ ადმინი</option>
+                    <option value="STORE_MANAGER">მაღაზიის მენეჯერი</option>
+                    <option value="SUPPORT_AGENT">მხარდაჭერის აგენტი</option>
+                    <option value="CATALOG_MANAGER">კატალოგის მენეჯერი</option>
                   </select>
                 </div>
                 <div>

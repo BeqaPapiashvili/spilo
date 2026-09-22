@@ -8,6 +8,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 const notoGeorgian = Noto_Sans_Georgian({
@@ -37,9 +38,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body 
-        className="min-h-full flex flex-col font-sans bg-background text-foreground pb-16 md:pb-0"
+        className="min-h-full flex flex-col font-sans bg-background text-foreground pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0 overflow-x-clip"
         suppressHydrationWarning
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var n=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];var r=(n&&n.type==="reload")||(performance.navigation&&performance.navigation.type===1);if(!r)return;try{history.scrollRestoration="manual"}catch(e){}function p(){if(window.scrollTo)window.scrollTo(0,0);if(document.documentElement)document.documentElement.scrollTop=0;if(document.body)document.body.scrollTop=0}p();document.addEventListener("DOMContentLoaded",p);window.addEventListener("load",function(){p();requestAnimationFrame(function(){p();setTimeout(p,0);setTimeout(p,120)})});window.addEventListener("pageshow",p)})();`,
+          }}
+        />
         <StorefrontLayoutWrapper>
           {children}
         </StorefrontLayoutWrapper>

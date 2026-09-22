@@ -14,7 +14,7 @@ import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 
 export function StorefrontLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin");
+  const isAdmin = pathname?.startsWith("/admin") || pathname?.startsWith("/merchant");
 
   if (isAdmin) {
     return (
@@ -36,9 +36,11 @@ export function StorefrontLayoutWrapper({ children }: { children: React.ReactNod
       <AuthModal />
       <SupportChatWidget />
       <ToastContainer />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 min-w-0">{children}</main>
       <MobileBottomNav />
-      <Footer />
+      <div className={pathname === "/profile" ? "hidden md:block" : ""}>
+        <Footer />
+      </div>
     </>
   );
 }

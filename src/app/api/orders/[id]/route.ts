@@ -20,6 +20,7 @@ export async function GET(
       include: {
         items: true,
         user: true,
+        payments: { orderBy: { createdAt: "desc" } },
         returns: {
           include: {
             logs: {
@@ -38,18 +39,28 @@ export async function GET(
       );
     }
 
-    // If order has an associated userId, only allow owner or admin
-    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
-    if (order.userId && !isAdmin && (!session || session.userId !== order.userId)) {
+    const isAdmin = Boolean(session?.role && ADMIN_ROLES.includes(session.role));
+    const isOwner = Boolean(session?.userId && order.userId === session.userId);
+    if (!isAdmin && !isOwner) {
       return NextResponse.json(
-        { success: false, error: "წვდომა შეზღუდულია (Forbidden)" },
+        { success: false, error: "წვდომა შეზღუდულია" },
         { status: 403 }
       );
     }
 
+    const safeOrder = isAdmin
+      ? order
+      : {
+          ...order,
+          user: order.user
+            ? { id: order.user.id, name: order.user.name, email: order.user.email, phone: order.user.phone }
+            : null,
+          items: order.items.map(({ costPrice: _cost, ...item }) => item),
+        };
+
     return NextResponse.json({
       success: true,
-      data: order,
+      data: safeOrder,
     });
   } catch (error: any) {
     console.error("GET /api/orders/[id] error:", error);

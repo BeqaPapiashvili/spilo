@@ -140,7 +140,6 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      token,
       user: {
         id: user.id,
         name: user.name || targetEmail.split("@")[0],
@@ -156,7 +155,6 @@ export async function POST(request: Request) {
             role: user.role,
           }
         : null,
-      adminToken: isAdminRole ? token : null,
       message: "ავტორიზაცია წარმატებით დასრულდა",
     });
 

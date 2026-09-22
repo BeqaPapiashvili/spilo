@@ -93,7 +93,7 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
           {/* Live Storefront Sync Badge */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-700">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Live Sync</span>
+            <span>სინქრონიზაცია</span>
           </div>
 
           {/* Quick Add Product Button */}
