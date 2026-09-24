@@ -111,11 +111,17 @@ export function tokenFromCookieHeader(cookieHeader: string, name: string): strin
     .split(";")
     .map((part) => part.trim())
     .find((part) => part.startsWith(`${name}=`));
-  return match ? match.substring(name.length + 1) : null;
+  if (!match) return null;
+  const raw = match.substring(name.length + 1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 }
 
 function cookieOrder(preferred?: AuthCookieKind): string[] {
-  if (preferred === "admin") return [ADMIN_COOKIE_NAME];
+  if (preferred === "admin") return [ADMIN_COOKIE_NAME, AUTH_COOKIE_NAME];
   if (preferred === "merchant") return [MERCHANT_COOKIE_NAME, AUTH_COOKIE_NAME];
   if (preferred === "customer") return [AUTH_COOKIE_NAME];
   return [AUTH_COOKIE_NAME, ADMIN_COOKIE_NAME, MERCHANT_COOKIE_NAME];

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signToken, setAuthCookie } from "@/lib/jwt";
 import { enforceRateLimit, resetRateLimit, getClientIp } from "@/lib/rateLimit";
+import { loginEmailCandidates } from "@/lib/loginEmail";
 
 export async function POST(request: Request) {
   try {
@@ -36,7 +37,8 @@ export async function POST(request: Request) {
     }
 
     const cleanInput = email.trim().toLowerCase();
-    const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@spilo.ge`;
+    const emailCandidates = loginEmailCandidates(cleanInput);
+    const targetEmail = emailCandidates[0] || cleanInput;
     const submittedPassword = password.trim();
 
     // 2. Account/Email Rate Limiting (max 5 failed attempts per 15 min per account)
@@ -50,26 +52,16 @@ export async function POST(request: Request) {
     if (!emailLimit.success && emailLimit.response) return emailLimit.response;
 
     // 3. Search in User table first
+    const admin = await prisma.adminUser.findFirst({
+      where: { OR: emailCandidates.map((value) => ({ email: value })) },
+    });
+
     let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: cleanInput },
-          { email: targetEmail },
-        ],
-      },
+      where: { OR: emailCandidates.map((value) => ({ email: value })) },
     });
 
     // 4. If user not in User table, search in AdminUser table and sync
     if (!user) {
-      const admin = await prisma.adminUser.findFirst({
-        where: {
-          OR: [
-            { email: cleanInput },
-            { email: targetEmail },
-          ],
-        },
-      });
-
       if (admin) {
         const hashedAdminPassword = admin.password?.startsWith("$2a$") || admin.password?.startsWith("$2b$")
           ? admin.password
@@ -103,11 +95,18 @@ export async function POST(request: Request) {
     const storedPassword = user.password || "";
     let isPasswordValid = false;
 
-    if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
-      isPasswordValid = await bcrypt.compare(submittedPassword, storedPassword);
-    } else if (storedPassword && storedPassword === submittedPassword) {
-      isPasswordValid = true;
-      // Auto-migrate legacy plain text password to bcrypt hash
+    const matchesPassword = async (stored?: string | null) => {
+      if (!stored) return false;
+      if (stored.startsWith("$2a$") || stored.startsWith("$2b$")) {
+        return bcrypt.compare(submittedPassword, stored);
+      }
+      return stored === submittedPassword;
+    };
+
+    isPasswordValid =
+      (await matchesPassword(storedPassword)) || (await matchesPassword(admin?.password));
+
+    if (isPasswordValid && admin?.password && !(admin.password.startsWith("$2a$") || admin.password.startsWith("$2b$"))) {
       const newHash = await bcrypt.hash(submittedPassword, 10);
       await prisma.user.update({
         where: { id: user.id },
@@ -160,6 +159,9 @@ export async function POST(request: Request) {
 
     // Set signed JWT in secure HTTP-only cookie
     setAuthCookie(response, token);
+    if (isAdminRole) {
+      setAuthCookie(response, token, "admin");
+    }
 
     return response;
   } catch (error: any) {

@@ -154,32 +154,55 @@ const SYNONYM_CLUSTERS: string[][] = [
   ["case", "ქეისი", "ჩასადები", "შალითა"],
 ];
 
-/**
- * Returns an expanded array of search terms for a given query
- * incorporating transliteration and semantic synonyms.
- */
-export function expandSearchTerms(query: string): string[] {
-  const trimmed = query.trim().toLowerCase();
+export function tokenizeSearchQuery(query: string): string[] {
+  return query
+    .trim()
+    .toLowerCase()
+    .split(/[\s,;:/\\]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+}
+
+export function isCodeLikeToken(token: string): boolean {
+  const value = token.trim();
+  if (!value) return false;
+  if (/^(zoom|sp|sku)[-_]?/i.test(value)) return true;
+  if (/^\d+$/.test(value) && value.length >= 4) return true;
+  if (value.length >= 6 && /[0-9]/.test(value) && /[a-z]/i.test(value)) return true;
+  return false;
+}
+
+function tokenMatchesKeyword(token: string, keyword: string): boolean {
+  const t = token.toLowerCase();
+  const k = keyword.toLowerCase();
+  if (!t || !k) return false;
+  if (t === k) return true;
+  if (k.includes(" ")) return t.includes(k);
+  if (t.length >= 3 && k.length >= 3 && (k.startsWith(t) || t.startsWith(k))) return true;
+  return false;
+}
+
+export function expandToken(token: string): string[] {
+  const trimmed = token.trim().toLowerCase();
   if (!trimmed) return [];
 
   const terms = new Set<string>();
   terms.add(trimmed);
+  const compact = trimmed.replace(/[-_]/g, "");
+  if (compact) terms.add(compact);
 
-  // Add character-level transliterations
+  if (isCodeLikeToken(trimmed)) {
+    return Array.from(terms);
+  }
+
   const lat = geoToLat(trimmed);
   if (lat && lat !== trimmed) terms.add(lat);
 
   const geo = latToGeo(trimmed);
   if (geo && geo !== trimmed) terms.add(geo);
 
-  // Search through synonym clusters
   for (const cluster of SYNONYM_CLUSTERS) {
-    const matchesCluster = cluster.some((keyword) => {
-      const k = keyword.toLowerCase();
-      return trimmed.includes(k) || k.includes(trimmed);
-    });
-
-    if (matchesCluster) {
+    if (cluster.some((keyword) => tokenMatchesKeyword(trimmed, keyword))) {
       for (const synonym of cluster) {
         terms.add(synonym.toLowerCase());
       }
@@ -187,4 +210,77 @@ export function expandSearchTerms(query: string): string[] {
   }
 
   return Array.from(terms);
+}
+
+/**
+ * Returns an expanded array of search terms for a given query
+ * incorporating transliteration and semantic synonyms.
+ */
+export function expandSearchTerms(query: string): string[] {
+  const tokens = tokenizeSearchQuery(query);
+  if (tokens.length === 0) return [];
+
+  const terms = new Set<string>();
+  terms.add(query.trim().toLowerCase());
+  for (const token of tokens) {
+    for (const term of expandToken(token)) {
+      terms.add(term);
+    }
+  }
+  return Array.from(terms);
+}
+
+export function productSearchTokenClauses(query: string): Record<string, unknown>[] {
+  const tokens = tokenizeSearchQuery(query);
+  if (tokens.length === 0) return [];
+
+  return tokens.map((token) => {
+    const terms = expandToken(token);
+    const ors: Record<string, unknown>[] = [];
+
+    for (const term of terms) {
+      if (!term) continue;
+      ors.push(
+        { title: { contains: term } },
+        { sku: { contains: term } },
+        { slug: { contains: term } },
+        { colorName: { contains: term } },
+        { storage: { contains: term } },
+        { brand: { name: { contains: term } } },
+        { category: { name: { contains: term } } },
+        { variants: { some: { sku: { contains: term } } } }
+      );
+      if (term.length >= 4 && !isCodeLikeToken(token)) {
+        ors.push({ description: { contains: term } });
+      }
+    }
+
+    return { OR: ors };
+  });
+}
+
+export function rankSearchResults<T extends { title?: string | null; sku?: string | null }>(
+  items: T[],
+  query: string
+): T[] {
+  const raw = query.trim().toLowerCase();
+  const compact = raw.replace(/[-_\s]/g, "");
+  const tokens = tokenizeSearchQuery(query);
+
+  const score = (item: T) => {
+    const title = (item.title || "").toLowerCase();
+    const sku = (item.sku || "").toLowerCase();
+    const skuCompact = sku.replace(/[-_]/g, "");
+    let points = 0;
+    if (sku === raw || skuCompact === compact) points += 1000;
+    if (sku.includes(raw) || (compact && skuCompact.includes(compact))) points += 400;
+    if (title.startsWith(raw)) points += 300;
+    if (tokens.length > 0 && tokens.every((token) => title.includes(token) || sku.includes(token))) {
+      points += 200;
+    }
+    if (title.includes(raw)) points += 100;
+    return points;
+  };
+
+  return [...items].sort((a, b) => score(b) - score(a));
 }

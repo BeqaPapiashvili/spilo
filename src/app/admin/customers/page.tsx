@@ -124,14 +124,29 @@ export default function AdminCustomersPage() {
 
   const fetchUsers = () => {
     setIsLoading(true);
-    fetch("/api/admin/customers")
-      .then((res) => res.json())
-      .then((resData) => {
+    fetch("/api/admin/customers", { credentials: "include", cache: "no-store" })
+      .then(async (res) => {
+        const resData = await res.json().catch(() => null);
         if (resData && resData.success && Array.isArray(resData.data)) {
           setUsers(resData.data);
+          return;
         }
+        setUsers([]);
+        addToast({
+          title: "შეცდომა",
+          message: resData?.error || "მომხმარებლების ჩატვირთვა ვერ მოხერხდა",
+          type: "error",
+        });
       })
-      .catch((err) => console.error("Failed to fetch customers:", err))
+      .catch((err) => {
+        console.error("Failed to fetch customers:", err);
+        setUsers([]);
+        addToast({
+          title: "შეცდომა",
+          message: "სერვერთან კავშირი შეწყდა",
+          type: "error",
+        });
+      })
       .finally(() => setIsLoading(false));
   };
 

@@ -62,7 +62,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     const timer = setTimeout(async () => {
       try {
         const [res, storeRes] = await Promise.all([
-          fetch(`/api/products?q=${encodeURIComponent(cleanQuery)}`),
+          fetch(`/api/products?q=${encodeURIComponent(cleanQuery)}&limit=24`),
           fetch(`/api/stores?q=${encodeURIComponent(cleanQuery)}`),
         ]);
         const [json, storeJson] = await Promise.all([res.json(), storeRes.json()]);

@@ -35,12 +35,10 @@ function requireEnv(name: string): string {
   return value;
 }
 
+export const UNITED_DEALER_CODE = "2";
+
 export function isUnitedPaymentConfigured(): boolean {
-  return Boolean(
-    process.env.UNITED_PAYMENT_DEALER_CODE &&
-      process.env.UNITED_PAYMENT_USERNAME &&
-      process.env.UNITED_PAYMENT_PASSWORD
-  );
+  return Boolean(process.env.UNITED_PAYMENT_USERNAME && process.env.UNITED_PAYMENT_PASSWORD);
 }
 
 export function sha256Hex(value: string): string {
@@ -54,17 +52,13 @@ export function buildCheckKey(dealerCode: string, username: string, password: st
 function authPayload() {
   const username = requireEnv("UNITED_PAYMENT_USERNAME");
   const password = requireEnv("UNITED_PAYMENT_PASSWORD");
-  // United Payment test dealer is always "2". BankCode 1 is BOG, not the dealer.
-  const rawDealer = String(process.env["UNITED_PAYMENT_DEALER_CODE"] || "2").trim();
-  const dealerCode = rawDealer === "1" || !rawDealer ? "2" : rawDealer;
+  const dealerCode = UNITED_DEALER_CODE;
   const providedKey = process.env["UNITED_PAYMENT_CHECK_KEY"]?.trim();
   return {
-    DealerCode: String(dealerCode),
+    DealerCode: dealerCode,
     Username: username,
     Password: password,
-    CheckKey:
-      providedKey ||
-      "06a499d4236695f294b88ef8b3b69628dd3bab3e68f26660192ef0be1a022f90",
+    CheckKey: providedKey || buildCheckKey(dealerCode, username, password),
   };
 }
 
@@ -86,6 +80,10 @@ export function gatewayChargeAmount(orderTotal: number, _installmentNumber = 1):
     if (Number.isFinite(forced) && forced > 0) {
       return Number(forced.toFixed(2));
     }
+  }
+  // Dealer 2 is the United Payment test account and has a tiny daily cap.
+  if (UNITED_DEALER_CODE === "2") {
+    return 0.1;
   }
   return safeTotal;
 }

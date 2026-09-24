@@ -14,18 +14,28 @@ export async function GET(request: Request) {
     const roleFilter = searchParams.get("role");
 
     // 1. Fetch all users from User table in MySQL
-    const users = await prisma.user.findMany({
-      include: {
-        orders: {
-          select: {
-            id: true,
-            totalAmount: true,
-            status: true,
+    const users = await (async () => {
+      try {
+        return await prisma.user.findMany({
+          include: {
+            orders: {
+              select: {
+                id: true,
+                totalAmount: true,
+                status: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+          orderBy: { createdAt: "desc" },
+        });
+      } catch (includeError) {
+        console.error("GET /api/admin/customers orders include failed, fallback:", includeError);
+        const plainUsers = await prisma.user.findMany({
+          orderBy: { createdAt: "desc" },
+        });
+        return plainUsers.map((user) => ({ ...user, orders: [] }));
+      }
+    })();
 
     // 2. Fetch admin users to ensure all admins/managers exist
     const adminUsers = await prisma.adminUser.findMany();

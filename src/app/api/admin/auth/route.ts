@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signToken, setAuthCookie, clearAuthCookie, requireAdminSession } from "@/lib/jwt";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { loginEmailCandidates } from "@/lib/loginEmail";
 
 export async function GET(request: Request) {
   try {
@@ -46,27 +47,18 @@ export async function POST(request: Request) {
     }
 
     const cleanInput = email.trim().toLowerCase();
-    const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@spilo.ge`;
+    const emailCandidates = loginEmailCandidates(cleanInput);
+    const targetEmail = emailCandidates[0] || cleanInput;
     const submittedPassword = password.trim();
 
     // 1. Check User table
     let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: cleanInput },
-          { email: targetEmail },
-        ],
-      },
+      where: { OR: emailCandidates.map((value) => ({ email: value })) },
     });
 
     // 2. Check AdminUser table if not in User table
     let admin = await prisma.adminUser.findFirst({
-      where: {
-        OR: [
-          { email: cleanInput },
-          { email: targetEmail },
-        ],
-      },
+      where: { OR: emailCandidates.map((value) => ({ email: value })) },
     });
 
     if (!user && !admin) {
@@ -95,14 +87,18 @@ export async function POST(request: Request) {
     }
 
     // Password verification with strict bcrypt comparison (no backdoor bypass)
-    const storedPassword = user?.password || admin?.password || "";
-    let isPasswordValid = false;
+    const matchesPassword = async (stored?: string | null) => {
+      if (!stored) return false;
+      if (stored.startsWith("$2a$") || stored.startsWith("$2b$")) {
+        return bcrypt.compare(submittedPassword, stored);
+      }
+      return stored === submittedPassword;
+    };
 
-    if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
-      isPasswordValid = await bcrypt.compare(submittedPassword, storedPassword);
-    } else if (storedPassword && storedPassword === submittedPassword) {
-      isPasswordValid = true;
-      // Auto-migrate legacy plain text to secure bcrypt hash
+    const isPasswordValid =
+      (await matchesPassword(user?.password)) || (await matchesPassword(admin?.password));
+
+    if (isPasswordValid && admin?.password && !(admin.password.startsWith("$2a$") || admin.password.startsWith("$2b$"))) {
       const newHash = await bcrypt.hash(submittedPassword, 10);
       if (user?.id) {
         await prisma.user.update({

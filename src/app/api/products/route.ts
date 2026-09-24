@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { expandSearchTerms } from "@/lib/transliteration";
+import { productSearchTokenClauses, rankSearchResults } from "@/lib/transliteration";
 import { getAuthSession, requireAdminSession } from "@/lib/jwt";
 import { ADMIN_ROLES } from "@/lib/permissions";
 import { recordAuditLog } from "@/lib/audit";
@@ -44,20 +44,7 @@ export async function GET(request: Request) {
     }
 
     if (query.trim()) {
-      const searchTerms = expandSearchTerms(query.trim());
-      const queryOrs: any[] = [];
-      for (const term of searchTerms) {
-        queryOrs.push(
-          { title: { contains: term } },
-          { description: { contains: term } },
-          { sku: { contains: term } },
-          { brand: { name: { contains: term } } },
-          { category: { name: { contains: term } } }
-        );
-      }
-      if (queryOrs.length > 0) {
-        andConditions.push({ OR: queryOrs });
-      }
+      andConditions.push(...productSearchTokenClauses(query.trim()));
     }
 
     if (categoryParam) {
@@ -204,10 +191,21 @@ export async function GET(request: Request) {
     };
 
     totalCount = await prisma.product.count({ where });
-    findOptions.skip = (page - 1) * limit;
-    findOptions.take = limit;
 
-    const products = await prisma.product.findMany(findOptions);
+    let products;
+    if (query.trim()) {
+      const rankedPool = await prisma.product.findMany({
+        ...findOptions,
+        skip: 0,
+        take: Math.min(200, Math.max(limit * 4, 80)),
+      });
+      const ranked = rankSearchResults(rankedPool, query.trim());
+      products = ranked.slice((page - 1) * limit, page * limit);
+    } else {
+      findOptions.skip = (page - 1) * limit;
+      findOptions.take = limit;
+      products = await prisma.product.findMany(findOptions);
+    }
 
     // Format products for frontend consumption
     const formattedProducts = products.map((p: any) => {

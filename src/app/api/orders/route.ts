@@ -161,24 +161,29 @@ export async function POST(request: Request) {
 
     const newOrder = await prisma.$transaction(async (tx) => {
       if (shouldDeferSettlement) {
-        const existingPending = await tx.order.findFirst({
+        const existingPending = await tx.order.findMany({
           where: {
             userId,
             paymentStatus: "PENDING",
             status: { not: "CANCELLED" },
-            createdAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
             OR: [
               { paymentMethod: { contains: "ბარათ" } },
               { paymentMethod: { contains: "United" } },
               { paymentMethod: { contains: "განვადება" } },
             ],
           },
-          select: { orderNumber: true },
+          include: { items: true },
         });
-        if (existingPending) {
-          throw new Error(
-            `თქვენ უკვე გაქვთ გადაუხდელი შეკვეთა ${existingPending.orderNumber}. ჯერ დაასრულეთ წინა გადახდა.`
-          );
+        for (const oldOrder of existingPending) {
+          await restoreStock(tx, oldOrder.items);
+          await tx.order.update({
+            where: { id: oldOrder.id },
+            data: { status: "CANCELLED", paymentStatus: "FAILED" },
+          });
+          await tx.payment.updateMany({
+            where: { orderId: oldOrder.id, status: "PENDING" },
+            data: { status: "FAILED" },
+          });
         }
       }
 

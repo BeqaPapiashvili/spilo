@@ -10,12 +10,14 @@ export async function GET(request: Request) {
         isActive: true,
         ...(query
           ? {
-              OR: [
-                { name: { contains: query } },
-                { slug: { contains: query } },
-                { description: { contains: query } },
-                { city: { contains: query } },
-              ],
+              AND: query.split(/[\s,]+/).filter(Boolean).map((token) => ({
+                OR: [
+                  { name: { contains: token } },
+                  { slug: { contains: token } },
+                  { description: { contains: token } },
+                  { city: { contains: token } },
+                ],
+              })),
             }
           : {}),
       },
