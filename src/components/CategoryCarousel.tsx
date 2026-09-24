@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { DragSafeLink } from "@/components/DragSafeLink";
 import { Navigation, FreeMode, Mousewheel } from "swiper/modules";
 import {
   Tv,
@@ -92,6 +92,7 @@ const CAROUSEL_CATEGORIES = [
 
 export default function CategoryCarousel() {
   const swiperRef = useRef<any>(null);
+  const dragLockRef = useRef(false);
   const [isBeginning, setIsBeginning] = useState(true);
   const [isEnd, setIsEnd] = useState(false);
   const { toggleMegaMenu, isMegaMenuOpen } = useStore();
@@ -104,7 +105,7 @@ export default function CategoryCarousel() {
           {CAROUSEL_CATEGORIES.map((cat) => {
             const IconComponent = cat.icon;
             return (
-              <Link
+              <DragSafeLink
                 key={cat.slug}
                 href={`/catalog?category=${cat.slug}`}
                 className="flex flex-col items-center gap-1.5 w-[68px] shrink-0 active:scale-95 transition-transform"
@@ -115,7 +116,7 @@ export default function CategoryCarousel() {
                 <span className="text-[10px] leading-none text-gray-600 text-center w-full truncate whitespace-nowrap">
                   {cat.title}
                 </span>
-              </Link>
+              </DragSafeLink>
             );
           })}
         </div>
@@ -202,6 +203,17 @@ export default function CategoryCarousel() {
                 setIsBeginning(swiper.isBeginning);
                 setIsEnd(swiper.isEnd);
               }}
+              onTouchStart={() => {
+                dragLockRef.current = false;
+              }}
+              onSliderFirstMove={() => {
+                dragLockRef.current = true;
+              }}
+              onTouchEnd={() => {
+                window.setTimeout(() => {
+                  dragLockRef.current = false;
+                }, 80);
+              }}
               className="w-full py-1 overflow-visible"
             >
               {CAROUSEL_CATEGORIES.map((cat, idx) => {
@@ -209,10 +221,9 @@ export default function CategoryCarousel() {
 
                 return (
                   <SwiperSlide key={idx} className="!w-[135px] md:!w-[145px] shrink-0">
-                    <Link
+                    <DragSafeLink
                       href={`/catalog?category=${cat.slug}`}
-                      draggable={false}
-                      onDragStart={(e) => e.preventDefault()}
+                      dragLockRef={dragLockRef}
                       className="group w-[135px] md:w-[145px] h-[155px] md:h-[165px] bg-white border border-zinc-200/80 rounded-[22px] p-3.5 flex flex-col justify-between items-start cursor-pointer select-none text-left"
                     >
                       <div className="z-10 w-full">
@@ -226,7 +237,7 @@ export default function CategoryCarousel() {
                           <IconComponent className="w-7 h-7 text-zinc-700 stroke-[1.6]" />
                         )}
                       </div>
-                    </Link>
+                    </DragSafeLink>
                   </SwiperSlide>
                 );
               })}

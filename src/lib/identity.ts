@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/jwt";
+import { getAuthSession, shouldUseSecureCookie } from "@/lib/jwt";
 
 export const GUEST_COOKIE_NAME = "spilo_sid";
 const GUEST_MAX_AGE = 60 * 60 * 24 * 365;
@@ -52,7 +52,7 @@ export function applyGuestCookie(response: NextResponse, identity: Identity): Ne
   response.cookies.set(GUEST_COOKIE_NAME, identity.guestCookieToSet, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(),
     path: "/",
     maxAge: GUEST_MAX_AGE,
   });

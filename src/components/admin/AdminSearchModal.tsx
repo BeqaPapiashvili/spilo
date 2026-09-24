@@ -82,6 +82,7 @@ const ADMIN_SECTIONS: AdminPageSection[] = [
   { title: "ნავიგაცია", description: "მენიუსა და ფუტერის ბმულები", href: "/admin/navigation", category: "CMS", icon: <Navigation className="w-4 h-4 text-indigo-600" /> },
   { title: "CMS გვერდები", description: "წესები, კონფიდენციალურობა, FAQ", href: "/admin/cms", category: "CMS", icon: <Globe className="w-4 h-4 text-blue-600" /> },
   { title: "სისტემის პარამეტრები", description: "მაღაზიის გლობალური კონფიგურაცია", href: "/admin/settings", category: "სისტემა", icon: <Settings className="w-4 h-4 text-slate-600" /> },
+  { title: "Coming Soon / Offline", description: "საიტის დროებით დახურვა ან Coming Soon გვერდი", href: "/admin/site-status", category: "სისტემა", icon: <Settings className="w-4 h-4 text-slate-600" /> },
   { title: "Audit ლოგები", description: "ადმინისტრატორების მოქმედებების ისტორია", href: "/admin/audit-logs", category: "სისტემა", icon: <History className="w-4 h-4 text-slate-600" /> },
   { title: "უსაფრთხოება & 2FA", description: "წვდომის უფლებები და პაროლები", href: "/admin/security", category: "სისტემა", icon: <ShieldCheck className="w-4 h-4 text-red-600" /> },
 ];

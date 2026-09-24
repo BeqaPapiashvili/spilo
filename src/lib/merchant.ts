@@ -9,7 +9,7 @@ export async function requireMerchantSession(request: Request): Promise<{
   storeId: string;
   errorResponse: NextResponse | null;
 }> {
-  const session = await getAuthSession(request);
+  const session = await getAuthSession(request, "merchant");
   if (!session?.userId || session.role !== MERCHANT_ROLE) {
     return {
       session: null,

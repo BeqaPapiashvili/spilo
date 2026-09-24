@@ -133,7 +133,8 @@ export async function resolveStorefrontFeed(): Promise<ResolvedStorefrontSection
         const found = await prisma.product.findMany({
           where: { 
             id: { in: config.manualProductIds },
-            status: { not: "PENDING_REVIEW" }
+            status: { not: "PENDING_REVIEW" },
+            isApproved: { not: false },
           },
           include: {
             category: true,
@@ -149,7 +150,8 @@ export async function resolveStorefrontFeed(): Promise<ResolvedStorefrontSection
       } else {
         // AUTOMATIC SOURCE: Dynamic Prisma where clause
         const whereClause: any = {
-          status: { not: "PENDING_REVIEW" }
+          status: { not: "PENDING_REVIEW" },
+          isApproved: { not: false },
         };
 
         // Brand filter

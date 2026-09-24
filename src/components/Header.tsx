@@ -20,6 +20,7 @@ import {
   Truck,
   Heart,
   ShoppingBag,
+  Store,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
@@ -205,13 +206,6 @@ export default function Header() {
               className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0"
               imgClassName="h-7 sm:h-[38px] md:h-[42px] w-auto max-w-[120px] sm:max-w-[160px]"
             />
-            <Link
-              href="/stores"
-              className="hidden lg:inline-flex text-[13px] text-gray-700 hover:text-[#FF5238] shrink-0"
-            >
-              მაღაზიები
-            </Link>
-
             {/* Address Selector Pill Button (Icon 48x48) */}
             <button
               type="button"
@@ -226,6 +220,17 @@ export default function Header() {
                 {selectedAddress || user?.address || "მისამართის დამატება"}
               </span>
             </button>
+
+            <Link
+              href="/stores"
+              className="hidden lg:flex items-center gap-2.5 text-gray-700 hover:text-gray-900 transition-colors text-[13px] group"
+              title="პარტნიორი მაღაზიები"
+            >
+              <div className="w-12 h-12 rounded-full bg-[#F2F3F5] group-hover:bg-[#E5E7EB] flex items-center justify-center shrink-0 transition-colors">
+                <Store className="w-5 h-5 text-gray-800" />
+              </div>
+              <span>მაღაზიები</span>
+            </Link>
           </div>
 
           {/* Center Search Input (tablet/desktop) */}
@@ -529,9 +534,10 @@ export default function Header() {
                       )}
                       <button
                         type="button"
-                        onClick={() => {
-                          logout();
+                        onClick={async () => {
+                          await logout();
                           setIsMobileMenuOpen(false);
+                          window.location.assign("/");
                         }}
                         className="p-2 text-gray-400 hover:text-red-500 rounded-xl border border-gray-200 bg-white transition-colors"
                         title="გასვლა"

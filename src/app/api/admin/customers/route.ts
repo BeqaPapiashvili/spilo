@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/jwt";
+import { canGrantRole } from "@/lib/permissions";
+import { recordAuditLog } from "@/lib/audit";
+import bcrypt from "bcryptjs";
 
 export async function GET(request: Request) {
   try {
+    const { errorResponse } = await requireAdminSession(request);
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get("role");
 
@@ -89,11 +96,6 @@ export async function GET(request: Request) {
   }
 }
 
-import { requireAdminSession } from "@/lib/jwt";
-import { recordAuditLog } from "@/lib/audit";
-
-import bcrypt from "bcryptjs";
-
 export async function POST(request: Request) {
   try {
     const { session, errorResponse } = await requireAdminSession(request);
@@ -114,6 +116,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: "პაროლი უნდა შეიცავდეს მინიმუმ 8 სიმბოლოს" },
         { status: 400 }
+      );
+    }
+
+    if (role === "MERCHANT") {
+      return NextResponse.json(
+        { success: false, error: "Create partners from /admin/stores/partners" },
+        { status: 400 }
+      );
+    }
+
+    if (!canGrantRole(session?.role || "", role || "CUSTOMER")) {
+      return NextResponse.json(
+        { success: false, error: "You cannot assign this role" },
+        { status: 403 }
       );
     }
 
@@ -203,6 +219,21 @@ export async function PUT(request: Request) {
     }
 
     const updateData: any = {};
+    if (role !== undefined) {
+      if (role === "MERCHANT") {
+        return NextResponse.json(
+          { success: false, error: "Create partners from /admin/stores/partners" },
+          { status: 400 }
+        );
+      }
+      if (!canGrantRole(session?.role || "", role)) {
+        return NextResponse.json(
+          { success: false, error: "You cannot assign this role" },
+          { status: 403 }
+        );
+      }
+    }
+
     if (name !== undefined) updateData.name = name.trim();
     if (phone !== undefined) updateData.phone = phone.trim();
     if (address !== undefined) updateData.address = address.trim();

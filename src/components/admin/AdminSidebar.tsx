@@ -25,6 +25,7 @@ import {
   ShieldCheck, 
   History, 
   Settings, 
+  Power,
   ExternalLink, 
   X, 
   Zap, 
@@ -121,6 +122,7 @@ const NAVIGATION_TABS: MenuTab[] = [
         title: "პარამეტრები & ლოგები",
         items: [
           { title: "სისტემის პარამეტრები", href: "/admin/settings", icon: <Settings className="w-4 h-4" /> },
+          { title: "Coming Soon / Offline", href: "/admin/site-status", icon: <Power className="w-4 h-4" /> },
           { title: "Audit ლოგები", href: "/admin/audit-logs", icon: <History className="w-4 h-4" /> },
           { title: "უსაფრთხოება", href: "/admin/security", icon: <ShieldCheck className="w-4 h-4" /> },
         ],
@@ -393,7 +395,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 type="button"
                 onClick={async () => {
                   try {
-                    await fetch("/api/auth/logout", { method: "POST" });
+                    await fetch("/api/admin/auth", { method: "DELETE" });
                   } catch (e) {}
                   logoutAdmin();
                   useStore.getState().setUser(null);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { signToken, setAuthCookie, requireAdminSession } from "@/lib/jwt";
+import { signToken, setAuthCookie, clearAuthCookie, requireAdminSession } from "@/lib/jwt";
 import { enforceRateLimit } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
@@ -174,7 +174,7 @@ export async function POST(request: Request) {
     });
 
     // Set secure HTTP-only cookie
-    setAuthCookie(response, token);
+    setAuthCookie(response, token, "admin");
 
     return response;
   } catch (error: any) {
@@ -184,4 +184,10 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true, message: "Logged out" });
+  clearAuthCookie(response, "admin");
+  return response;
 }

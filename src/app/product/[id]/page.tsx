@@ -17,6 +17,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const product = await prisma.product.findFirst({
     where: {
       OR: [{ id }, { slug: id }],
+      status: { not: "PENDING_REVIEW" },
+      isApproved: { not: false },
     },
     include: {
       brand: true,
@@ -70,6 +72,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const product = await prisma.product.findFirst({
     where: {
       OR: [{ id }, { slug: id }],
+      status: { not: "PENDING_REVIEW" },
+      isApproved: { not: false },
     },
     include: {
       brand: true,

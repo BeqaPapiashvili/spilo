@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { headers, cookies } from "next/headers";
-import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
+import { verifyToken, AUTH_COOKIE_NAME, ADMIN_COOKIE_NAME } from "@/lib/jwt";
 
 export interface AuditLogOptions {
   action: string;
@@ -47,7 +47,8 @@ export async function recordAuditLog(options: AuditLogOptions) {
     if (!userId || !adminEmail) {
       try {
         const cookieStore = await cookies();
-        const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+        const token =
+          cookieStore.get(ADMIN_COOKIE_NAME)?.value || cookieStore.get(AUTH_COOKIE_NAME)?.value;
         if (token) {
           const payload = await verifyToken(token);
           if (payload) {

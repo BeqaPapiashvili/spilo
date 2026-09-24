@@ -41,13 +41,12 @@ export async function sendEmail({
       return { success: true, message: "Email sent successfully via Resend", id: data?.id };
     }
 
-    // Console logging fallback
     console.log(`\n======================================================`);
     console.log(`[EMAIL NOTICE] To: ${to}`);
     console.log(`[EMAIL NOTICE] Subject: ${subject}`);
     console.log(`======================================================\n`);
 
-    return { success: true, message: "Email logged to console" };
+    return { success: false, message: "RESEND_API_KEY is not configured" };
   } catch (error: any) {
     console.error("[Email Dispatcher Exception]:", error);
     return { success: false, message: error.message };

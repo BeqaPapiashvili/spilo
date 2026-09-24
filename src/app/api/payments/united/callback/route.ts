@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { verifyThreeDHash } from "@/lib/unitedPayment";
+import { releaseUnpaidOrder, settlePaidOrder } from "@/lib/orderFulfillment";
 
 async function readCallbackFields(request: Request): Promise<Record<string, string>> {
   const url = new URL(request.url);
@@ -83,22 +84,39 @@ async function finalizePayment(request: Request) {
   const paid = hashResult === "SUCCESS";
   const status = paid ? "PAID" : hashResult === "FAIL" ? "FAILED" : "FAILED";
 
-  await prisma.$transaction(async (tx) => {
-    await tx.payment.update({
+  if (!paid) {
+    await prisma.payment.update({
       where: { id: payment.id },
       data: {
-        status,
+        status: "FAILED",
         virtualPosOrderId: trxCode || payment.virtualPosOrderId,
         resultCode: resultCode || hashResult,
         resultMessage: resultMessage || (hashResult === "INVALID" ? "hash mismatch" : resultMessage),
         rawCallback: JSON.stringify(fields),
       },
     });
+    await releaseUnpaidOrder(payment.orderId);
+    return NextResponse.redirect(failUrl);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "PAID",
+        virtualPosOrderId: trxCode || payment.virtualPosOrderId,
+        resultCode: resultCode || hashResult,
+        resultMessage: resultMessage || null,
+        rawCallback: JSON.stringify(fields),
+      },
+    });
 
     await tx.order.update({
       where: { id: payment.orderId },
-      data: { paymentStatus: paid ? "PAID" : "FAILED" },
+      data: { paymentStatus: "PAID" },
     });
+
+    await settlePaidOrder(tx, payment.order);
   });
 
   if (paid && payment.order.customerEmail?.includes("@")) {

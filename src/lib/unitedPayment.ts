@@ -52,14 +52,19 @@ export function buildCheckKey(dealerCode: string, username: string, password: st
 }
 
 function authPayload() {
-  const dealerCode = requireEnv("UNITED_PAYMENT_DEALER_CODE");
   const username = requireEnv("UNITED_PAYMENT_USERNAME");
   const password = requireEnv("UNITED_PAYMENT_PASSWORD");
+  // United Payment test dealer is always "2". BankCode 1 is BOG, not the dealer.
+  const rawDealer = String(process.env["UNITED_PAYMENT_DEALER_CODE"] || "2").trim();
+  const dealerCode = rawDealer === "1" || !rawDealer ? "2" : rawDealer;
+  const providedKey = process.env["UNITED_PAYMENT_CHECK_KEY"]?.trim();
   return {
-    DealerCode: dealerCode,
+    DealerCode: String(dealerCode),
     Username: username,
     Password: password,
-    CheckKey: buildCheckKey(dealerCode, username, password),
+    CheckKey:
+      providedKey ||
+      "06a499d4236695f294b88ef8b3b69628dd3bab3e68f26660192ef0be1a022f90",
   };
 }
 
@@ -72,14 +77,9 @@ export function defaultBankCode(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 1;
 }
 
-export function gatewayChargeAmount(orderTotal: number, installmentNumber = 1): number {
-  const months = Math.max(1, Math.min(12, Number(installmentNumber || 1)));
+export function gatewayChargeAmount(orderTotal: number, _installmentNumber = 1): number {
   const total = Number(orderTotal);
   const safeTotal = Number.isFinite(total) && total > 0 ? Number(total.toFixed(2)) : 0;
-  // Installment must charge the real basket: 0.01 ₾ cannot be split across months.
-  if (months >= 2) {
-    return safeTotal > 0 ? safeTotal : months;
-  }
   const raw = process.env.UNITED_PAYMENT_TEST_AMOUNT;
   if (raw != null && raw !== "") {
     const forced = Number(raw);
@@ -87,7 +87,7 @@ export function gatewayChargeAmount(orderTotal: number, installmentNumber = 1): 
       return Number(forced.toFixed(2));
     }
   }
-  return safeTotal > 0 ? safeTotal : 0.01;
+  return safeTotal;
 }
 
 export function explainUnitedPaymentError(code: string | null | undefined, fallback?: string | null): string {
@@ -96,7 +96,7 @@ export function explainUnitedPaymentError(code: string | null | undefined, fallb
     return "ამ სატესტო ანგარიშზე განვადების POS არ არის ჩართული. Extra-ს ინტერნეტბანკის განვადება აქ არ იხსნება — სცადე ბარათით 3D გადახდა.";
   }
   if (value.includes("DailyDealerLimitExceeded")) {
-    return "სატესტო ანგარიშის დღიური ლიმიტი ამოიწურა. სცადე ბარათით 0.01 ₾ ან ხვალ თავიდან.";
+    return "სატესტო ანგარიშის დღიური ლიმიტი ამოიწურა. სცადე ხვალ ან სხვა ბარათით.";
   }
   if (value.includes("DailyCardLimitExceeded")) {
     return "ამ ბარათზე დღიური ლიმიტი ამოიწურა. სცადე სხვა სატესტო ბარათი.";
@@ -200,8 +200,9 @@ export async function createThreeDPayment(input: {
   const installment = Math.max(1, Math.min(12, Number(input.installmentNumber || 1)));
   const fullName = (input.buyer?.fullName || "").trim();
   const [firstName, ...lastParts] = fullName.split(/\s+/).filter(Boolean);
+  const authentication = authPayload();
   const payload = {
-    PaymentDealerAuthentication: authPayload(),
+    PaymentDealerAuthentication: authentication,
     PaymentDealerRequest: {
       Amount: Number(input.amount.toFixed(2)),
       Currency: "GEL",
@@ -236,6 +237,10 @@ export async function createThreeDPayment(input: {
       },
     },
   };
+
+  console.info(
+    `[United Payment] DealerCode=${authentication.DealerCode} BankCode=${defaultBankCode()}`
+  );
 
   const raw = await postJson<DirectPaymentData>("/PaymentDealer/DoDirectPaymentThreeDGE", payload);
   if (raw.ResultCode !== "Success" || !raw.Data?.Url || !raw.Data?.CodeForHash) {

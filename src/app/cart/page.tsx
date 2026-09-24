@@ -16,7 +16,7 @@ import {
   Check
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 
 interface AppliedCouponData {
@@ -33,13 +33,23 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCouponData | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(100);
+
+  useEffect(() => {
+    fetch("/api/delivery")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.freeShippingThreshold != null) {
+          setFreeShippingThreshold(Number(json.data.freeShippingThreshold) || 100);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const cartSubtotal = cart.reduce(
     (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
     0
   );
-
-  const freeShippingThreshold = 100;
   const remainingForFreeShipping = Math.max(0, freeShippingThreshold - cartSubtotal);
   const progressPercent = Math.min(100, (cartSubtotal / freeShippingThreshold) * 100);
 

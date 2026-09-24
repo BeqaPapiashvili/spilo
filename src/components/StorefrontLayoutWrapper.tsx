@@ -14,7 +14,7 @@ import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 
 export function StorefrontLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin") || pathname?.startsWith("/merchant");
+  const isAdmin = pathname?.startsWith("/admin") || pathname?.startsWith("/merchant") || pathname === "/offline";
 
   if (isAdmin) {
     return (

@@ -27,8 +27,37 @@ function resolveJwtSecret(): Uint8Array {
 const JWT_SECRET = resolveJwtSecret();
 
 export const AUTH_COOKIE_NAME = "spilo_token";
+export const ADMIN_COOKIE_NAME = "spilo_admin_token";
+export const MERCHANT_COOKIE_NAME = "spilo_merchant_token";
 export const TOKEN_EXPIRY = "7d";
 export const TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+
+export type AuthCookieKind = "customer" | "admin" | "merchant";
+
+export function cookieNameFor(kind: AuthCookieKind): string {
+  if (kind === "admin") return ADMIN_COOKIE_NAME;
+  if (kind === "merchant") return MERCHANT_COOKIE_NAME;
+  return AUTH_COOKIE_NAME;
+}
+
+export function shouldUseSecureCookie(): boolean {
+  if (process.env.COOKIE_SECURE === "1") return true;
+  if (process.env.COOKIE_SECURE === "0") return false;
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "";
+  if (site.startsWith("https://")) return true;
+  if (site.startsWith("http://")) return false;
+  return false;
+}
+
+function cookieBase(maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: shouldUseSecureCookie(),
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge,
+  };
+}
 
 export async function signToken(payload: SessionPayload): Promise<string> {
   return await new SignJWT({ ...payload })
@@ -53,48 +82,63 @@ export async function verifyToken(token: string): Promise<SessionPayload | null>
   }
 }
 
-export function setAuthCookie(response: NextResponse, token: string): void {
-  response.cookies.set(AUTH_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: TOKEN_MAX_AGE_SECONDS,
-  });
+export function setAuthCookie(
+  response: NextResponse,
+  token: string,
+  kind: AuthCookieKind = "customer"
+): void {
+  response.cookies.set(cookieNameFor(kind), token, cookieBase(TOKEN_MAX_AGE_SECONDS));
 }
 
-export function clearAuthCookie(response: NextResponse): void {
-  response.cookies.set(AUTH_COOKIE_NAME, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-    expires: new Date(0),
-  });
+export function clearAuthCookie(
+  response: NextResponse,
+  kind: AuthCookieKind | "all" = "customer"
+): void {
+  const names =
+    kind === "all"
+      ? [AUTH_COOKIE_NAME, ADMIN_COOKIE_NAME, MERCHANT_COOKIE_NAME]
+      : [cookieNameFor(kind)];
+  for (const name of names) {
+    response.cookies.set(name, "", {
+      ...cookieBase(0),
+      expires: new Date(0),
+    });
+  }
 }
 
-export async function getAuthSession(request: Request): Promise<SessionPayload | null> {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const cookieMatch = cookieHeader
+export function tokenFromCookieHeader(cookieHeader: string, name: string): string | null {
+  const match = cookieHeader
     .split(";")
-    .map((c) => c.trim())
-    .find((c) => c.startsWith(`${AUTH_COOKIE_NAME}=`));
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+  return match ? match.substring(name.length + 1) : null;
+}
 
-  let token: string | null = null;
-  if (cookieMatch) {
-    token = cookieMatch.substring(AUTH_COOKIE_NAME.length + 1);
+function cookieOrder(preferred?: AuthCookieKind): string[] {
+  if (preferred === "admin") return [ADMIN_COOKIE_NAME];
+  if (preferred === "merchant") return [MERCHANT_COOKIE_NAME, AUTH_COOKIE_NAME];
+  if (preferred === "customer") return [AUTH_COOKIE_NAME];
+  return [AUTH_COOKIE_NAME, ADMIN_COOKIE_NAME, MERCHANT_COOKIE_NAME];
+}
+
+export async function getAuthSession(
+  request: Request,
+  preferred?: AuthCookieKind
+): Promise<SessionPayload | null> {
+  const cookieHeader = request.headers.get("cookie") || "";
+  for (const name of cookieOrder(preferred)) {
+    const token = tokenFromCookieHeader(cookieHeader, name);
+    if (!token) continue;
+    const session = await verifyToken(token);
+    if (session) return session;
   }
 
-  if (!token) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
-      token = authHeader.substring(7).trim();
-    }
+  const authHeader = request.headers.get("authorization");
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    return await verifyToken(authHeader.substring(7).trim());
   }
 
-  if (!token) return null;
-  return await verifyToken(token);
+  return null;
 }
 
 const ADMIN_ROLE_LIST = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"];
@@ -102,12 +146,12 @@ const ADMIN_ROLE_LIST = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATAL
 export async function requireAdminSession(
   request: Request
 ): Promise<{ session: SessionPayload | null; errorResponse: NextResponse | null }> {
-  const session = await getAuthSession(request);
+  const session = await getAuthSession(request, "admin");
   if (!session || !session.userId) {
     return {
       session: null,
       errorResponse: NextResponse.json(
-        { success: false, error: "ავტორიზაცია აუცილებელია" },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       ),
     };

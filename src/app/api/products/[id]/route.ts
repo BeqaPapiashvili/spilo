@@ -28,6 +28,15 @@ export async function GET(
       );
     }
 
+    const session = await getAuthSession(request);
+    const isAdmin = Boolean(session?.role && ADMIN_ROLES.includes(session.role));
+    if (!isAdmin && (product.status === "PENDING_REVIEW" || product.isApproved === false)) {
+      return NextResponse.json(
+        { success: false, error: "პროდუქტი ვერ მოიძებნა" },
+        { status: 404 }
+      );
+    }
+
     let imageList: string[] = [];
     try {
       imageList = typeof product.images === "string" ? JSON.parse(product.images) : (Array.isArray(product.images) ? product.images : []);
@@ -46,9 +55,6 @@ export async function GET(
         parsedSpecs = undefined;
       }
     }
-
-    const session = await getAuthSession(request);
-    const isAdmin = session?.role && ADMIN_ROLES.includes(session.role);
 
     const formatted = {
       id: product.id,

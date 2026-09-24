@@ -15,7 +15,7 @@ const LINKS = [
 export function MerchantSidebar({ storeName }: { storeName?: string }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logoutAdmin } = useStore();
+  const { logoutMerchant } = useStore();
 
   return (
     <aside className="hidden lg:flex w-72 shrink-0 flex-col bg-[#111111] h-screen sticky top-0 p-5 text-white">
@@ -49,7 +49,7 @@ export function MerchantSidebar({ storeName }: { storeName?: string }) {
       <button
         type="button"
         onClick={() => {
-          logoutAdmin();
+          logoutMerchant();
           router.push("/merchant/login");
         }}
         className="mt-auto h-11 px-3 rounded-2xl text-sm text-white/60 hover:bg-white/8 hover:text-white inline-flex items-center gap-2"

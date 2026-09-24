@@ -170,6 +170,10 @@ export async function GET(request: Request) {
       andConditions.push({ status: { not: "PENDING_REVIEW" } });
     }
 
+    if (!isAdmin) {
+      andConditions.push({ isApproved: { not: false } });
+    }
+
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     // Build Sorting

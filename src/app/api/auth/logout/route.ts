@@ -6,6 +6,6 @@ export async function POST() {
     success: true,
     message: "სისტემიდან გამოსვლა წარმატებით დასრულდა",
   });
-  clearAuthCookie(response);
+  clearAuthCookie(response, "all");
   return response;
 }

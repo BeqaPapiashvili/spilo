@@ -81,13 +81,13 @@ function ProfileContent() {
   const isAdmin = !!user && (!!adminUser || ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN", "MODERATOR", "MANAGER"].includes(user.role || ""));
 
   const handleLogout = async () => {
-    useStore.getState().logout();
+    await useStore.getState().logout();
     addToast({
       title: "გამოსვლა",
       message: "თქვენ წარმატებით გამოხვედით სისტემიდან",
       type: "info",
     });
-    router.push("/");
+    window.location.assign("/");
   };
 
   // Form states matching user profile

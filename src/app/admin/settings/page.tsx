@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Save, Globe, Mail, Phone, MapPin, Check, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Settings, Save, Globe, Mail, Phone, MapPin, Check, Loader2, Power } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const [storeName, setStoreName] = useState("Spilo E-Commerce");
@@ -68,6 +69,13 @@ export default function AdminSettingsPage() {
         <div className="adm-eyebrow" style={{ marginBottom: "0.375rem" }}><Settings size={13} /> სისტემა</div>
         <h1 className="adm-page-title">მაღაზიის პარამეტრები</h1>
         <p className="adm-page-desc">მაღაზიის ძირითადი ინფორმაცია, საკონტაქტო მონაცემები და ლოკალიზაცია.</p>
+        <Link
+          href="/admin/site-status"
+          className="mt-4 inline-flex items-center gap-2 text-xs text-[#FF5238]"
+        >
+          <Power size={13} />
+          Coming Soon / Offline რეჟიმი
+        </Link>
       </div>
 
       <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>

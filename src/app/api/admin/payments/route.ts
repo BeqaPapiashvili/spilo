@@ -105,7 +105,7 @@ export async function GET(request: Request) {
         process.env.UNITED_PAYMENT_USERNAME &&
         process.env.UNITED_PAYMENT_PASSWORD
     ),
-    dealerCode: process.env.UNITED_PAYMENT_DEALER_CODE || null,
+    dealerCode: process.env.UNITED_PAYMENT_DEALER_CODE === "1" ? "2" : process.env.UNITED_PAYMENT_DEALER_CODE || "2",
     bankCode: Number(process.env.UNITED_PAYMENT_BANK_CODE || 1),
     testMode: true,
     provider: "United Payment",

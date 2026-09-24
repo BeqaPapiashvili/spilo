@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { setAuthCookie, signToken } from "@/lib/jwt";
+import { setAuthCookie, clearAuthCookie, signToken } from "@/lib/jwt";
 import { MERCHANT_ROLE, requireMerchantSession } from "@/lib/merchant";
 import { enforceRateLimit } from "@/lib/rateLimit";
 
@@ -91,10 +91,16 @@ export async function POST(request: Request) {
         store: user.store,
       },
     });
-    setAuthCookie(response, token);
+    setAuthCookie(response, token, "merchant");
     return response;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "ავტორიზაციის შეცდომა";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
+}
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true, message: "Logged out" });
+  clearAuthCookie(response, "merchant");
+  return response;
 }

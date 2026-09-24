@@ -2,6 +2,21 @@ export type UserRole = "SUPER_ADMIN" | "STORE_MANAGER" | "SUPPORT_AGENT" | "CATA
 
 export const ADMIN_ROLES = ["SUPER_ADMIN", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER", "ADMIN"];
 
+export function canGrantRole(actorRole: string, targetRole: string): boolean {
+  const elevated = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN";
+  if (targetRole === "SUPER_ADMIN" || targetRole === "ADMIN") return elevated;
+  if (targetRole === "MERCHANT") return elevated;
+  if (elevated) return true;
+  if (actorRole === "STORE_MANAGER") {
+    return ["CUSTOMER", "STORE_MANAGER", "SUPPORT_AGENT", "CATALOG_MANAGER"].includes(targetRole);
+  }
+  return false;
+}
+
+export function canMutateOrders(role: string): boolean {
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "STORE_MANAGER";
+}
+
 export function isRouteAllowed(role: string = "SUPER_ADMIN", pathname: string): boolean {
   if (!role || role === "SUPER_ADMIN" || role === "ADMIN") return true;
 
@@ -12,7 +27,7 @@ export function isRouteAllowed(role: string = "SUPER_ADMIN", pathname: string): 
 
   // Store Manager can access everything except system settings, security, users, and audit logs
   if (role === "STORE_MANAGER") {
-    const forbidden = ["/admin/settings", "/admin/security", "/admin/audit-logs", "/admin/users"];
+    const forbidden = ["/admin/settings", "/admin/site-status", "/admin/security", "/admin/audit-logs", "/admin/users"];
     return !forbidden.some((p) => normalizedPath.startsWith(p));
   }
 

@@ -146,12 +146,14 @@ export async function POST(request: Request) {
         },
       });
 
-      // Dispatch SMS
-      await sendSmsViaProvider(phone, rawCode);
+      const sms = await sendSmsViaProvider(phone, rawCode);
 
       return NextResponse.json({
         success: true,
-        message: `6-ნიშნა ერთჯერადი კოდი გაიგზავნა ნომერზე: ${phone}`,
+        smsSent: sms.sent,
+        message: sms.sent
+          ? `6-ნიშნა ერთჯერადი კოდი გაიგზავნა ნომერზე: ${phone}`
+          : "SMS provider is not configured. The code was saved in the database for development only.",
       });
     }
 

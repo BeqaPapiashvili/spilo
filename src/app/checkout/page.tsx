@@ -115,7 +115,12 @@ function CheckoutContent() {
   const [isCityOpen, setIsCityOpen] = useState(false);
   const [citySearchQuery, setCitySearchQuery] = useState("");
 
-  const [address, setAddress] = useState(user?.address || "23 Ilori St, T'bilisi 0153, Georgia");
+  const [address, setAddress] = useState(user?.address || "");
+  const [deliverySettings, setDeliverySettings] = useState({
+    freeShippingThreshold: 100,
+    standardDeliveryFee: 5,
+    regionsDeliveryFee: 10,
+  });
   const [comment, setComment] = useState("");
   const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
 
@@ -150,6 +155,21 @@ function CheckoutContent() {
   // Loading & Errors
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/delivery")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setDeliverySettings({
+            freeShippingThreshold: Number(json.data.freeShippingThreshold) || 100,
+            standardDeliveryFee: Number(json.data.standardDeliveryFee) || 5,
+            regionsDeliveryFee: Number(json.data.regionsDeliveryFee) || 10,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch real profile data from DB on mount
   useEffect(() => {
@@ -188,7 +208,14 @@ function CheckoutContent() {
   }, [user?.email, user?.phone]);
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0);
-  const shippingCost = deliveryMethod === "pickup" ? 0 : 0; // Free delivery
+  const shippingCost =
+    deliveryMethod === "pickup"
+      ? 0
+      : cartSubtotal >= deliverySettings.freeShippingThreshold
+        ? 0
+        : city === "თბილისი"
+          ? deliverySettings.standardDeliveryFee
+          : deliverySettings.regionsDeliveryFee;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const totalAmount = Math.max(0, cartSubtotal + shippingCost - discountAmount);
   const monthlyInstallment = totalAmount / installmentMonths;
@@ -276,7 +303,7 @@ function CheckoutContent() {
     if (!recipientFirstName.trim()) newErrors.recipientFirstName = "მიუთითეთ მიმღების სახელი";
     if (!recipientLastName.trim()) newErrors.recipientLastName = "მიუთითეთ მიმღების გვარი";
     if (!recipientPhone.trim()) newErrors.recipientPhone = "მიუთითეთ მიმღების ტელეფონის ნომერი";
-    if (!address.trim()) newErrors.address = "მიუთითეთ მისამართი";
+    if (deliveryMethod !== "pickup" && !address.trim()) newErrors.address = "მიუთითეთ მისამართი";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -507,6 +534,14 @@ function CheckoutContent() {
                   </div>
                 </div>
 
+                {deliveryMethod === "pickup" && (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
+                    თვითგატანისას მისამართი არ არის საჭირო. პროდუქტს წაიღებთ მაღაზიიდან.
+                  </div>
+                )}
+
+                {deliveryMethod !== "pickup" && (
+                <>
                 {/* Custom City Accordion & Floating Dropdown */}
                 <div className="relative z-30 space-y-2">
                   {/* Closed / Opened Header Card */}
@@ -615,6 +650,8 @@ function CheckoutContent() {
                     <span>ახალი მისამართის დამატება</span>
                   </button>
                 </div>
+                </>
+                )}
 
                 {/* Recipient Information Form */}
                 <div className="space-y-4 pt-4 border-t border-gray-100">
@@ -699,7 +736,7 @@ function CheckoutContent() {
                 <div className="rounded-2xl border border-[#FED7CC] bg-[#FFF5F2] px-4 py-3 text-xs text-[#9A3412]">
                   {paymentCategory === "installment"
                     ? "განვადებაზე ბანკის გვერდი იგივე 3D ბარათის ფორმაა — იქ ბარათს შეიყვან და თანხა არჩეულ თვეებზე იყოფა. Extra-ს ინტერნეტბანკის განაცხადი ამ სატესტო ანგარიშზე არ იხსნება."
-                    : "სატესტო გარემო · United Payment / BOG 3D. ბანკში ახლა ჩაირიცხება 0.01 ₾, შეკვეთის რეალური თანხა საიტზე უცვლელი რჩება."}
+                    : "სატესტო გარემო · United Payment / BOG 3D. ბანკში ახლა ჩაირიცხება 0.10 ₾, შეკვეთის რეალური თანხა საიტზე უცვლელი რჩება."}
                 </div>
 
                 <div className="space-y-3">
@@ -847,7 +884,9 @@ function CheckoutContent() {
                 )}
                 <div className="flex justify-between text-gray-600">
                   <span>მიწოდების ღირებულება</span>
-                  <span className="text-[#FF5238] font-mono">უფასო (0 ₾)</span>
+                  <span className="text-[#FF5238] font-mono">
+                    {shippingCost === 0 ? "უფასო (0 ₾)" : `${shippingCost.toFixed(2)} ₾`}
+                  </span>
                 </div>
                 {paymentCategory === "installment" && step === 2 && (
                   <div className="flex justify-between text-gray-600">

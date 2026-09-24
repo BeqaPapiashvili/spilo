@@ -1,6 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
+import {
+  verifyToken,
+  AUTH_COOKIE_NAME,
+  ADMIN_COOKIE_NAME,
+  MERCHANT_COOKIE_NAME,
+} from "@/lib/jwt";
 import { ADMIN_ROLES, isRouteAllowed } from "@/lib/permissions";
+
+async function requestHasAdminRole(request: NextRequest): Promise<boolean> {
+  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  if (!token) return false;
+  const payload = await verifyToken(token);
+  return Boolean(payload?.userId && ADMIN_ROLES.includes(payload.role || ""));
+}
+
+async function nextWithPathname(request: NextRequest, extraHeaders?: Headers) {
+  const requestHeaders = extraHeaders ? extraHeaders : new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  if (await requestHasAdminRole(request)) {
+    requestHeaders.set("x-admin-session", "1");
+  }
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+}
+
+function tokenForPath(request: NextRequest, pathname: string): string | undefined {
+  const customer = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  const admin = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  const merchant = request.cookies.get(MERCHANT_COOKIE_NAME)?.value;
+
+  if (pathname.startsWith("/merchant") || pathname.startsWith("/api/merchant")) {
+    return merchant || customer;
+  }
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/products") ||
+    pathname.startsWith("/api/categories") ||
+    pathname.startsWith("/api/brands") ||
+    pathname.startsWith("/api/banners") ||
+    pathname.startsWith("/api/coupons") ||
+    pathname.startsWith("/api/promotions")
+  ) {
+    return admin || customer;
+  }
+  return customer;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -9,14 +57,14 @@ export async function middleware(request: NextRequest) {
   if (
     pathname === "/admin/login" ||
     pathname === "/merchant/login" ||
-    (pathname === "/api/admin/auth" && request.method === "POST") ||
-    (pathname === "/api/merchant/auth" && request.method === "POST")
+    (pathname === "/api/admin/auth" && (request.method === "POST" || request.method === "DELETE")) ||
+    (pathname === "/api/merchant/auth" && (request.method === "POST" || request.method === "DELETE"))
   ) {
-    return NextResponse.next();
+    return await nextWithPathname(request);
   }
 
   // 2. Extract JWT token strictly from httpOnly cookie (or Authorization Bearer header)
-  let token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  let token = tokenForPath(request, pathname);
 
   if (!token) {
     const authHeader = request.headers.get("authorization");
@@ -64,11 +112,7 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set("x-user-role", role);
     if (payload.name) requestHeaders.set("x-user-name", encodeURIComponent(payload.name));
 
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    return await nextWithPathname(request, requestHeaders);
   }
 
   // 4. Handle /admin/* page routes (Redirects to /admin/login)
@@ -99,7 +143,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
 
-    return NextResponse.next();
+    return await nextWithPathname(request);
   }
 
   // 6. Handle standalone mutating API routes (Defense-in-depth for POST/PUT/PATCH/DELETE on admin resources)
@@ -151,11 +195,7 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set("x-user-role", role);
     if (payload.name) requestHeaders.set("x-user-name", encodeURIComponent(payload.name));
 
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    return await nextWithPathname(request, requestHeaders);
   }
 
   if (pathname.startsWith("/api/merchant")) {
@@ -166,7 +206,7 @@ export async function middleware(request: NextRequest) {
     if (!payload?.userId || payload.role !== "MERCHANT") {
       return NextResponse.json({ success: false, error: "პარტნიორის წვდომა შეზღუდულია" }, { status: 403 });
     }
-    return NextResponse.next();
+    return await nextWithPathname(request);
   }
 
   if (pathname.startsWith("/merchant")) {
@@ -179,31 +219,15 @@ export async function middleware(request: NextRequest) {
     if (!payload?.userId || payload.role !== "MERCHANT") {
       return NextResponse.redirect(new URL("/merchant/login", request.url));
     }
-    return NextResponse.next();
+    return await nextWithPathname(request);
   }
 
-  return NextResponse.next();
+  return await nextWithPathname(request);
 }
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/merchant",
-    "/merchant/:path*",
-    "/api/admin/:path*",
-    "/api/merchant/:path*",
-    "/api/products/:path*",
-    "/api/products",
-    "/api/categories/:path*",
-    "/api/categories",
-    "/api/brands/:path*",
-    "/api/brands",
-    "/api/banners/:path*",
-    "/api/banners",
-    "/api/coupons/:path*",
-    "/api/coupons",
-    "/api/promotions/:path*",
-    "/api/promotions",
+    "/((?!_next/static|_next/image|favicon.ico|uploads/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
   ],
 };
 

@@ -165,7 +165,7 @@ export default function AdminPaymentsPage() {
           </p>
           <p style={{ fontSize: "0.75rem", color: united.configured ? "#166534" : "#b45309" }}>
             {united.configured
-              ? `აქტიურია · DealerCode ${united.dealerCode} · BankCode ${united.bankCode}`
+              ? `აქტიურია · დილერი ${united.dealerCode} · ბანკი ${united.bankCode === 1 ? "BOG (1)" : united.bankCode}`
               : "გარემოს ცვლადები არ არის მითითებული"}
           </p>
         </div>

@@ -31,10 +31,10 @@ npm run dev
 
 გადახდა (United Payment, სატესტო BOG 3D):
 
-- `UNITED_PAYMENT_DEALER_CODE`
-- `UNITED_PAYMENT_USERNAME`
-- `UNITED_PAYMENT_PASSWORD`
-- `UNITED_PAYMENT_BANK_CODE` (ნაგულისხმევი `1` — Bank of Georgia)
+- `UNITED_PAYMENT_DEALER_CODE` — სატესტო დილერი არის `2`
+- `UNITED_PAYMENT_USERNAME` / `UNITED_PAYMENT_PASSWORD`
+- `UNITED_PAYMENT_CHECK_KEY` — ზუსტად ის CheckKey, რაც United Payment-მა მოგცა
+- `UNITED_PAYMENT_BANK_CODE` — ეს ბანკია, არა დილერი. ნაგულისხმევი `1` = Bank of Georgia
 - `UNITED_PAYMENT_BASE_URL` (ნაგულისხმევი `https://service.unitedpayment.ge`)
 - `UNITED_PAYMENT_REDIRECT_BASE` — სურვილისამებრ, callback-ის საჯარო origin
 

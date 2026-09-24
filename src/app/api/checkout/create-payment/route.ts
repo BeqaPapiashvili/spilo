@@ -9,6 +9,7 @@ import {
   isUnitedPaymentConfigured,
   normalizeGsm,
 } from "@/lib/unitedPayment";
+import { releaseUnpaidOrder } from "@/lib/orderFulfillment";
 
 export async function POST(request: Request) {
   try {
@@ -64,15 +65,25 @@ export async function POST(request: Request) {
     const installmentLabel =
       usedInstallment >= 2 ? ` · განვადება ${usedInstallment} თვე` : "";
 
-    const result = await createThreeDPayment({
-      amount: chargeAmount,
-      clientIp,
-      otherTrxCode,
-      redirectUrl: `${origin}/api/payments/united/callback?trx=${encodeURIComponent(otherTrxCode)}`,
-      installmentNumber: usedInstallment,
-      description: `შეკვეთა ${order.orderNumber}${installmentLabel}`,
-      buyer,
-    });
+    if (chargeAmount <= 0) {
+      return NextResponse.json({ success: false, error: "გადასახდელი თანხა არასწორია" }, { status: 400 });
+    }
+
+    let result;
+    try {
+      result = await createThreeDPayment({
+        amount: chargeAmount,
+        clientIp,
+        otherTrxCode,
+        redirectUrl: `${origin}/api/payments/united/callback?trx=${encodeURIComponent(otherTrxCode)}`,
+        installmentNumber: usedInstallment,
+        description: `შეკვეთა ${order.orderNumber}${installmentLabel}`,
+        buyer,
+      });
+    } catch (error) {
+      await releaseUnpaidOrder(order.id);
+      throw error;
+    }
 
     await prisma.payment.updateMany({
       where: { orderId: order.id, status: "PENDING" },

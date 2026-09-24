@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     }
 
     const storefrontWhere = {
-      AND: [...andConditions, { status: { not: "PENDING_REVIEW" } }],
+      AND: [...andConditions, { status: { not: "PENDING_REVIEW" }, isApproved: { not: false } }],
     };
 
     const [allCategories, allBrands, categoryGroups, brandGroups, colorGroups, storageGroups, priceAgg] =

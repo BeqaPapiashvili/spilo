@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthSession, requireAdminSession } from "@/lib/jwt";
-import { ADMIN_ROLES } from "@/lib/permissions";
+import { ADMIN_ROLES, canMutateOrders } from "@/lib/permissions";
 import { recordAuditLog } from "@/lib/audit";
 
 
@@ -78,6 +78,9 @@ export async function PUT(
   try {
     const { session, errorResponse } = await requireAdminSession(request);
     if (errorResponse) return errorResponse;
+    if (!canMutateOrders(session?.role || "")) {
+      return NextResponse.json({ success: false, error: "შეკვეთის შეცვლა ამ როლს არ შეუძლია" }, { status: 403 });
+    }
 
     const { id } = await params;
     const body = await request.json();

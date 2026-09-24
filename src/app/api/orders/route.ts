@@ -6,6 +6,10 @@ import { recordAuditLog } from "@/lib/audit";
 import { OrderStatus, Prisma } from "@prisma/client";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { incrementCouponUsage, resolveCouponDiscount } from "@/lib/couponApply";
+import { canMutateOrders } from "@/lib/permissions";
+import { computeShippingFee, getDeliverySettings } from "@/lib/delivery";
+import { isPublicProduct } from "@/lib/productVisibility";
+import { restoreStock } from "@/lib/orderFulfillment";
 
 function unitPrice(product: { price: number; discountPrice: number | null }): number {
   if (product.discountPrice !== null && product.discountPrice !== undefined && product.discountPrice > 0) {
@@ -113,6 +117,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { items, customer, paymentMethod, address, couponCode, deferSettlement } = body;
     const shouldDeferSettlement = Boolean(deferSettlement);
+    const deliveryMethod = String(body.deliveryMethod || "delivery");
+    const isPickup = deliveryMethod === "pickup";
+    const city = String(body.city || "").trim();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -130,7 +137,9 @@ export async function POST(request: Request) {
 
     const phone = String(customer.phone || customer.contactPhone || "").trim();
     const name = String(customer.name || customer.customerName || session.name || "მომხმარებელი").trim();
-    const shippingAddress = String(address || customer.address || "").trim();
+    const shippingAddress = isPickup
+      ? String(address || customer.address || "").trim() || "თვითგატანა მაღაზიიდან"
+      : String(address || customer.address || "").trim();
 
     if (!phone || phone.length < 9) {
       return NextResponse.json(
@@ -138,7 +147,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (!shippingAddress) {
+    if (!isPickup && !shippingAddress) {
       return NextResponse.json(
         { success: false, error: "გთხოვთ მიუთითოთ მიწოდების მისამართი" },
         { status: 400 }
@@ -148,7 +157,31 @@ export async function POST(request: Request) {
     const userId = session.userId;
     const orderNumber = makeOrderNumber();
 
+    const deliverySettings = await getDeliverySettings();
+
     const newOrder = await prisma.$transaction(async (tx) => {
+      if (shouldDeferSettlement) {
+        const existingPending = await tx.order.findFirst({
+          where: {
+            userId,
+            paymentStatus: "PENDING",
+            status: { not: "CANCELLED" },
+            createdAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+            OR: [
+              { paymentMethod: { contains: "ბარათ" } },
+              { paymentMethod: { contains: "United" } },
+              { paymentMethod: { contains: "განვადება" } },
+            ],
+          },
+          select: { orderNumber: true },
+        });
+        if (existingPending) {
+          throw new Error(
+            `თქვენ უკვე გაქვთ გადაუხდელი შეკვეთა ${existingPending.orderNumber}. ჯერ დაასრულეთ წინა გადახდა.`
+          );
+        }
+      }
+
       const productIds = items
         .map((item: { id?: string; productId?: string }) => item.id || item.productId)
         .filter(Boolean) as string[];
@@ -167,6 +200,9 @@ export async function POST(request: Request) {
         const dbProduct = productMap.get(pId);
         if (!dbProduct) {
           throw new Error(`პროდუქტი "${item.title || pId}" ვერ მოიძებნა ბაზაში.`);
+        }
+        if (!isPublicProduct(dbProduct)) {
+          throw new Error(`პროდუქტი "${dbProduct.title}" ჯერ არ არის დამტკიცებული.`);
         }
 
         const requestedQuantity = Math.max(1, Number(item.quantity) || 1);
@@ -214,9 +250,16 @@ export async function POST(request: Request) {
         throw new Error(couponResult.error);
       }
 
-      if (couponResult.coupon.id) {
+      if (!shouldDeferSettlement && couponResult.coupon.id) {
         await incrementCouponUsage(tx, couponResult.coupon.id);
       }
+
+      const shippingFee = computeShippingFee({
+        deliveryMethod,
+        city,
+        subtotal,
+        settings: deliverySettings,
+      });
 
       const customerEmail =
         String(customer.email || customer.customerEmail || session.email || "").trim() || null;
@@ -233,13 +276,13 @@ export async function POST(request: Request) {
           paymentStatus: "PENDING",
           status: "PENDING",
           deliveryDate: null,
-          deliveryMethod: body.deliveryMethod || "delivery",
+          deliveryMethod,
           personType: customer.personType || "physical",
           idNumber: customer.idNumber || null,
           notes: body.notes || body.comment || null,
           couponCode: couponResult.coupon.code || null,
           discountAmount: couponResult.coupon.discountAmount,
-          totalAmount: couponResult.coupon.finalTotal,
+          totalAmount: Number((couponResult.coupon.finalTotal + shippingFee).toFixed(2)),
           items: { create: lineItems },
         },
         include: { items: true },
@@ -303,6 +346,9 @@ export async function PUT(request: Request) {
   try {
     const { session, errorResponse } = await requireAdminSession(request);
     if (errorResponse) return errorResponse;
+    if (!canMutateOrders(session?.role || "")) {
+      return NextResponse.json({ success: false, error: "Order update is not allowed for this role" }, { status: 403 });
+    }
 
     const body = await request.json();
     const { id, status, deliveryDate } = body;
@@ -406,6 +452,9 @@ export async function DELETE(request: Request) {
   try {
     const { session, errorResponse } = await requireAdminSession(request);
     if (errorResponse) return errorResponse;
+    if (!canMutateOrders(session?.role || "")) {
+      return NextResponse.json({ success: false, error: "შეკვეთის წაშლა ამ როლს არ შეუძლია" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -433,6 +482,9 @@ export async function DELETE(request: Request) {
     const orderNum = existingOrder.orderNumber;
 
     await prisma.$transaction(async (tx) => {
+      if (existingOrder.status !== "CANCELLED") {
+        await restoreStock(tx, existingOrder.items);
+      }
       await tx.orderItem.deleteMany({ where: { orderId: targetId } });
       await tx.order.delete({ where: { id: targetId } });
     });

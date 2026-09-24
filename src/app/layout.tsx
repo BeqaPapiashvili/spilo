@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Georgian } from "next/font/google";
 import "./globals.css";
 import { StorefrontLayoutWrapper } from "@/components/StorefrontLayoutWrapper";
+import { SiteStatusGate } from "@/components/SiteStatusGate";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -46,9 +47,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){var n=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];var r=(n&&n.type==="reload")||(performance.navigation&&performance.navigation.type===1);if(!r)return;try{history.scrollRestoration="manual"}catch(e){}function p(){if(window.scrollTo)window.scrollTo(0,0);if(document.documentElement)document.documentElement.scrollTop=0;if(document.body)document.body.scrollTop=0}p();document.addEventListener("DOMContentLoaded",p);window.addEventListener("load",function(){p();requestAnimationFrame(function(){p();setTimeout(p,0);setTimeout(p,120)})});window.addEventListener("pageshow",p)})();`,
           }}
         />
-        <StorefrontLayoutWrapper>
-          {children}
-        </StorefrontLayoutWrapper>
+        <SiteStatusGate>
+          <StorefrontLayoutWrapper>
+            {children}
+          </StorefrontLayoutWrapper>
+        </SiteStatusGate>
       </body>
     </html>
   );

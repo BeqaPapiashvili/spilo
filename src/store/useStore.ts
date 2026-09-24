@@ -78,7 +78,8 @@ interface StoreState {
   setAdminSession: (admin: { id: string; name: string; email: string; role: string; store?: { name?: string; slug?: string; logo?: string | null } } | null) => void;
   updateUserRole: (email: string, role: string) => void;
   logoutAdmin: () => void;
-  logout: () => void;
+  logoutMerchant: () => void;
+  logout: () => Promise<void>;
 
   // Cart Actions
   addToCart: (item: Omit<CartItem, 'quantity'>, openCart?: boolean) => void;
@@ -255,13 +256,27 @@ export const useStore = create<StoreState>()(
         }),
       logoutAdmin: () => {
         if (typeof window !== "undefined") {
-          fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+          fetch("/api/admin/auth", { method: "DELETE", credentials: "include", cache: "no-store" }).catch(() => {});
         }
         set({ adminUser: null, adminToken: null, user: null });
       },
-      logout: () => {
+      logoutMerchant: () => {
         if (typeof window !== "undefined") {
-          fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+          fetch("/api/merchant/auth", { method: "DELETE" }).catch(() => {});
+        }
+        set({ adminUser: null, adminToken: null });
+      },
+      logout: async () => {
+        if (typeof window !== "undefined") {
+          try {
+            await fetch("/api/auth/logout", {
+              method: "POST",
+              credentials: "include",
+              cache: "no-store",
+            });
+          } catch {
+            // cookie clear is best-effort; local session still drops
+          }
           localStorage.removeItem("spilo_session_id");
         }
         set({ user: null, adminUser: null, adminToken: null });

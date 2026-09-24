@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { AdminSearchModal } from "./AdminSearchModal";
+import { SiteModeBadge } from "./SiteModeBadge";
 
 export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSidebar }) => {
   const router = useRouter();
@@ -41,7 +42,7 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
 
   const handleAdminLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/admin/auth", { method: "DELETE" });
     } catch (e) {
       console.warn("Logout error:", e);
     }
@@ -90,11 +91,7 @@ export const AdminHeader: React.FC<{ onOpenSidebar: () => void }> = ({ onOpenSid
         {/* Right: Status Sync Badge + Quick Actions + Notifications + Profile */}
         <div className="flex items-center gap-3">
           
-          {/* Live Storefront Sync Badge */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-700">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>სინქრონიზაცია</span>
-          </div>
+          <SiteModeBadge />
 
           {/* Quick Add Product Button */}
           <Link

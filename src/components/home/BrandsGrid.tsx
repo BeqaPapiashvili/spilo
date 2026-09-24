@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { DragSafeLink } from "@/components/DragSafeLink";
 import { Navigation, FreeMode, Mousewheel } from "swiper/modules";
 import {
   ChevronLeft,
@@ -46,6 +46,7 @@ export default function BrandsGrid({
 }: BrandsGridProps) {
   const displayBrands = brands && brands.length > 0 ? brands : DEFAULT_FALLBACK_BRANDS;
   const swiperRef = useRef<any>(null);
+  const dragLockRef = useRef(false);
   const [isBeginning, setIsBeginning] = useState(true);
   const [isEnd, setIsEnd] = useState(false);
 
@@ -111,12 +112,24 @@ export default function BrandsGrid({
               setIsBeginning(swiper.isBeginning);
               setIsEnd(swiper.isEnd);
             }}
+            onTouchStart={() => {
+              dragLockRef.current = false;
+            }}
+            onSliderFirstMove={() => {
+              dragLockRef.current = true;
+            }}
+            onTouchEnd={() => {
+              window.setTimeout(() => {
+                dragLockRef.current = false;
+              }, 80);
+            }}
             className="w-full py-2"
           >
             {displayBrands.map((brand, idx) => (
               <SwiperSlide key={brand.id || idx} className="!w-[160px] sm:!w-[185px]">
-                <Link
+                <DragSafeLink
                   href={`/catalog?brand=${encodeURIComponent(brand.slug || brand.name.toLowerCase())}`}
+                  dragLockRef={dragLockRef}
                   className="group relative flex items-center justify-center w-[160px] sm:!w-[185px] h-[76px] sm:h-[84px] px-6 py-4 bg-white hover:bg-[#111111] rounded-[20px] border border-zinc-200/80 hover:border-[#111111] shadow-2xs hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden block"
                 >
                   {/* Subtle Top-Right Explore Indicator on Hover */}
@@ -136,7 +149,7 @@ export default function BrandsGrid({
                       {brand.name}
                     </span>
                   )}
-                </Link>
+                </DragSafeLink>
               </SwiperSlide>
             ))}
           </Swiper>

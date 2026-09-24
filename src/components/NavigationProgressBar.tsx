@@ -67,7 +67,7 @@ function NavigationProgressBarInner() {
 
   useEffect(() => {
     const handleAnchorClick = (event: MouseEvent) => {
-      if (event.button !== 0) return;
+      if (event.button !== 0 || event.defaultPrevented) return;
 
       const target = (event.target as HTMLElement).closest("a");
       if (!target) return;
