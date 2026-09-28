@@ -76,6 +76,8 @@ model Store {
   email         String?
   workingHours  String?
   mapUrl         String?
+  latitude       Float?
+  longitude      Float?
   pickupEnabled  Boolean   @default(false)
   pickupNote     String?
   sortOrder      Int       @default(0)

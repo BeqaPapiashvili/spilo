@@ -18,6 +18,19 @@ function emptyToNull(value: unknown): string | null {
   return text || null;
 }
 
+function coordOrNull(value: unknown, limit: number): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || Math.abs(num) > limit) return null;
+  return Math.round(num * 1e6) / 1e6;
+}
+
+function coordsFromBody(body: Record<string, unknown>) {
+  const latitude = coordOrNull(body.latitude, 90);
+  const longitude = coordOrNull(body.longitude, 180);
+  return latitude !== null && longitude !== null ? { latitude, longitude } : { latitude: null, longitude: null };
+}
+
 async function slugTaken(slug: string, exceptId?: string) {
   const existing = await prisma.store.findUnique({ where: { slug }, select: { id: true } });
   return Boolean(existing && existing.id !== exceptId);
@@ -80,6 +93,7 @@ export async function POST(request: Request) {
         email: emptyToNull(body.email),
         workingHours: emptyToNull(body.workingHours),
         mapUrl: emptyToNull(body.mapUrl),
+        ...coordsFromBody(body),
         pickupEnabled: Boolean(body.pickupEnabled),
         pickupNote: emptyToNull(body.pickupNote),
         sortOrder: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
@@ -147,6 +161,7 @@ export async function PUT(request: Request) {
         email: body.email !== undefined ? emptyToNull(body.email) : undefined,
         workingHours: body.workingHours !== undefined ? emptyToNull(body.workingHours) : undefined,
         mapUrl: body.mapUrl !== undefined ? emptyToNull(body.mapUrl) : undefined,
+        ...(body.latitude !== undefined || body.longitude !== undefined ? coordsFromBody(body) : {}),
         pickupEnabled: body.pickupEnabled !== undefined ? Boolean(body.pickupEnabled) : undefined,
         pickupNote: body.pickupNote !== undefined ? emptyToNull(body.pickupNote) : undefined,
         sortOrder: body.sortOrder !== undefined ? Number(body.sortOrder) || 0 : undefined,

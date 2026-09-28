@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Store } from "lucide-react";
+import { ArrowUpRight, MapPin, Package, Store } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -43,28 +43,53 @@ export default async function StoresPage() {
               <Link
                 key={store.id}
                 href={`/stores/${store.slug}`}
-                className="group bg-white rounded-[20px] overflow-hidden border border-gray-100 hover:border-[#FED7CC] transition-colors"
+                className="group flex flex-col bg-white rounded-[24px] p-2.5 ring-1 ring-black/[0.04] hover:ring-black/[0.08] transition-all duration-300"
               >
-                <div className="h-28 bg-[#EEF0F3] overflow-hidden">
+                <div className="relative h-32 rounded-[18px] overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-50">
                   {store.coverImage ? (
-                    <img src={store.coverImage} alt="" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+                    <img
+                      src={store.coverImage}
+                      alt=""
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Store className="w-8 h-8 text-zinc-300" />
+                    </div>
+                  )}
+                  {store.pickupEnabled ? (
+                    <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/95 text-[11px] text-emerald-700">
+                      თვითგატანა
+                    </span>
                   ) : null}
                 </div>
-                <div className="px-4 pb-4">
-                  <div className="w-16 h-16 -mt-8 rounded-full bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
+
+                <div className="flex items-center gap-3 px-2 pt-3.5 pb-2">
+                  <div className="w-12 h-12 shrink-0 rounded-full bg-white ring-1 ring-black/[0.06] overflow-hidden flex items-center justify-center">
                     {store.logo ? (
                       <img src={store.logo} alt={store.name} className="w-full h-full object-contain p-1.5" />
                     ) : (
-                      <Store className="w-6 h-6 text-gray-300" />
+                      <span className="text-sm text-zinc-500">{store.name.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-                  <h2 className="mt-3 text-[15px] text-gray-900">{store.name}</h2>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {store.city ? `${store.city} · ` : ""}{store._count.products} პროდუქტი
-                  </p>
-                  {store.pickupEnabled ? (
-                    <p className="mt-1 text-[11px] text-emerald-700">თვითგატანა</p>
-                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-[15px] text-gray-900 truncate">{store.name}</h2>
+                    <div className="mt-0.5 flex items-center gap-2.5 text-xs text-gray-500">
+                      {store.city ? (
+                        <span className="flex items-center gap-1 truncate">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{store.city}</span>
+                        </span>
+                      ) : null}
+                      <span className="flex items-center gap-1 shrink-0">
+                        <Package className="w-3 h-3" />
+                        {store._count.products} პროდუქტი
+                      </span>
+                    </div>
+                  </div>
+                  <span className="w-8 h-8 shrink-0 rounded-full bg-zinc-50 group-hover:bg-[#FF5238] text-zinc-400 group-hover:text-white flex items-center justify-center transition-colors duration-300">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </span>
                 </div>
               </Link>
             ))}

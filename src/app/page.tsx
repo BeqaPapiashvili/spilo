@@ -6,6 +6,25 @@ import dynamicImport from "next/dynamic";
 import { resolveStorefrontFeed, ResolvedStorefrontSection } from "@/lib/storefrontFeed";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getSeoSettings, constructMetadata } from "@/lib/seo";
+import { prisma } from "@/lib/prisma";
+import type { StoreLogoItem } from "@/components/home/StoresLogoSection";
+
+async function loadStoreLogos(): Promise<StoreLogoItem[]> {
+  try {
+    const stores = await prisma.store.findMany({
+      where: { isActive: true, logo: { not: null } },
+      select: { id: true, name: true, slug: true, logo: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      take: 40,
+    });
+    return stores
+      .filter((s) => (s.logo || "").trim())
+      .map((s) => ({ id: s.id, name: s.name, slug: s.slug, logo: s.logo as string }));
+  } catch (error) {
+    console.error("loadStoreLogos error:", error);
+    return [];
+  }
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await getSeoSettings("home");
@@ -67,6 +86,11 @@ const BrandsGrid = dynamicImport(() => import("@/components/home/BrandsGrid"), {
   ssr: true,
 });
 
+const StoresLogoSection = dynamicImport(() => import("@/components/home/StoresLogoSection"), {
+  loading: () => <SectionFallback height={100} />,
+  ssr: true,
+});
+
 const RecentlyViewedSection = dynamicImport(() => import("@/components/home/RecentlyViewedSection"), {
   loading: () => <SectionFallback height={160} />,
   ssr: true,
@@ -78,7 +102,25 @@ const TrustStripSection = dynamicImport(() => import("@/components/home/TrustStr
 });
 
 export default async function Home() {
-  const sections: ResolvedStorefrontSection[] = await resolveStorefrontFeed();
+  const [sections, storeLogos]: [ResolvedStorefrontSection[], StoreLogoItem[]] = await Promise.all([
+    resolveStorefrontFeed(),
+    loadStoreLogos(),
+  ]);
+
+  const isBrandSection = (sec: ResolvedStorefrontSection) => {
+    const type = (sec.type || "").toUpperCase();
+    const key = (sec.key || "").toLowerCase();
+    return type === "BRAND_GRID" || type === "BRAND_MARQUEE" || key === "brands_carousel" || key === "brands";
+  };
+  const isTrustSection = (sec: ResolvedStorefrontSection) =>
+    (sec.type || "").toUpperCase() === "TRUST_STRIP" || (sec.key || "").toLowerCase() === "trust_strip";
+
+  let storesIndex = sections.findIndex(isBrandSection);
+  if (storesIndex >= 0) storesIndex += 1;
+  else {
+    storesIndex = sections.findIndex(isTrustSection);
+    if (storesIndex < 0) storesIndex = sections.length;
+  }
 
   const renderSection = (sec: ResolvedStorefrontSection) => {
     const type = (sec.type || "").toUpperCase();
@@ -218,7 +260,9 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col gap-6 sm:gap-10 pb-8 sm:pb-24 bg-white min-h-[50vh]">
-      {sections.map((sec) => renderSection(sec))}
+      {sections.slice(0, storesIndex).map((sec) => renderSection(sec))}
+      <StoresLogoSection stores={storeLogos} />
+      {sections.slice(storesIndex).map((sec) => renderSection(sec))}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { Clock, ExternalLink, Globe, Mail, MapPin, Phone, Store } from "lucide-r
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import { StoreCatalogControls } from "@/components/store/StoreCatalogControls";
-import { getStoreOpenState, storeMapEmbedSrc } from "@/lib/storeHours";
+import { getStoreOpenState, storeMapEmbedSrc, storeMapLink } from "@/lib/storeHours";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -90,7 +90,8 @@ export default async function StoreDetailPage({ params, searchParams }: PageProp
   }
 
   const openState = getStoreOpenState(store.workingHours);
-  const mapSrc = storeMapEmbedSrc(store.mapUrl, store.address, store.city);
+  const mapSrc = storeMapEmbedSrc(store.mapUrl, store.address, store.city, store.latitude, store.longitude);
+  const mapLink = storeMapLink(store.mapUrl, store.latitude, store.longitude);
   const showRails = !query && !category;
   const featured = store.products.filter((product) => product.isFeatured).slice(0, 4);
   const sale = store.products.filter((product) => Boolean(product.discountPrice)).slice(0, 4);
@@ -161,8 +162,8 @@ export default async function StoreDetailPage({ params, searchParams }: PageProp
                     {store.email}
                   </a>
                 )}
-                {store.mapUrl && (
-                  <a href={store.mapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-gray-800">
+                {mapLink && (
+                  <a href={mapLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-gray-800">
                     <ExternalLink className="w-3.5 h-3.5 text-[#FF5238]" />
                     რუკა
                   </a>

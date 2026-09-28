@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { CustomToggle } from "@/components/admin/ui/CustomToggle";
 import { slugifyStoreName } from "@/lib/storeSlug";
+import { StoreLocationPicker, type StoreCoords } from "@/components/admin/StoreLocationPicker";
 
 export type StoreFormValues = {
   id?: string;
@@ -24,6 +25,8 @@ export type StoreFormValues = {
   email?: string | null;
   workingHours?: string | null;
   mapUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   pickupEnabled?: boolean;
   pickupNote?: string | null;
   sortOrder?: number;
@@ -48,6 +51,11 @@ export function StoreForm({ initialStore }: { initialStore?: StoreFormValues }) 
   const [email, setEmail] = useState(initialStore?.email || "");
   const [workingHours, setWorkingHours] = useState(initialStore?.workingHours || "");
   const [mapUrl, setMapUrl] = useState(initialStore?.mapUrl || "");
+  const [coords, setCoords] = useState<StoreCoords | null>(
+    initialStore?.latitude != null && initialStore?.longitude != null
+      ? { lat: initialStore.latitude, lng: initialStore.longitude }
+      : null
+  );
   const [pickupEnabled, setPickupEnabled] = useState(Boolean(initialStore?.pickupEnabled));
   const [pickupNote, setPickupNote] = useState(initialStore?.pickupNote || "");
   const [isActive, setIsActive] = useState(initialStore?.isActive !== false);
@@ -83,6 +91,8 @@ export function StoreForm({ initialStore }: { initialStore?: StoreFormValues }) 
         email,
         workingHours,
         mapUrl,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
         pickupEnabled,
         pickupNote,
         isActive,
@@ -217,6 +227,7 @@ export function StoreForm({ initialStore }: { initialStore?: StoreFormValues }) 
             <input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              placeholder="ქუჩა, ნომერი, სართული / ოფისი"
               className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
             />
           </label>
@@ -244,6 +255,17 @@ export function StoreForm({ initialStore }: { initialStore?: StoreFormValues }) 
               className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
             />
           </label>
+        </div>
+
+        <div className="pt-5 border-t border-slate-100">
+          <StoreLocationPicker
+            value={coords}
+            onChange={setCoords}
+            onAddressDetected={(detectedAddress, detectedCity) => {
+              if (detectedAddress) setAddress(detectedAddress);
+              if (detectedCity) setCity(detectedCity);
+            }}
+          />
         </div>
 
         <CustomToggle

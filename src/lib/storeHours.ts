@@ -28,7 +28,16 @@ export function getStoreOpenState(workingHours?: string | null): {
   return { known: true, isOpen, label: raw };
 }
 
-export function storeMapEmbedSrc(mapUrl?: string | null, address?: string | null, city?: string | null): string | null {
+export function storeMapEmbedSrc(
+  mapUrl?: string | null,
+  address?: string | null,
+  city?: string | null,
+  latitude?: number | null,
+  longitude?: number | null
+): string | null {
+  if (latitude != null && longitude != null) {
+    return `https://maps.google.com/maps?q=${latitude},${longitude}&z=17&output=embed`;
+  }
   const direct = (mapUrl || "").trim();
   if (direct.includes("/embed") || direct.includes("output=embed")) {
     return direct;
@@ -37,4 +46,15 @@ export function storeMapEmbedSrc(mapUrl?: string | null, address?: string | null
   const query = direct || [city, address].filter(Boolean).join(", ");
   if (!query) return null;
   return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+}
+
+export function storeMapLink(
+  mapUrl?: string | null,
+  latitude?: number | null,
+  longitude?: number | null
+): string | null {
+  if (latitude != null && longitude != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  }
+  return (mapUrl || "").trim() || null;
 }

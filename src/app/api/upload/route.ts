@@ -36,6 +36,15 @@ const PUBLIC_MIME_TYPES: Record<string, string> = {
   "image/png": ".png",
   "image/webp": ".webp",
   "image/gif": ".gif",
+  "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "application/vnd.ms-excel": ".xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+  "text/plain": ".txt",
+  "video/mp4": ".mp4",
+  "video/webm": ".webm",
+  "video/quicktime": ".mov",
 };
 
 async function uploadToCloudinary(buffer: Buffer, mimeType: string, folder = "spilo"): Promise<string | null> {
@@ -150,7 +159,7 @@ export async function POST(request: NextRequest) {
             success: false,
             error: isAdmin
               ? "დაუშვებელი ფაილის ფორმატი"
-              : "სტუმარს შეუძლია მხოლოდ სურათის ატვირთვა (JPG, PNG, WEBP, GIF)",
+              : "დაშვებულია: JPG, PNG, WEBP, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT, MP4, WEBM, MOV (მაქს. 5MB)",
           },
           identity,
           { status: 400 }

@@ -75,6 +75,13 @@ export default function SupportChatWidget() {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [inputMsg, setInputMsg] = useState("");
   const [isAdminTyping, setIsAdminTyping] = useState(false);
+  const [adminOnline, setAdminOnline] = useState(false);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+  const [chatEnded, setChatEnded] = useState<"admin" | "user" | null>(null);
+  const [isConfirmingEnd, setIsConfirmingEnd] = useState(false);
+  const [isEndingChat, setIsEndingChat] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const lastTypingSentRef = useRef(0);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
@@ -91,7 +98,7 @@ export default function SupportChatWidget() {
     {
       id: "1",
       sender: "bot",
-      text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
+      text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! დაწერეთ თქვენი შეკითხვა და ოპერატორი მალე გიპასუხებთ",
       time: "ახლახანს",
     },
   ]);
@@ -150,13 +157,16 @@ export default function SupportChatWidget() {
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
+      if (e.key !== "Escape" || !isOpen) return;
+      if (isConfirmingEnd) {
+        if (!isEndingChat) setIsConfirmingEnd(false);
+        return;
       }
+      setIsOpen(false);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, isConfirmingEnd, isEndingChat]);
 
   // Smooth helper to scroll to bottom
   const scrollToBottom = (smooth = true) => {
@@ -204,10 +214,9 @@ export default function SupportChatWidget() {
 
     const fetchTicket = async () => {
       try {
-        const res = await fetch(
-          `/api/support?customerId=${encodeURIComponent(customerId)}`
-        );
+        const res = await fetch("/api/support?markRead=1", { cache: "no-store" });
         const json = await res.json();
+        if (json.success && isMounted) setAdminOnline(Boolean(json.adminOnline));
         if (json.success && json.data && isMounted) {
           const current = json.data;
           setIsAdminTyping(Boolean(current.isAdminTyping));
@@ -217,6 +226,7 @@ export default function SupportChatWidget() {
             try {
               localStorage.removeItem("spilo_chat_session");
             } catch (e) {}
+            setChatEnded((prev) => prev ?? "admin");
             setChatStep("auth");
             return;
           }
@@ -231,7 +241,7 @@ export default function SupportChatWidget() {
               {
                 id: "1",
                 sender: "bot",
-                text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! ონლაინ კონსულტანტი მზად არის დაგეხმაროთ",
+                text: "მოგესალმებით Spilo-ს მხარდაჭერის ცენტრში! დაწერეთ თქვენი შეკითხვა და ოპერატორი მალე გიპასუხებთ",
                 time: "ახლახანს",
               },
               ...current.messages.map((m: any, idx: number) => ({
@@ -280,6 +290,33 @@ export default function SupportChatWidget() {
     };
   }, [isOpen, chatStep, customerId, ticketId, guestName, guestPhone]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setUnreadCount(0);
+      return;
+    }
+    setIsConfirmingEnd(false);
+    if (!ticketId) return;
+
+    let isMounted = true;
+    const checkUnread = async () => {
+      try {
+        const res = await fetch("/api/support", { cache: "no-store" });
+        const json = await res.json();
+        if (!isMounted || !json.success) return;
+        const closed = json.data?.status === "CLOSED" || json.data?.status === "RESOLVED";
+        setUnreadCount(closed ? 0 : Number(json.data?.unreadAdminCount || 0));
+      } catch {}
+    };
+
+    checkUnread();
+    const interval = setInterval(checkUnread, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isOpen, ticketId]);
+
   const saveSessionToStorage = (
     name: string,
     phone: string,
@@ -316,7 +353,8 @@ export default function SupportChatWidget() {
     const formattedPhone = guestPhone.startsWith("+995")
       ? guestPhone
       : `+995 ${guestPhone}`;
-    setChatStep("chat");
+    if (isStartingChat) return;
+    setIsStartingChat(true);
 
     try {
       const res = await fetch("/api/support", {
@@ -333,9 +371,16 @@ export default function SupportChatWidget() {
       if (json.success && json.data) {
         setTicketId(json.data.id);
         saveSessionToStorage(guestName, guestPhone, json.data.id);
+        setChatEnded(null);
+        setChatStep("chat");
+      } else {
+        alert(json.error || "ჩატის დაწყება ვერ მოხერხდა");
       }
     } catch (err) {
       console.error("handleAcceptConsent error:", err);
+      alert("ჩატის დაწყება ვერ მოხერხდა");
+    } finally {
+      setIsStartingChat(false);
     }
   };
 
@@ -343,17 +388,54 @@ export default function SupportChatWidget() {
     setIsOpen(false);
   };
 
+  const handleEndChat = async () => {
+    if (isEndingChat) return;
+    setIsEndingChat(true);
+    try {
+      const res = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endChat: true }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.error || "საუბრის დასრულება ვერ მოხერხდა");
+        return;
+      }
+      if (userTypingTimeoutRef.current) clearTimeout(userTypingTimeoutRef.current);
+      setTicketId(null);
+      setInputMsg("");
+      setIsAdminTyping(false);
+      try {
+        localStorage.removeItem("spilo_chat_session");
+      } catch (e) {}
+      setChatEnded("user");
+      setChatStep("auth");
+    } catch (err) {
+      console.error("handleEndChat error:", err);
+      alert("საუბრის დასრულება ვერ მოხერხდა");
+    } finally {
+      setIsEndingChat(false);
+      setIsConfirmingEnd(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputMsg(e.target.value);
     if (ticketId) {
-      fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: ticketId, customerId, isUserTyping: true }),
-      }).catch(() => {});
+      const now = Date.now();
+      if (now - lastTypingSentRef.current > 3000) {
+        lastTypingSentRef.current = now;
+        fetch("/api/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isUserTyping: true }),
+        }).catch(() => {});
+      }
 
       if (userTypingTimeoutRef.current) clearTimeout(userTypingTimeoutRef.current);
       userTypingTimeoutRef.current = setTimeout(() => {
+        lastTypingSentRef.current = 0;
         fetch("/api/support", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -404,6 +486,9 @@ export default function SupportChatWidget() {
       if (json.success && json.data) {
         if (!ticketId) setTicketId(json.data.id);
         saveSessionToStorage(guestName, guestPhone, json.data.id);
+      } else if (!json.success) {
+        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+        alert(json.error || "შეტყობინების გაგზავნა ვერ მოხერხდა");
       }
     } catch (err) {
       console.error("handleSend error:", err);
@@ -415,12 +500,11 @@ export default function SupportChatWidget() {
     setIsAttachmentMenuOpen(false);
     if (fileInputRef.current) {
       if (type === "image") {
-        fileInputRef.current.accept = "image/*";
+        fileInputRef.current.accept = "image/jpeg,image/png,image/webp,image/gif";
       } else if (type === "video") {
-        fileInputRef.current.accept = "video/*";
+        fileInputRef.current.accept = "video/mp4,video/webm,video/quicktime";
       } else {
-        fileInputRef.current.accept =
-          ".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar";
+        fileInputRef.current.accept = ".pdf,.doc,.docx,.xls,.xlsx,.txt";
       }
       fileInputRef.current.click();
     }
@@ -498,6 +582,9 @@ export default function SupportChatWidget() {
       if (json.success && json.data) {
         if (!ticketId) setTicketId(json.data.id);
         saveSessionToStorage(guestName, guestPhone, json.data.id);
+      } else if (!json.success) {
+        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+        alert(json.error || "ფაილის გაგზავნა ვერ მოხერხდა");
       }
     } catch (err) {
       console.error("File upload error:", err);
@@ -533,6 +620,13 @@ export default function SupportChatWidget() {
                 <p className="text-xs text-zinc-500 mt-1">
                   შეიყვანეთ სახელი და ნომერი დასაკავშირებლად
                 </p>
+                {chatEnded && (
+                  <p className="mt-3 text-[11px] text-zinc-600 bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2">
+                    {chatEnded === "user"
+                      ? "საუბარი დასრულებულია. ახალი შეკითხვისთვის ხელახლა დაიწყეთ ჩატი."
+                      : "წინა საუბარი ოპერატორმა დაასრულა. ახალი შეკითხვისთვის ხელახლა დაიწყეთ ჩატი."}
+                  </p>
+                )}
               </div>
 
               <form onSubmit={handleStartAuth} className="space-y-3.5">
@@ -602,7 +696,8 @@ export default function SupportChatWidget() {
               <button
                 type="button"
                 onClick={handleAcceptConsent}
-                className="h-11 rounded-2xl bg-[#FF5238] hover:bg-[#EA3A20] text-white text-xs cursor-pointer transition-all shadow-md shadow-[#FF5238]/20"
+                disabled={isStartingChat}
+                className="h-11 rounded-2xl bg-[#FF5238] hover:bg-[#EA3A20] text-white text-xs cursor-pointer transition-all shadow-md shadow-[#FF5238]/20 disabled:opacity-60 disabled:cursor-wait"
               >
                 თანხმობა
               </button>
@@ -612,43 +707,90 @@ export default function SupportChatWidget() {
 
         {/* STEP 3: ACTIVE CHAT */}
         {chatStep === "chat" && (
-          <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <div className="relative flex-1 flex flex-col h-full overflow-hidden">
             {/* Agent Header Card */}
             {(() => {
               const lastAdminMsg = [...messages].reverse().find((m) => m.sender === "admin");
               const operatorName = lastAdminMsg?.adminName || "Spilo Support";
-              const operatorAvatar =
-                lastAdminMsg?.adminAvatar ||
-                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face";
+              const operatorInitial = lastAdminMsg?.adminName?.trim().charAt(0).toUpperCase();
 
               return (
                 <div className="p-3 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/60 shrink-0">
                   <div className="flex items-center gap-2.5">
                     <div className="relative">
-                      <div className="w-9 h-9 rounded-full bg-[#FF5238] p-0.5 overflow-hidden flex items-center justify-center">
-                        <img
-                          src={operatorAvatar}
-                          alt={operatorName}
-                          className="w-full h-full object-cover rounded-full"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src =
-                              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face";
-                          }}
-                        />
+                      <div className="w-9 h-9 rounded-full bg-[#FF5238] text-white flex items-center justify-center text-sm">
+                        {operatorInitial || <Headphones className="w-4 h-4" />}
                       </div>
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                      <span
+                        className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                          adminOnline ? "bg-emerald-500" : "bg-zinc-300"
+                        }`}
+                      />
                     </div>
                     <div>
                       <h4 className="text-xs text-zinc-900">{operatorName}</h4>
-                      <p className="text-[10px] text-[#FF5238] flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF5238] animate-ping" />
-                        <span>ონლაინ კონსულტანტი</span>
+                      <p className={`text-[10px] flex items-center gap-1 ${adminOnline ? "text-emerald-600" : "text-zinc-400"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${adminOnline ? "bg-emerald-500 animate-pulse" : "bg-zinc-300"}`} />
+                        <span>{adminOnline ? "ოპერატორი ონლაინ არის" : "ოპერატორი მალე გიპასუხებთ"}</span>
                       </p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingEnd(true)}
+                    disabled={isEndingChat}
+                    className="h-8 px-3 rounded-full border border-zinc-200 bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-zinc-600 text-[11px] cursor-pointer transition-colors disabled:opacity-50"
+                  >
+                    დასრულება
+                  </button>
                 </div>
               );
             })()}
+
+            <AnimatePresence>
+              {isConfirmingEnd && (
+                <motion.div
+                  key="end-chat-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute inset-0 z-40 bg-black/25 flex items-center justify-center p-6"
+                  onClick={() => !isEndingChat && setIsConfirmingEnd(false)}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    role="alertdialog"
+                    aria-modal="true"
+                    className="w-full max-w-[280px] bg-white rounded-2xl p-5 shadow-lg"
+                  >
+                    <h4 className="text-sm text-zinc-900">საუბრის დასრულება</h4>
+                    <p className="text-xs text-zinc-500 leading-relaxed mt-1.5">
+                      ნამდვილად გსურთ ოპერატორთან საუბრის დასრულება?
+                    </p>
+                    <div className="flex justify-end gap-2 mt-5">
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmingEnd(false)}
+                        disabled={isEndingChat}
+                        className="h-9 px-4 rounded-xl text-zinc-600 hover:bg-zinc-100 text-xs cursor-pointer transition-colors"
+                      >
+                        გაუქმება
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleEndChat}
+                        disabled={isEndingChat}
+                        className="h-9 px-4 rounded-xl bg-[#FF5238] hover:bg-[#EA3A20] text-white text-xs cursor-pointer flex items-center gap-1.5 transition-colors disabled:opacity-60"
+                      >
+                        {isEndingChat && <Loader2 size={12} className="animate-spin" />}
+                        დასრულება
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Chat Messages Feed with no-scrollbar */}
             <div
@@ -658,6 +800,15 @@ export default function SupportChatWidget() {
             >
               {messages.map((msg) => {
                 const isUser = msg.sender === "user";
+                if (msg.sender === "bot" && msg.adminName === "system") {
+                  return (
+                    <div key={msg.id} className="flex justify-center">
+                      <span className="text-[10px] text-zinc-500 bg-zinc-100 rounded-full px-3 py-1">
+                        {msg.text} · {msg.time}
+                      </span>
+                    </div>
+                  );
+                }
                 return (
                   <div
                     key={msg.id}
@@ -798,6 +949,7 @@ export default function SupportChatWidget() {
                 <input
                   type="text"
                   value={inputMsg}
+                  maxLength={2000}
                   onChange={handleInputChange}
                   placeholder="ჩაწერეთ შეკითხვა..."
                   className="flex-1 h-10 px-4 bg-zinc-50 border border-zinc-200 rounded-full text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400"
@@ -957,7 +1109,11 @@ export default function SupportChatWidget() {
           ) : (
             <>
               <CustomSpiloChatIcon className="w-6 h-6 text-white" />
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#FF5238] rounded-full ring-2 ring-[#111111] animate-pulse" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#FF5238] text-white text-[10px] font-mono rounded-full ring-2 ring-[#111111] flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
             </>
           )}
         </button>

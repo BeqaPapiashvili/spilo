@@ -34,6 +34,12 @@ import { BrandLogo } from "./BrandLogo";
    CUSTOM PIXEL-PERFECT SVG ICONS (Exact matches to reference screenshot)
    ========================================================================= */
 
+function firstNameOf(user: { firstName?: string | null; name?: string | null }): string {
+  const first = (user.firstName || "").trim();
+  if (first) return first;
+  return (user.name || "").trim().split(/\s+/)[0] || "";
+}
+
 function LocationPinIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -220,17 +226,6 @@ export default function Header() {
                 {selectedAddress || user?.address || "მისამართის დამატება"}
               </span>
             </button>
-
-            <Link
-              href="/stores"
-              className="hidden lg:flex items-center gap-2.5 text-gray-700 hover:text-gray-900 transition-colors text-[13px] group"
-              title="პარტნიორი მაღაზიები"
-            >
-              <div className="w-12 h-12 rounded-full bg-[#F2F3F5] group-hover:bg-[#E5E7EB] flex items-center justify-center shrink-0 transition-colors">
-                <Store className="w-5 h-5 text-gray-800" />
-              </div>
-              <span>მაღაზიები</span>
-            </Link>
           </div>
 
           {/* Center Search Input (tablet/desktop) */}
@@ -422,7 +417,7 @@ export default function Header() {
                 className="hidden md:flex items-center gap-2.5 bg-white text-gray-800 hover:text-gray-950 hover:bg-gray-50/80 px-4 lg:px-5 h-11 sm:h-12 rounded-full border border-gray-200 hover:border-gray-300 transition-all cursor-pointer text-xs md:text-[14px]"
               >
                 <span className="max-w-[80px] sm:max-w-[120px] truncate text-gray-800">
-                  {user.firstName || user.name || "პროფილი"}
+                  {firstNameOf(user) || "პროფილი"}
                 </span>
                 <CustomUserIcon className="w-5 h-5 text-gray-800 shrink-0" />
               </Link>
@@ -506,7 +501,7 @@ export default function Header() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm text-gray-900 truncate">
-                          {user.firstName || user.name || "მომხმარებელი"}
+                          {firstNameOf(user) || "მომხმარებელი"}
                         </p>
                         <p className="text-xs text-gray-500 truncate">
                           {user.email || user.phone}

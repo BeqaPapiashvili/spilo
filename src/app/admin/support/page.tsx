@@ -71,6 +71,7 @@ export interface SupportTicket {
   assignedToName?: string;
   time: string;
   messages: ChatMessage[];
+  unreadCount?: number;
   updatedAt?: string;
   createdAt?: string;
 }
@@ -98,6 +99,7 @@ export default function AdminSupportPage() {
   const chatFeedRef = useRef<HTMLDivElement>(null);
   const prevMsgCountRef = useRef<number>(0);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTypingSentRef = useRef(0);
 
   const fetchTickets = async () => {
     try {
@@ -154,6 +156,24 @@ export default function AdminSupportPage() {
   const lockOwnerName = activeTicket?.typingAdminName || activeTicket?.assignedToName || "სხვა ოპერატორი";
 
   const currentMsgCount = activeTicket?.messages.length || 0;
+  const activeUnread = activeTicket?.unreadCount || 0;
+  const isActiveClosed = Boolean(activeTicket && activeTicket.status !== "OPEN");
+
+  useEffect(() => {
+    if (!activeTicketId || activeUnread === 0) return;
+    fetch("/api/admin/support", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: activeTicketId, markRead: true }),
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setTickets((prev) => prev.map((t) => (t.id === json.data.id ? json.data : t)));
+        }
+      })
+      .catch(() => {});
+  }, [activeTicketId, activeUnread]);
 
   useEffect(() => {
     if (currentMsgCount > 0) {
@@ -198,9 +218,11 @@ export default function AdminSupportPage() {
   const handleSendReply = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();
     const text = (customText || replyText).trim();
-    if (isLockedForOtherOperator || !activeTicketId || !text) return;
+    if (isLockedForOtherOperator || isActiveClosed || !activeTicketId || !text) return;
 
     setReplyText("");
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    lastTypingSentRef.current = 0;
 
     try {
       const res = await fetch("/api/admin/support", {
@@ -216,9 +238,13 @@ export default function AdminSupportPage() {
       const json = await res.json();
       if (json.success && json.data) {
         setTickets((prev) => prev.map((t) => (t.id === activeTicketId ? json.data : t)));
+      } else {
+        if (!customText) setReplyText(text);
+        alert(json.message || json.error || "პასუხის გაგზავნა ვერ მოხერხდა");
       }
     } catch (err) {
       console.error("handleSendReply error:", err);
+      if (!customText) setReplyText(text);
     }
 
     setTimeout(() => {
@@ -231,18 +257,23 @@ export default function AdminSupportPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setReplyText(e.target.value);
     if (activeTicketId) {
-      fetch("/api/admin/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: activeTicketId,
-          isAdminTyping: true,
-          typingAdminName: currentOperatorName,
-        }),
-      }).catch(() => {});
+      const now = Date.now();
+      if (now - lastTypingSentRef.current > 3000) {
+        lastTypingSentRef.current = now;
+        fetch("/api/admin/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: activeTicketId,
+            isAdminTyping: true,
+            typingAdminName: currentOperatorName,
+          }),
+        }).catch(() => {});
+      }
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
+        lastTypingSentRef.current = 0;
         fetch("/api/admin/support", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -512,8 +543,13 @@ export default function AdminSupportPage() {
                           <h4 className={`text-xs truncate ${isActive ? "text-[#FF5238]" : "text-zinc-900"}`}>
                             {t.customerName}
                           </h4>
-                          <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
-                            {t.time}
+                          <span className="flex items-center gap-1.5 shrink-0">
+                            {(t.unreadCount || 0) > 0 && (
+                              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF5238] text-white text-[10px] flex items-center justify-center font-mono">
+                                {t.unreadCount}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-zinc-400 font-mono">{t.time}</span>
                           </span>
                         </div>
 
@@ -659,6 +695,15 @@ export default function AdminSupportPage() {
               >
                 {activeTicket.messages.map((msg, idx) => {
                   const isAdmin = msg.sender === "admin";
+                  if (msg.sender === "bot") {
+                    return (
+                      <div key={idx} className="flex justify-center">
+                        <span className="text-[11px] text-zinc-500 bg-zinc-100 border border-zinc-200/80 rounded-full px-3 py-1">
+                          {msg.text} · <span className="font-mono">{msg.time}</span>
+                        </span>
+                      </div>
+                    );
+                  }
                   return (
                     <div
                       key={idx}
@@ -691,6 +736,16 @@ export default function AdminSupportPage() {
                               </a>
                             )}
 
+                            {msg.attachment.type === "video" && (
+                              <video
+                                controls
+                                playsInline
+                                preload="metadata"
+                                src={msg.attachment.url}
+                                className="max-w-[280px] max-h-52 rounded-xl bg-black"
+                              />
+                            )}
+
                             {msg.attachment.type === "file" && (
                               <a
                                 href={msg.attachment.url}
@@ -716,7 +771,7 @@ export default function AdminSupportPage() {
                         <span>•</span>
                         <span className="font-mono">{msg.time}</span>
                         {isAdmin && (
-                          <CheckCheck className="w-3 h-3 text-[#FF5238]" />
+                          <CheckCheck className={`w-3 h-3 ${msg.read ? "text-[#FF5238]" : "text-zinc-300"}`} />
                         )}
                       </div>
                     </div>
@@ -746,7 +801,7 @@ export default function AdminSupportPage() {
                     key={i}
                     type="button"
                     onClick={() => handleSendReply(undefined, reply)}
-                    disabled={isLockedForOtherOperator}
+                    disabled={isLockedForOtherOperator || isActiveClosed}
                     className="px-2.5 py-1 bg-zinc-100 hover:bg-[#FFF5F2] hover:text-[#FF5238] text-zinc-700 rounded-lg text-[11px] whitespace-nowrap transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     {reply}
@@ -762,10 +817,13 @@ export default function AdminSupportPage() {
                 <input
                   type="text"
                   value={replyText}
-                  disabled={isLockedForOtherOperator}
+                  maxLength={2000}
+                  disabled={isLockedForOtherOperator || isActiveClosed}
                   onChange={handleInputChange}
                   placeholder={
-                    isLockedForOtherOperator
+                    isActiveClosed
+                      ? "ჩატი დახურულია. პასუხისთვის ჯერ გახსენით."
+                      : isLockedForOtherOperator
                       ? `ჩატი დაკავებულია (${lockOwnerName}-ს მიერ)...`
                       : "ჩაწერეთ პასუხი მომხმარებლისთვის..."
                   }
@@ -774,7 +832,7 @@ export default function AdminSupportPage() {
 
                 <button
                   type="submit"
-                  disabled={isLockedForOtherOperator || !replyText.trim()}
+                  disabled={isLockedForOtherOperator || isActiveClosed || !replyText.trim()}
                   className="h-11 px-5 bg-[#FF5238] hover:bg-[#EA3A20] disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-2xl text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4" />
