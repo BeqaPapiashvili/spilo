@@ -20,6 +20,8 @@ interface SliderDimensions {
   sideH: number;
   D: number;
   hasSides: boolean;
+  mobile: boolean;
+  measured: boolean;
 }
 
 export default function HeroBannerSection({
@@ -45,7 +47,7 @@ export default function HeroBannerSection({
 
   const [isPaused, setIsPaused] = useState(false);
   const [currentDisplayIndex, setCurrentDisplayIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const touchRef = useRef<{ x: number; y: number; basePos: number; axis: "x" | "y" | null } | null>(null);
 
   // Dimensions state for positioning the continuous conveyor
   const [dimensions, setDimensions] = useState<SliderDimensions>({
@@ -55,6 +57,8 @@ export default function HeroBannerSection({
     sideH: 380,
     D: 664,
     hasSides: true,
+    mobile: false,
+    measured: false,
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,14 +122,14 @@ export default function HeroBannerSection({
     } else {
       // mobile screens
       centerW = containerWidth;
-      centerH = 260;
+      centerH = Math.round(Math.min(240, Math.max(170, containerWidth * 0.52)));
       sideW = 0;
-      sideH = 260;
+      sideH = centerH;
       D = centerW + 16;
       hasSides = false;
     }
 
-    setDimensions({ centerW, centerH, sideW, sideH, D, hasSides });
+    setDimensions({ centerW, centerH, sideW, sideH, D, hasSides, mobile: containerWidth < 640, measured: true });
   }, []);
 
   // Preload all slide images into memory
@@ -148,7 +152,7 @@ export default function HeroBannerSection({
     const N = slides.length;
     if (N === 0) return;
 
-    const { centerW, centerH, sideW, sideH, D, hasSides } = dimensions;
+    const { centerW, centerH, sideW, sideH, D, hasSides, mobile } = dimensions;
     const baseIndex = Math.round(pos);
 
     // Update each of the 5 conveyor slots: k = -2, -1, 0, 1, 2
@@ -167,9 +171,10 @@ export default function HeroBannerSection({
       const slide = slides[slideIndex];
 
       // Update image source if needed
-      if (imgEl && imgEl.dataset.currentSrc !== slide.image) {
-        imgEl.src = slide.image;
-        imgEl.dataset.currentSrc = slide.image;
+      const src = (mobile && slide.mobileImage) || slide.image;
+      if (imgEl && imgEl.dataset.currentSrc !== src) {
+        imgEl.src = src;
+        imgEl.dataset.currentSrc = src;
       }
 
       // Exact continuous distance from the center focus point
@@ -218,7 +223,7 @@ export default function HeroBannerSection({
         x = cardDiff * D;
         w = centerW;
         h = centerH;
-        opacity = Math.max(0, 1 - absDiff);
+        opacity = absDiff < 1.5 ? 1 : 0;
         overlayOpacity = 0;
         zIndex = absDiff < 0.5 ? 30 : 5;
       }
@@ -419,22 +424,53 @@ export default function HeroBannerSection({
     return () => clearInterval(timer);
   }, [autoplay, isPaused, slides.length, autoplayInterval, handleNext]);
 
-  // Touch swipe support
+  // Touch swipe: the card follows the finger, then springs to the nearest slide
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
+    if (slides.length <= 1) return;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    velRef.current = 0;
+    targetRef.current = posRef.current;
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, basePos: posRef.current, axis: null };
+    setIsPaused(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = touchRef.current;
+    if (!touch) return;
+    const dx = e.touches[0].clientX - touch.x;
+    const dy = e.touches[0].clientY - touch.y;
+    if (!touch.axis) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      touch.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (touch.axis !== "x") return;
+    posRef.current = touch.basePos - dx / dimensions.D;
+    applyCardStyles(posRef.current);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX === null) return;
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) {
-        handleNext();
-      } else {
-        handlePrev();
-      }
+    const touch = touchRef.current;
+    touchRef.current = null;
+    setIsPaused(false);
+    if (!touch) return;
+    const dx = e.changedTouches[0].clientX - touch.x;
+    const base = Math.round(touch.basePos);
+    if (touch.axis === "x" && Math.abs(dx) > 40) {
+      targetRef.current = dx < 0 ? base + 1 : base - 1;
+    } else {
+      targetRef.current = base;
     }
-    setTouchStartX(null);
+    startPhysicsLoop();
+  };
+
+  const suppressClickAfterSwipe = (e: React.MouseEvent) => {
+    if (Math.abs(posRef.current - targetRef.current) > 0.05) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
 
   if (!slides || slides.length === 0) {
@@ -460,8 +496,14 @@ export default function HeroBannerSection({
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="relative w-full h-[220px] xs:h-[260px] sm:h-[340px] md:h-[380px] 2xl:h-[400px] flex items-center justify-center select-none"
+            onTouchCancel={handleTouchEnd}
+            onClickCapture={suppressClickAfterSwipe}
+            className={`relative w-full flex items-center justify-center select-none touch-pan-y ${
+              dimensions.measured ? "" : "h-[180px] sm:h-[340px] md:h-[380px] 2xl:h-[400px]"
+            }`}
+            style={dimensions.measured ? { height: `${Math.max(dimensions.centerH, dimensions.sideH)}px` } : undefined}
           >
             {/* 5 PHYSICAL CONVEYOR CARD SLOTS (Continuously interpolated at 60/120fps) */}
             {[0, 1, 2, 3, 4].map((slotIdx) => (
@@ -485,7 +527,7 @@ export default function HeroBannerSection({
                   ref={(el) => {
                     contentRefs.current[slotIdx] = el;
                   }}
-                  className="w-full h-full relative rounded-2xl sm:rounded-[28px] overflow-hidden shadow-md bg-zinc-100"
+                  className="w-full h-full relative rounded-[20px] sm:rounded-[28px] overflow-hidden sm:shadow-md bg-zinc-100"
                 >
                   <img
                     ref={(el) => {
@@ -561,7 +603,7 @@ export default function HeroBannerSection({
                     e.stopPropagation();
                     handlePrev();
                   }}
-                  className="flex xl:hidden absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-35 w-[42px] h-[42px] rounded-full bg-neutral-900/40 hover:bg-neutral-900/60 active:bg-neutral-900/75 backdrop-blur-md shadow-[0_4px_14px_rgba(0,0,0,0.22)] text-white items-center justify-center transition-colors duration-200 cursor-pointer"
+                  className="hidden sm:flex xl:hidden absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-35 w-[42px] h-[42px] rounded-full bg-neutral-900/40 hover:bg-neutral-900/60 active:bg-neutral-900/75 backdrop-blur-md shadow-[0_4px_14px_rgba(0,0,0,0.22)] text-white items-center justify-center transition-colors duration-200 cursor-pointer"
                   title="წინა ბანერი"
                   aria-label="Previous banner"
                 >
@@ -579,7 +621,7 @@ export default function HeroBannerSection({
                     e.stopPropagation();
                     handleNext();
                   }}
-                  className="flex xl:hidden absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-35 w-[42px] h-[42px] rounded-full bg-neutral-900/40 hover:bg-neutral-900/60 active:bg-neutral-900/75 backdrop-blur-md shadow-[0_4px_14px_rgba(0,0,0,0.22)] text-white items-center justify-center transition-colors duration-200 cursor-pointer"
+                  className="hidden sm:flex xl:hidden absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-35 w-[42px] h-[42px] rounded-full bg-neutral-900/40 hover:bg-neutral-900/60 active:bg-neutral-900/75 backdrop-blur-md shadow-[0_4px_14px_rgba(0,0,0,0.22)] text-white items-center justify-center transition-colors duration-200 cursor-pointer"
                   title="შემდეგი ბანერი"
                   aria-label="Next banner"
                 >
@@ -594,7 +636,7 @@ export default function HeroBannerSection({
 
             {/* BOTTOM FROSTED DOTS PAGINATION */}
             {isMultiple && (
-              <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
+              <div className="hidden sm:block absolute bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
                 <div className="bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-white/15 shadow-sm">
                   {slides.map((_, dotIdx) => {
                     const isCurrent = dotIdx === currentDisplayIndex;
@@ -620,6 +662,22 @@ export default function HeroBannerSection({
               </div>
             )}
           </div>
+
+          {isMultiple && (
+            <div className="sm:hidden flex items-center justify-center gap-1.5 pt-3">
+              {slides.map((_, dotIdx) => (
+                <button
+                  key={dotIdx}
+                  type="button"
+                  onClick={() => handleDotClick(dotIdx)}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    dotIdx === currentDisplayIndex ? "w-5 bg-[#FF5238]" : "w-1.5 bg-zinc-300"
+                  }`}
+                  aria-label={`Go to slide ${dotIdx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

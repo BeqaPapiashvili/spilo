@@ -455,7 +455,7 @@ export default function Header() {
       {/* Mobile Drawer Menu (lg:hidden) */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div className="fixed inset-0 z-[75] lg:hidden flex">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}

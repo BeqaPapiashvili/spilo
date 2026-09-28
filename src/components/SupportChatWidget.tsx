@@ -103,6 +103,15 @@ export default function SupportChatWidget() {
     },
   ]);
 
+  useEffect(() => {
+    if (!isOpen || !window.matchMedia("(max-width: 639px)").matches) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   // Customer ID Initialization: 30-day persistent cookie & localStorage
   useEffect(() => {
     try {
@@ -638,7 +647,7 @@ export default function SupportChatWidget() {
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="მაგ: გიორგი"
                     required
-                    className="w-full h-11 px-4 rounded-2xl border border-zinc-200 bg-zinc-50/70 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400"
+                    className={`w-full h-11 px-4 rounded-2xl border border-zinc-200 bg-zinc-50/70 ${isMobile ? "text-base" : "text-xs"} text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400`}
                   />
                 </div>
 
@@ -654,7 +663,7 @@ export default function SupportChatWidget() {
                       onChange={(e) => setGuestPhone(e.target.value)}
                       placeholder="5XX XX XX XX"
                       required
-                      className="flex-1 h-11 px-4 rounded-2xl border border-zinc-200 bg-zinc-50/70 text-xs text-zinc-900 font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400"
+                      className={`flex-1 h-11 px-4 rounded-2xl border border-zinc-200 bg-zinc-50/70 ${isMobile ? "text-base" : "text-xs"} text-zinc-900 font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400`}
                     />
                   </div>
                 </div>
@@ -952,7 +961,7 @@ export default function SupportChatWidget() {
                   maxLength={2000}
                   onChange={handleInputChange}
                   placeholder="ჩაწერეთ შეკითხვა..."
-                  className="flex-1 h-10 px-4 bg-zinc-50 border border-zinc-200 rounded-full text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400"
+                  className={`flex-1 ${isMobile ? "h-11 text-base" : "h-10 text-xs"} px-4 bg-zinc-50 border border-zinc-200 rounded-full text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#FF5238]/20 focus:border-[#FF5238] transition-all placeholder:text-zinc-400`}
                 />
 
                 <button
@@ -995,15 +1004,22 @@ export default function SupportChatWidget() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", damping: 26, stiffness: 280 }}
-            className="sm:hidden fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] overflow-hidden select-none"
+            className="sm:hidden fixed inset-0 z-[95] flex flex-col h-[100dvh] overflow-hidden select-none px-2.5"
+            style={{
+              background: "linear-gradient(145deg, #FFFFFF 0%, #FFF5F2 100%)",
+              paddingBottom: "max(10px, env(safe-area-inset-bottom))",
+            }}
           >
-            {/* Mobile Top Header Bar */}
-            <div className="px-4 py-3 bg-[#1D1D1F] text-white flex items-center justify-between shrink-0 shadow-xs">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15">
-                <div className="w-4 h-4 rounded-full bg-[#FF5238] text-white flex items-center justify-center text-[9px]">
+            {/* Mobile Glass Header Bar (mirrors desktop) */}
+            <div
+              className="flex items-center justify-between px-1.5 pb-2.5 shrink-0"
+              style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
+            >
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/90 border border-[#FED7CC] shadow-2xs">
+                <div className="w-5 h-5 rounded-full bg-[#FF5238] text-white flex items-center justify-center text-[10px]">
                   S
                 </div>
-                <span className="text-[12px] text-white">
+                <span className="text-[13px] text-zinc-700">
                   Spilo <span className="text-[#FF5238]">მხარდაჭერა</span>
                 </span>
               </div>
@@ -1011,15 +1027,15 @@ export default function SupportChatWidget() {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
-                aria-label="დახურვა"
+                className="w-9 h-9 rounded-full bg-white/90 text-zinc-600 active:text-zinc-900 border border-zinc-200/80 shadow-2xs flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                aria-label="ჩატის ჩაკეცვა"
               >
-                <X size={16} />
+                <Minus size={16} />
               </button>
             </div>
 
-            {/* Mobile Chat Body */}
-            <div className="flex-1 bg-white relative overflow-hidden flex flex-col">
+            {/* Inner Main Card Container (mirrors desktop) */}
+            <div className="flex-1 min-h-0 bg-white rounded-[28px] border border-zinc-100/90 shadow-2xs relative overflow-hidden flex flex-col">
               {renderChatContent(true)}
             </div>
           </motion.div>
