@@ -15,6 +15,7 @@ import {
   Ticket, 
   MessageSquare, 
   Image as ImageIcon, 
+  LayoutGrid,
   LayoutTemplate, 
   Navigation, 
   Truck, 
@@ -108,6 +109,7 @@ const NAVIGATION_TABS: MenuTab[] = [
         title: "საიტის მართვა",
         items: [
           { title: "Homepage", href: "/admin/homepage", icon: <LayoutTemplate className="w-4 h-4" /> },
+          { title: "პოპულარული კატეგორიები", href: "/admin/home-categories", icon: <LayoutGrid className="w-4 h-4" /> },
           { title: "ნავიგაცია", href: "/admin/navigation", icon: <Navigation className="w-4 h-4" /> },
         ],
       },

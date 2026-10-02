@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getSeoSettings, constructMetadata } from "@/lib/seo";
 import { prisma } from "@/lib/prisma";
 import type { StoreLogoItem } from "@/components/home/StoresLogoSection";
+import { loadHomeCategoryStrip } from "@/lib/homeCategoryStrip";
 
 async function loadStoreLogos(): Promise<StoreLogoItem[]> {
   try {
@@ -102,9 +103,10 @@ const TrustStripSection = dynamicImport(() => import("@/components/home/TrustStr
 });
 
 export default async function Home() {
-  const [sections, storeLogos]: [ResolvedStorefrontSection[], StoreLogoItem[]] = await Promise.all([
+  const [sections, storeLogos, categoryStrip] = await Promise.all([
     resolveStorefrontFeed(),
     loadStoreLogos(),
+    loadHomeCategoryStrip(),
   ]);
 
   const isBrandSection = (sec: ResolvedStorefrontSection) => {
@@ -136,6 +138,7 @@ export default async function Home() {
           subtitle={sec.subtitle}
           heroSlides={sec.resolvedHeroSlides}
           config={sec.config}
+          categoryStrip={categoryStrip}
         />
       );
     }

@@ -79,6 +79,7 @@ const ADMIN_SECTIONS: AdminPageSection[] = [
   { title: "კუპონები & პრომო კოდები", description: "ფასდაკლების კოდების შექმნა და ანალიტიკა", href: "/admin/coupons", category: "მარკეტინგი", icon: <Ticket className="w-4 h-4 text-indigo-600" /> },
   { title: "ბანერები", description: "Hero და promotional ბანერების მართვა", href: "/admin/banners", category: "მარკეტინგი", icon: <ImageIcon className="w-4 h-4 text-blue-600" /> },
   { title: "Homepage CMS", description: "მთავარი გვერდის ბლოკების რედაქტირება", href: "/admin/homepage", category: "CMS", icon: <LayoutTemplate className="w-4 h-4 text-emerald-600" /> },
+  { title: "პოპულარული კატეგორიები", description: "მთავარი სლაიდერის ზემოთ კატეგორიების ზოლი", href: "/admin/home-categories", category: "CMS", icon: <LayoutTemplate className="w-4 h-4 text-emerald-600" /> },
   { title: "ნავიგაცია", description: "მენიუსა და ფუტერის ბმულები", href: "/admin/navigation", category: "CMS", icon: <Navigation className="w-4 h-4 text-indigo-600" /> },
   { title: "CMS გვერდები", description: "წესები, კონფიდენციალურობა, FAQ", href: "/admin/cms", category: "CMS", icon: <Globe className="w-4 h-4 text-blue-600" /> },
   { title: "სისტემის პარამეტრები", description: "მაღაზიის გლობალური კონფიგურაცია", href: "/admin/settings", category: "სისტემა", icon: <Settings className="w-4 h-4 text-slate-600" /> },

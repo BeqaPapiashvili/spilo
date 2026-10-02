@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, useRef, type MutableRefObject } from "react";
 import { Heart, ShoppingCart, Check, GitCompare } from "lucide-react";
+import { DragSafeLink } from "@/components/DragSafeLink";
 import { useStore } from "@/store/useStore";
 
 export interface ProductCardProps {
@@ -19,6 +19,7 @@ export interface ProductCardProps {
   reviewsCount?: number;
   storeName?: string;
   storeSlug?: string;
+  dragLockRef?: MutableRefObject<boolean>;
 }
 
 export default function ProductCard({
@@ -35,14 +36,25 @@ export default function ProductCard({
   reviewsCount,
   storeName,
   storeSlug,
+  dragLockRef,
 }: ProductCardProps) {
   const { addToCart, toggleWishlist, isInWishlist, toggleCompare, compareList } = useStore();
   const [mounted, setMounted] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const pointerActiveRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
+    const releasePointer = () => {
+      pointerActiveRef.current = false;
+    };
+    window.addEventListener("pointerup", releasePointer);
+    window.addEventListener("pointercancel", releasePointer);
+    return () => {
+      window.removeEventListener("pointerup", releasePointer);
+      window.removeEventListener("pointercancel", releasePointer);
+    };
   }, []);
 
   const rawImages = (images && images.length > 0) ? images.filter(Boolean) : [image].filter(Boolean);
@@ -101,7 +113,13 @@ export default function ProductCard({
 
   return (
     <div
-      onMouseLeave={() => setActiveImageIndex(0)}
+      onMouseLeave={() => {
+        if (pointerActiveRef.current || dragLockRef?.current) return;
+        setActiveImageIndex(0);
+      }}
+      onPointerDown={() => {
+        pointerActiveRef.current = true;
+      }}
       className="group relative flex flex-col h-[310px] sm:h-[380px] w-full max-w-full bg-white rounded-[20px] sm:rounded-[24px] p-2.5 sm:p-4 select-none border border-zinc-200/70 hover:border-zinc-300/80 transition-all duration-200 justify-between shadow-2xs hover:shadow-xs overflow-hidden"
     >
       
@@ -113,7 +131,7 @@ export default function ProductCard({
           <button
             type="button"
             onClick={handleToggleFavorite}
-            className={`p-2 rounded-full transition-all duration-150 cursor-pointer shadow-xs ${
+            className={`swiper-no-swiping p-2 rounded-full transition-all duration-150 cursor-pointer shadow-xs ${
               isLiked
                 ? "bg-[#FFF5F2] text-[#FF5238]"
                 : "bg-white/90 backdrop-blur-xs text-zinc-400 hover:text-zinc-800 hover:bg-white"
@@ -127,7 +145,7 @@ export default function ProductCard({
           <button
             type="button"
             onClick={handleToggleCompare}
-            className={`p-2 rounded-full transition-all duration-150 cursor-pointer shadow-xs ${
+            className={`swiper-no-swiping p-2 rounded-full transition-all duration-150 cursor-pointer shadow-xs ${
               isCompared
                 ? "bg-[#FFF5F2] text-[#FF5238]"
                 : "bg-white/90 backdrop-blur-xs text-zinc-400 hover:text-zinc-800 hover:bg-white"
@@ -140,38 +158,45 @@ export default function ProductCard({
         </div>
 
         {/* Product Image Stage (wrapped in standard Link for touch safety) */}
-        <Link
+        <DragSafeLink
           href={`/product/${id}`}
+          dragLockRef={dragLockRef}
           className="w-full h-full flex items-center justify-center cursor-pointer"
         >
           <img
             src={currentDisplayImage}
             alt={title}
             loading="lazy"
+            draggable={false}
             referrerPolicy="no-referrer"
+            onDragStart={(e) => e.preventDefault()}
             onError={(e) => {
               e.currentTarget.src = "/placeholder.png";
             }}
-            className={`w-full h-full object-contain mix-blend-multiply transition-opacity duration-150 ${
+            className={`w-full h-full object-contain mix-blend-multiply pointer-events-none transition-opacity duration-150 [-webkit-user-drag:none] ${
               isOutOfStock ? "opacity-40 grayscale-[40%]" : ""
             }`}
           />
-        </Link>
+        </DragSafeLink>
 
         {/* Hover-triggered Segmented Hover Zones - ONLY on desktop (hidden on touch/mobile) */}
         {allImages.length > 1 && (
-          <Link
+          <DragSafeLink
             href={`/product/${id}`}
+            dragLockRef={dragLockRef}
             className="absolute inset-0 z-10 hidden md:flex cursor-pointer"
           >
             {allImages.map((_, idx) => (
               <div
                 key={idx}
-                onMouseEnter={() => setActiveImageIndex(idx)}
+                onMouseEnter={() => {
+                  if (pointerActiveRef.current || dragLockRef?.current) return;
+                  setActiveImageIndex(idx);
+                }}
                 className="flex-1 h-full cursor-pointer"
               />
             ))}
-          </Link>
+          </DragSafeLink>
         )}
 
         {/* Segmented Progress Bar at the Bottom of Image (Only on Hover, desktop only) */}
@@ -200,7 +225,7 @@ export default function ProductCard({
         <div className="flex items-center justify-between gap-2 min-h-[44px] relative">
           
           {/* Price Stack */}
-          <Link href={`/product/${id}`} className="min-w-0 flex-1 space-y-0.5 block cursor-pointer">
+          <DragSafeLink href={`/product/${id}`} dragLockRef={dragLockRef} className="min-w-0 flex-1 space-y-0.5 block cursor-pointer">
             {effectiveDiscount > 0 && (
               <div>
                 <span className="inline-block text-[11px] bg-[#10B981] text-white px-2 py-0.5 rounded-md leading-none">
@@ -219,7 +244,7 @@ export default function ProductCard({
                 </span>
               )}
             </div>
-          </Link>
+          </DragSafeLink>
 
           {/* Red/Coral Cart Button */}
           <div className="shrink-0 z-20">
@@ -231,7 +256,7 @@ export default function ProductCard({
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm opacity-100 scale-100 active:scale-95 ${
+                className={`swiper-no-swiping w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm opacity-100 scale-100 active:scale-95 ${
                   isAdded
                     ? "bg-[#10B981] text-white"
                     : "bg-[#FF5238] hover:bg-[#EA3A20] text-white"
@@ -251,22 +276,24 @@ export default function ProductCard({
         </div>
 
         {/* Product Title (Max 2 lines with ellipsis ...) */}
-        <Link
+        <DragSafeLink
           href={`/product/${id}`}
+          dragLockRef={dragLockRef}
           title={title}
           className="text-xs sm:text-[13px] text-zinc-700 hover:text-[#FF5238] transition-colors leading-snug line-clamp-2 overflow-hidden text-ellipsis break-words h-[34px] block cursor-pointer"
         >
           {title}
-        </Link>
+        </DragSafeLink>
 
         {storeName && storeSlug ? (
-          <Link
+          <DragSafeLink
             href={`/stores/${storeSlug}`}
+            dragLockRef={dragLockRef}
             onClick={(e) => e.stopPropagation()}
             className="text-[11px] text-[#FF5238] hover:underline"
           >
             {storeName}
-          </Link>
+          </DragSafeLink>
         ) : null}
 
         {typeof reviewsCount === "number" && reviewsCount > 0 && (

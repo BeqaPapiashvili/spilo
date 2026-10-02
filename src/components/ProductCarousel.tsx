@@ -29,6 +29,7 @@ interface ProductCarouselProps {
 
 export default function ProductCarousel({ products }: ProductCarouselProps) {
   const swiperRef = useRef<any>(null);
+  const dragLockRef = useRef(false);
   const [isBeginning, setIsBeginning] = useState(true);
   const [isEnd, setIsEnd] = useState(false);
 
@@ -76,6 +77,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
         }}
         onSwiper={(swiper) => {
           swiperRef.current = swiper;
+          swiper.el.removeEventListener("load", swiper.onLoad, { capture: true });
           setIsBeginning(swiper.isBeginning);
           setIsEnd(swiper.isEnd);
         }}
@@ -83,11 +85,26 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
           setIsBeginning(swiper.isBeginning);
           setIsEnd(swiper.isEnd);
         }}
+        onProgress={(swiper) => {
+          setIsBeginning(swiper.isBeginning);
+          setIsEnd(swiper.isEnd);
+        }}
+        onTouchStart={() => {
+          dragLockRef.current = false;
+        }}
+        onSliderFirstMove={() => {
+          dragLockRef.current = true;
+        }}
+        onTouchEnd={() => {
+          window.setTimeout(() => {
+            dragLockRef.current = false;
+          }, 80);
+        }}
         className="w-full py-2 px-0.5 overflow-visible"
       >
         {products.map((product) => (
           <SwiperSlide key={product.id} className="!w-[190px] sm:!w-[230px] md:!w-[270px] shrink-0">
-            <ProductCard {...product} />
+            <ProductCard {...product} dragLockRef={dragLockRef} />
           </SwiperSlide>
         ))}
       </Swiper>

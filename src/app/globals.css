@@ -61,6 +61,16 @@ body {
   scrollbar-width: none;
 }
 
+.swiper img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.swiper-grabbing,
+.swiper-grabbing * {
+  cursor: grabbing !important;
+}
+
 /* Prevent iOS Safari & mobile browser auto-zoom on input focus */
 @media screen and (max-width: 768px) {
   input, select, textarea {
