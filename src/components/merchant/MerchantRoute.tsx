@@ -7,7 +7,7 @@ import { useStore } from "@/store/useStore";
 export function MerchantRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { adminUser, setAdminSession, _hasHydrated } = useStore();
+  const { merchantUser, setAdminSession, _hasHydrated } = useStore();
   const [ready, setReady] = useState(false);
   const isLogin = pathname === "/merchant/login";
 
@@ -15,7 +15,7 @@ export function MerchantRoute({ children }: { children: React.ReactNode }) {
     if (isLogin) return;
     let cancelled = false;
     const load = async () => {
-      if (adminUser?.role === "MERCHANT") {
+      if (merchantUser?.role === "MERCHANT") {
         if (!cancelled) setReady(true);
         return;
       }
@@ -36,7 +36,7 @@ export function MerchantRoute({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [adminUser, isLogin, router, setAdminSession]);
+  }, [merchantUser, isLogin, router, setAdminSession]);
 
   if (isLogin) return <>{children}</>;
   if (!_hasHydrated || !ready) {

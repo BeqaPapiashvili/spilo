@@ -63,6 +63,7 @@ interface StoreState {
   highlightDifferencesOnly: boolean;
   user: UserProfile | null;
   adminUser: { id: string; name: string; email: string; role: string; store?: { name?: string; slug?: string; logo?: string | null } } | null;
+  merchantUser: { id: string; name: string; email: string; role: string; store?: { name?: string; slug?: string; logo?: string | null } } | null;
   adminToken: string | null;
   isAuthModalOpen: boolean;
   isMegaMenuOpen: boolean;
@@ -150,6 +151,7 @@ export const useStore = create<StoreState>()(
       highlightDifferencesOnly: false,
       user: null,
       adminUser: null,
+      merchantUser: null,
       adminToken: null,
       isAuthModalOpen: false,
       isMegaMenuOpen: false,
@@ -235,7 +237,11 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      setAdminSession: (adminUser) => set({ adminUser }),
+      setAdminSession: (session) => set((state) => {
+        if (!session) return { adminUser: null };
+        if (session.role === "MERCHANT") return { merchantUser: session };
+        return { adminUser: session, merchantUser: state.merchantUser };
+      }),
       updateUserRole: (email, role) =>
         set((state) => {
           const targetEmail = email.trim().toLowerCase();
@@ -264,7 +270,7 @@ export const useStore = create<StoreState>()(
         if (typeof window !== "undefined") {
           fetch("/api/merchant/auth", { method: "DELETE" }).catch(() => {});
         }
-        set({ adminUser: null, adminToken: null });
+        set({ merchantUser: null });
       },
       logout: async () => {
         if (typeof window !== "undefined") {
@@ -532,6 +538,7 @@ export const useStore = create<StoreState>()(
         highlightDifferencesOnly: state.highlightDifferencesOnly,
         user: state.user,
         adminUser: state.adminUser,
+        merchantUser: state.merchantUser,
         recentlyViewed: state.recentlyViewed,
         recentSearches: state.recentSearches,
       }),
@@ -540,6 +547,10 @@ export const useStore = create<StoreState>()(
           state.setHasHydrated(true);
           if (!state.sessionId && typeof window !== "undefined") {
             state.sessionId = localStorage.getItem("spilo_session_id") || `sess_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
+          }
+          if (state.adminUser?.role === "MERCHANT") {
+            state.merchantUser = state.merchantUser || state.adminUser;
+            state.adminUser = null;
           }
           if (state.user?.id) {
             state.hydrateUserData(state.user.id);

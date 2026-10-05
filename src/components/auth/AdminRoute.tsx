@@ -24,7 +24,7 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     let cancelled = false;
 
     const restoreSession = async () => {
-      if (adminUser) {
+      if (adminUser && adminUser.role !== "MERCHANT") {
         if (!cancelled) setIsAuthorized(true);
         return;
       }
@@ -80,8 +80,18 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // Check Role Permission Rights for current route
-  const userRole = adminUser?.role || "SUPER_ADMIN";
+  if (!adminUser || adminUser.role === "MERCHANT") {
+    return (
+      <div className="min-h-screen bg-[#F4F6F9] p-8 flex items-center justify-center">
+        <div className="bg-white rounded-3xl p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4 text-center">
+          <Skeleton height={32} className="w-1/2 mx-auto rounded-xl bg-slate-100" />
+          <Skeleton height={16} className="w-3/4 mx-auto rounded-lg bg-slate-100" />
+        </div>
+      </div>
+    );
+  }
+
+  const userRole = adminUser.role || "SUPER_ADMIN";
   const canAccessPage = isRouteAllowed(userRole, pathname);
 
   if (!canAccessPage) {

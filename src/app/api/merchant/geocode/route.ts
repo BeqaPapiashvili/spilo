@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/jwt";
-import { enforceRateLimit } from "@/lib/rateLimit";
 import { geocodeQuery } from "@/lib/mapGeocode";
+import { requireMerchantSession } from "@/lib/merchant";
+import { enforceRateLimit } from "@/lib/rateLimit";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { errorResponse, session } = await requireAdminSession(request);
+  const { session, errorResponse } = await requireMerchantSession(request);
   if (errorResponse) return errorResponse;
 
   const rate = await enforceRateLimit(request, {
-    namespace: "admin_geocode",
+    namespace: "merchant_geocode",
     identifier: session?.userId,
     limit: 120,
     windowSeconds: 60,

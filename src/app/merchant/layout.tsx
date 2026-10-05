@@ -9,8 +9,8 @@ import { useStore } from "@/store/useStore";
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { adminUser } = useStore();
-  const storeName = (adminUser as { store?: { name?: string } } | null)?.store?.name || adminUser?.name;
+  const { merchantUser } = useStore();
+  const storeName = merchantUser?.store?.name || merchantUser?.name;
 
   if (pathname === "/merchant/login") {
     return <MerchantRoute>{children}</MerchantRoute>;
@@ -27,6 +27,7 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
               <Link href="/merchant">დაფა</Link>
               <Link href="/merchant/orders">შეკვეთები</Link>
               <Link href="/merchant/products">პროდუქტები</Link>
+              <Link href="/merchant/warehouses">საწყობები</Link>
               <Link href="/merchant/store">მაღაზია</Link>
             </div>
           </header>

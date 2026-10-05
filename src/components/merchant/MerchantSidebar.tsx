@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut, Package, Settings, ShoppingBag, Store } from "lucide-react";
+import { LayoutDashboard, LogOut, Package, Settings, ShoppingBag, Store, Warehouse } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 const LINKS = [
   { href: "/merchant", label: "დაფა", icon: LayoutDashboard },
   { href: "/merchant/orders", label: "შეკვეთები", icon: ShoppingBag },
   { href: "/merchant/products", label: "პროდუქტები", icon: Package },
+  { href: "/merchant/warehouses", label: "საწყობები", icon: Warehouse },
   { href: "/merchant/store", label: "მაღაზია", icon: Settings },
 ];
 

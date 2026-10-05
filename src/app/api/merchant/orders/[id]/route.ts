@@ -22,7 +22,12 @@ export async function GET(
         items: { some: { storeId } },
       },
       include: {
-        items: { include: { product: { select: { costPrice: true } } } },
+        items: {
+          include: {
+            product: { select: { costPrice: true } },
+            warehouse: { select: { id: true, name: true, city: true, address: true, phone: true } },
+          },
+        },
       },
     });
 
@@ -66,6 +71,8 @@ export async function GET(
             image: item.image,
             selectedVariants: item.selectedVariants,
             fulfillmentStatus: item.fulfillmentStatus,
+            warehouseId: item.warehouseId,
+            warehouse: item.warehouse,
           };
         }),
         total: Number(
@@ -107,6 +114,41 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "გაუქმებული შეკვეთის შეცვლა შეუძლებელია" }, { status: 400 });
     }
 
+    const ownsAll = order.items.every((item) => item.storeId === storeId);
+    if (body.action === "ready") {
+      const warehouseId = String(body.warehouseId || "").trim();
+      if (!warehouseId) {
+        return NextResponse.json({ success: false, error: "აირჩიე საწყობი" }, { status: 400 });
+      }
+      const warehouse = await prisma.warehouse.findFirst({ where: { id: warehouseId, storeId } });
+      if (!warehouse) {
+        return NextResponse.json({ success: false, error: "საწყობი ვერ მოიძებნა" }, { status: 400 });
+      }
+
+      await prisma.orderItem.updateMany({
+        where: { storeId, orderId: order.id },
+        data: { warehouseId: warehouse.id, fulfillmentStatus: ITEM_STATUS.READY },
+      });
+      if (ownsAll) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: "SHIPPED" },
+        });
+      }
+
+      await recordAuditLog({
+        userId: session?.userId,
+        adminEmail: session?.email,
+        adminName: session?.name,
+        action: "MERCHANT_ORDER_READY",
+        entity: "Order",
+        target: order.orderNumber,
+        details: `პარტნიორმა მონიშნა შეკვეთა მზად ასაღებად: ${warehouse.name}`,
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
     const nextStatus = String(body.status || body.fulfillmentStatus || "").toUpperCase();
     const mappedOrder = (MERCHANT_ORDER_STATUSES as readonly string[]).includes(nextStatus)
       ? nextStatus
@@ -121,7 +163,6 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "ეს სტატუსი დაუშვებელია" }, { status: 400 });
     }
 
-    const ownsAll = order.items.every((item) => item.storeId === storeId);
     if (mappedOrder && ownsAll) {
       await prisma.order.update({
         where: { id: order.id },

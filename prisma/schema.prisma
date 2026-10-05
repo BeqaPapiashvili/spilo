@@ -85,6 +85,7 @@ model Store {
   products       Product[]
   coupons        Coupon[]
   merchants      User[]
+  warehouses     Warehouse[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -302,9 +303,30 @@ model OrderItem {
   image            String?  @db.Text
   storeId           String?
   storeName         String?
+  warehouseId       String?
+  warehouse         Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
   fulfillmentStatus String   @default("PENDING")
   createdAt         DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([warehouseId])
+}
+
+model Warehouse {
+  id         String      @id @default(cuid())
+  storeId    String
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name       String
+  address    String      @db.Text
+  city       String
+  phone      String?
+  latitude   Float?
+  longitude  Float?
+  isDefault  Boolean     @default(false)
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   @@index([storeId])
 }

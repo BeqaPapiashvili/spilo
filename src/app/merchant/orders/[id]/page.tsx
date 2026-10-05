@@ -1,17 +1,19 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Calendar,
+  Check,
+  ChevronDown,
   Clock,
   CreditCard,
   MapPin,
   Package,
-  Phone,
   StickyNote,
   User,
+  Warehouse,
 } from "lucide-react";
 import { StatusStepper } from "@/components/merchant/StatusStepper";
 import {
@@ -57,7 +59,17 @@ type Detail = {
     image: string | null;
     selectedVariants: unknown;
     fulfillmentStatus: string;
+    warehouseId: string | null;
+    warehouse: { id: string; name: string; city: string; address: string; phone: string | null } | null;
   }[];
+};
+
+type WarehouseOption = {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  isDefault: boolean;
 };
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -69,21 +81,133 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function WarehousePicker({
+  warehouses,
+  value,
+  onChange,
+  disabled,
+  locked,
+}: {
+  warehouses: WarehouseOption[];
+  value: string;
+  onChange: (id: string) => void;
+  disabled?: boolean;
+  locked?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = warehouses.find((warehouse) => warehouse.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <button
+        type="button"
+        disabled={disabled || locked}
+        onClick={() => setOpen((current) => !current)}
+        className={`w-full flex items-center gap-3 px-3.5 py-3 border rounded-2xl text-left disabled:opacity-100 ${locked ? "bg-slate-50 border-slate-100 cursor-default" : "bg-white border-slate-200 hover:border-slate-300 disabled:opacity-50"}`}
+      >
+        <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${locked ? "bg-white text-slate-300" : "bg-slate-50 text-[#FF5238]"}`}>
+          <Warehouse className="w-4 h-4" />
+        </span>
+        {selected ? (
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className={`text-sm truncate ${locked ? "text-slate-500" : "text-slate-900"}`}>{selected.name}</span>
+              {selected.isDefault && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0">ძირითადი</span>
+              )}
+            </span>
+            <span className="block text-xs text-slate-400 truncate mt-0.5">
+              {selected.city} · {selected.address}
+            </span>
+          </span>
+        ) : (
+          <span className="flex-1 text-sm text-slate-400">აირჩიე საწყობი</span>
+        )}
+        {locked ? (
+          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+        ) : (
+          <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        )}
+      </button>
+      {open && !locked && (
+        <div className="absolute z-30 left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-72 overflow-y-auto">
+          {warehouses.map((warehouse) => {
+            const active = warehouse.id === value;
+            return (
+              <button
+                key={warehouse.id}
+                type="button"
+                onClick={() => {
+                  onChange(warehouse.id);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-start gap-3 px-3.5 py-3 text-left border-b border-slate-50 last:border-0 ${active ? "bg-slate-50" : "hover:bg-slate-50"}`}
+              >
+                <span className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${active ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200"}`}>
+                  {active && <Check className="w-3 h-3" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm text-slate-900">{warehouse.name}</span>
+                    {warehouse.isDefault && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">ძირითადი</span>
+                    )}
+                  </span>
+                  <span className="block text-xs text-slate-400 mt-0.5">
+                    {warehouse.city} · {warehouse.address}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MerchantOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [order, setOrder] = useState<Detail | null>(null);
+  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const [warehouseId, setWarehouseId] = useState("");
+  const [editingPickup, setEditingPickup] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const res = await fetch(`/api/merchant/orders/${encodeURIComponent(id)}`);
     const json = await res.json();
-    if (json.success) setOrder(json.data);
-    else setError(json.error || "შეკვეთა ვერ ჩაიტვირთა");
+    if (json.success) {
+      const next = json.data as Detail;
+      setOrder(next);
+      const saved = next.items.find((item) => item.warehouseId)?.warehouseId || "";
+      setWarehouseId((current) => saved || current);
+    } else setError(json.error || "შეკვეთა ვერ ჩაიტვირთა");
   };
 
   useEffect(() => {
     load();
+    fetch("/api/merchant/warehouses")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!json.success) return;
+        const rows = (json.data || []) as WarehouseOption[];
+        setWarehouses(rows);
+        const fallback = rows.find((row) => row.isDefault)?.id || rows[0]?.id || "";
+        setWarehouseId((current) => current || fallback);
+      })
+      .catch(() => {});
   }, [id]);
 
   const patch = async (body: Record<string, string>) => {
@@ -96,8 +220,12 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
         body: JSON.stringify(body),
       });
       const json = await res.json();
-      if (!json.success) setError(json.error || "განახლება ვერ მოხერხდა");
-      else await load();
+      if (!json.success) {
+        setError(json.error || "განახლება ვერ მოხერხდა");
+        return false;
+      }
+      await load();
+      return true;
     } finally {
       setSaving(false);
     }
@@ -114,6 +242,11 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
   const progressStatus = order.ownsAll
     ? order.status
     : orderStatusFromFulfillment(["PENDING", "CONFIRMED", "READY", "DONE"][lowestItem] || "PENDING");
+  const confirmedWarehouse = order.items.find((item) => item.warehouse)?.warehouse || null;
+  const pickerWarehouses = confirmedWarehouse && !warehouses.some((row) => row.id === confirmedWarehouse.id)
+    ? [{ id: confirmedWarehouse.id, name: confirmedWarehouse.name, city: confirmedWarehouse.city, address: confirmedWarehouse.address, isDefault: false }, ...warehouses]
+    : warehouses;
+  const showPickupEditor = !confirmedWarehouse || editingPickup;
   const statusSteps = [
     { key: "PENDING", label: "ახალი" },
     { key: "PROCESSING", label: "მუშავდება" },
@@ -176,6 +309,69 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
         )}
       </section>
 
+      {order.status !== "CANCELLED" && (
+        <section className={`rounded-3xl border p-5 space-y-3 ${showPickupEditor ? "bg-white border-slate-200/80" : "bg-slate-50/80 border-slate-100"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Warehouse className={`w-4 h-4 ${showPickupEditor ? "text-[#FF5238]" : "text-slate-300"}`} />
+              <h2 className={`text-sm ${showPickupEditor ? "text-slate-900" : "text-slate-400"}`}>საიდან ავიღოთ</h2>
+            </div>
+            {confirmedWarehouse && !showPickupEditor && (
+              <button
+                type="button"
+                onClick={() => {
+                  setWarehouseId(confirmedWarehouse.id);
+                  setEditingPickup(true);
+                }}
+                className="text-xs text-slate-400 hover:text-slate-700"
+              >
+                შეცვლა
+              </button>
+            )}
+            {confirmedWarehouse && showPickupEditor && (
+              <button
+                type="button"
+                onClick={() => setEditingPickup(false)}
+                className="text-xs text-slate-400 hover:text-slate-700"
+              >
+                დახურვა
+              </button>
+            )}
+          </div>
+          {pickerWarehouses.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              საწყობი არ არის.{" "}
+              <Link href="/merchant/warehouses" className="text-[#FF5238]">დაამატე საწყობი</Link>
+            </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
+              <div className="flex-1 min-w-0">
+                <WarehousePicker
+                  warehouses={pickerWarehouses}
+                  value={confirmedWarehouse && !showPickupEditor ? confirmedWarehouse.id : warehouseId}
+                  onChange={setWarehouseId}
+                  disabled={saving}
+                  locked={Boolean(confirmedWarehouse) && !showPickupEditor}
+                />
+              </div>
+              {showPickupEditor && (
+                <button
+                  type="button"
+                  disabled={saving || !warehouseId}
+                  onClick={async () => {
+                    const saved = await patch({ action: "ready", warehouseId });
+                    if (saved) setEditingPickup(false);
+                  }}
+                  className="h-12 sm:h-auto px-4 bg-slate-900 text-white rounded-2xl text-sm disabled:opacity-50 shrink-0"
+                >
+                  აღების დადასტურება
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-4">
         <section className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-1">
           <div className="flex items-center gap-2 mb-2">
@@ -183,14 +379,8 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
             <h2 className="text-sm text-slate-900">მყიდველი</h2>
           </div>
           <InfoRow label="სახელი" value={order.customerName} />
-          <InfoRow label="ტელეფონი" value={order.contactPhone} />
-          <InfoRow label="ელფოსტა" value={order.customerEmail || "—"} />
           <InfoRow label="პირის ტიპი" value={personTypeLabel(order.personType)} />
           <InfoRow label="საიდენტიფიკაციო" value={order.idNumber || "—"} />
-          <a href={`tel:${order.contactPhone}`} className="mt-3 h-10 px-3 rounded-xl bg-slate-100 text-xs inline-flex items-center gap-2">
-            <Phone className="w-3.5 h-3.5" />
-            დარეკვა
-          </a>
         </section>
 
         <section className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-1">
@@ -241,6 +431,11 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
                   <p className="text-xs text-slate-500 mt-1">
                     {item.quantity} × {item.price.toFixed(2)} ₾ = {item.lineTotal.toFixed(2)} ₾
                   </p>
+                  {item.warehouse && (
+                    <p className="text-xs text-emerald-700 mt-1">
+                      საწყობი: {item.warehouse.name}, {item.warehouse.city}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

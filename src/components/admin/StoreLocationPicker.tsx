@@ -233,10 +233,12 @@ export function StoreLocationPicker({
   value,
   onChange,
   onAddressDetected,
+  geocodeUrl = "/api/admin/stores/geocode",
 }: {
   value: StoreCoords | null;
   onChange: (coords: StoreCoords | null) => void;
   onAddressDetected: (address: string, city: string) => void;
+  geocodeUrl?: string;
 }) {
   const interactive = Boolean(GOOGLE_MAPS_KEY);
   const [query, setQuery] = useState("");
@@ -309,7 +311,7 @@ export function StoreLocationPicker({
       setSearching(true);
       const googleQuery = /საქართველო|georgia/i.test(q) ? q : `${q}, საქართველო`;
       const [google, osm] = await Promise.all([
-        fetch(`/api/admin/stores/geocode?q=${encodeURIComponent(googleQuery)}`)
+        fetch(`${geocodeUrl}?q=${encodeURIComponent(googleQuery)}`)
           .then((res) => res.json())
           .then((json): GoogleGeocode | null => (json.success ? json.result : null))
           .catch(() => null),

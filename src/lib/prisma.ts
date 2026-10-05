@@ -24,9 +24,15 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function clientHasWarehouse(client: PrismaClient) {
+  return typeof (client as PrismaClient & { warehouse?: { findMany?: unknown } }).warehouse?.findMany === "function";
+}
 
-globalForPrisma.prisma = prisma;
+const cached = globalForPrisma.prisma;
+const prismaClient = cached && clientHasWarehouse(cached) ? cached : createPrismaClient();
+globalForPrisma.prisma = prismaClient;
+
+export const prisma = prismaClient;
 
 export function getPrismaClient(): PrismaClient {
   return prisma;

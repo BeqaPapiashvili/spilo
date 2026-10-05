@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { constructMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = constructMetadata({
-  title: "პირადი კაბინეტი — Spilo.ge",
-  description: "თქვენი ანგარიში, შეკვეთების ისტორია და შენახული მისამართები Spilo.ge-ზე.",
+  title: "პირადი კაბინეტი - OnHub.Ge",
+  description: "თქვენი ანგარიში, შეკვეთების ისტორია და შენახული მისამართები OnHub.Ge-ზე.",
   noIndex: true,
 });
 
