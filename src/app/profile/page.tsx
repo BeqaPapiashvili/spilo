@@ -417,7 +417,7 @@ function ProfileContent() {
 
   return (
     <div className="bg-white min-h-screen py-1 md:py-8 pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-md:overflow-x-hidden">
-      <div className="mx-auto w-full max-w-6xl px-5 md:px-4 lg:px-8 md:container space-y-0 md:space-y-8">
+      <div className="mx-auto w-full max-w-[1200px] px-5 md:px-4 lg:px-8 md:container space-y-0 md:space-y-8">
 
         <div
           className={`md:hidden origin-left transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${

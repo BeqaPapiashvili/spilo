@@ -77,7 +77,7 @@ export function CategoryDetailClient({ slug, initialCategory }: CategoryDetailCl
 
   return (
     <div className="min-h-screen bg-white pb-24">
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px] pt-6 md:pt-8">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px] pt-6 md:pt-8">
         
         {/* 1. Breadcrumbs & Header */}
         <div className="pb-8">

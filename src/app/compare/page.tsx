@@ -368,11 +368,11 @@ export default function ComparePage() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-gray-900 font-sans pb-24 animate-pulse">
         <div className="py-3 bg-white mb-4 sm:mb-6 border-b border-gray-100">
-          <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
+          <div className="container mx-auto px-4 lg:px-6 max-w-[1200px]">
             <div className="h-4 bg-gray-200 rounded-md w-36" />
           </div>
         </div>
-        <div className="container mx-auto px-4 lg:px-6 max-w-[1560px] space-y-4">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1200px] space-y-4">
           <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-2xs">
             <div className="h-6 bg-gray-200 rounded-xl w-48 mb-2" />
             <div className="h-3 bg-gray-100 rounded-md w-64" />
@@ -387,7 +387,7 @@ export default function ComparePage() {
       
       {/* Desktop Breadcrumb Navigation */}
       <div className="hidden sm:block py-3.5 bg-white mb-6 border-b border-gray-100">
-        <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1200px]">
           <nav className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
             <Link href="/" className="hover:text-[#FF5238] transition-colors">
               მთავარი
@@ -400,7 +400,7 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <main className="container mx-auto sm:px-4 lg:px-6 max-w-[1560px]">
+      <main className="container mx-auto sm:px-4 lg:px-6 max-w-[1200px]">
         
         {/* =========================================================
             1. MOBILE VIEW (sm:hidden) - EXACT User Design Matching

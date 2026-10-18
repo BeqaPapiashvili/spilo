@@ -114,7 +114,7 @@ export default async function StoreDetailPage({ params, searchParams }: PageProp
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
         <div className="bg-white rounded-[24px] -mt-10 md:-mt-14 relative px-5 py-6 md:px-8 md:py-8">
           <div className="flex flex-col md:flex-row md:items-end gap-4">
             <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white border-[3px] border-white shadow-[0_4px_18px_rgba(17,17,17,0.08)] overflow-hidden flex items-center justify-center -mt-16 md:-mt-20">

@@ -152,7 +152,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
     <div className="min-h-screen bg-white text-gray-900 font-sans pb-24 md:pb-16">
       {/* Top Breadcrumbs Navigation */}
       <div className="py-3.5 bg-white border-b border-gray-100 mb-6">
-        <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+        <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
           <nav className="flex items-center gap-2 text-xs text-gray-500 overflow-x-auto whitespace-nowrap">
             <Link href="/" className="hover:text-blue-600 transition-colors">
               მთავარი
@@ -179,7 +179,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
       </div>
 
       {/* Main Container */}
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
         {/* Back Link */}
         <div className="mb-4">
           <button

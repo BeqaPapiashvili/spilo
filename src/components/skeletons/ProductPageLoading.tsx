@@ -6,7 +6,7 @@ export function ProductPageLoading() {
   return (
     <div className="min-h-screen bg-white pb-24 md:pb-16" aria-busy="true" aria-label="პროდუქტი იტვირთება">
       <div className="py-3.5 bg-white border-b border-gray-100 mb-4 md:mb-6">
-        <div className="container mx-auto px-4 lg:px-8 max-w-[1560px] flex items-center gap-2">
+        <div className="container mx-auto px-4 lg:px-8 max-w-[1200px] flex items-center gap-2">
           <Bone className="h-3 w-14 rounded-md" />
           <Bone className="h-3 w-3 rounded-full" />
           <Bone className="h-3 w-16 rounded-md" />
@@ -15,7 +15,7 @@ export function ProductPageLoading() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
         <Bone className="h-3 w-24 rounded-md mb-4 hidden md:block" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">

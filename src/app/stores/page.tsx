@@ -26,7 +26,7 @@ export default async function StoresPage() {
 
   return (
     <div className="bg-[#F4F5F7] min-h-screen py-8 md:py-12">
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px] space-y-6">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px] space-y-6">
         <div>
           <h1 className="text-2xl md:text-3xl text-gray-900 tracking-tight">მაღაზიები</h1>
           <p className="mt-1 text-sm text-gray-500">პარტნიორი მაღაზიები და მათი პროდუქცია</p>

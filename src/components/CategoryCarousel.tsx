@@ -94,7 +94,7 @@ export default function CategoryCarousel({ items = [] }: { items?: HomeCategoryC
 
   return (
     <section className="w-full pt-3 sm:pt-6 select-none">
-      <div className="container mx-auto max-w-[1560px] px-4 lg:px-8">
+      <div className="container mx-auto max-w-[1200px] px-4 lg:px-8">
         <div
           ref={scrollerRef}
           onPointerDown={startDrag}

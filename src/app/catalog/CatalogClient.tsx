@@ -535,7 +535,7 @@ function CatalogContent() {
   );
 
   return (
-    <div className="container mx-auto px-4 lg:px-6 max-w-[1560px] space-y-6">
+    <div className="container mx-auto px-4 lg:px-6 max-w-[1200px] space-y-6">
       {/* Top Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200/80">
         <div>
@@ -905,7 +905,7 @@ export function CatalogClient() {
     <div className="min-h-screen bg-white text-gray-900 font-sans pb-24">
       {/* Top Breadcrumbs */}
       <div className="py-3.5 bg-white border-b border-gray-100 mb-8">
-        <div className="container mx-auto px-4 lg:px-6 max-w-[1560px]">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1200px]">
           <nav className="flex items-center gap-2 text-xs text-gray-500">
             <Link href="/" className="hover:text-blue-600 transition-colors font-sans">
               მთავარი

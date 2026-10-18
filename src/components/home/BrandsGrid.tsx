@@ -52,7 +52,7 @@ export default function BrandsGrid({
 
   return (
     <section className="w-full py-6 sm:py-8 relative select-none">
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
         
         {/* Clean Architectural Section Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-5">

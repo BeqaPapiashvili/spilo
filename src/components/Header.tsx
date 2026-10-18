@@ -193,8 +193,8 @@ export default function Header() {
       {/* Main Header Container */}
       <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200/70 shadow-2xs">
         
-        {/* Tier 1: Main Header Bar (Height 88px, Expanded to 1560px max width) */}
-        <div className="w-full max-w-[1560px] mx-auto px-4 lg:px-6 h-16 sm:h-[88px] flex items-center justify-between gap-3 sm:gap-4 lg:gap-8 relative z-50">
+        {/* Tier 1: Main Header Bar (Height 88px, Expanded to 1200px max width) */}
+        <div className="w-full max-w-[1200px] mx-auto px-4 lg:px-6 h-16 sm:h-[88px] flex items-center justify-between gap-3 sm:gap-4 lg:gap-8 relative z-50">
           {/* Left Side: Hamburger (Mobile) + Brand Logo & Address Button */}
           <div className="flex items-center gap-2.5 sm:gap-5 lg:gap-8 shrink-0">
             {/* Mobile Hamburger Menu Button (lg:hidden) */}

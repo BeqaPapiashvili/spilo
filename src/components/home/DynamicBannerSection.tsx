@@ -31,7 +31,7 @@ export default function DynamicBannerSection({
 
   return (
     <section className="py-2 select-none">
-      <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+      <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
         <div className="group relative rounded-[28px] sm:rounded-[36px] overflow-hidden min-h-[260px] sm:min-h-[300px] md:min-h-[340px] flex items-center p-6 sm:p-10 md:p-14 bg-[#09090b] text-white shadow-md">
           
           {/* High-Resolution Right-Aligned Product Visual */}

@@ -250,7 +250,7 @@ export default function HeroBannerSection({
 
       {count > 0 && (
         <section className="relative">
-          <div className="container mx-auto max-w-[1560px] px-4 lg:px-8">
+          <div className="container mx-auto max-w-[1200px] px-4 lg:px-8">
             <div
               ref={frameRef}
               onMouseEnter={() => {
@@ -262,7 +262,7 @@ export default function HeroBannerSection({
                 if (!drag.current.active) setPaused(false);
               }}
               onPointerDown={startDrag}
-              className={`relative overflow-hidden rounded-[22px] bg-[#0e1015] shadow-[0_18px_50px_rgba(14,16,21,0.12)] select-none h-[180px] sm:h-[280px] md:h-[350px] xl:h-[400px] ${
+              className={`relative overflow-hidden rounded-[22px] bg-[#0e1015] shadow-[0_18px_50px_rgba(14,16,21,0.12)] select-none h-[180px] sm:h-[280px] md:h-[350px] xl:h-[370px] ${
                 looped ? "cursor-grab active:cursor-grabbing" : ""
               }`}
             >

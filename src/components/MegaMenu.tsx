@@ -84,7 +84,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
           className="absolute top-full left-0 right-0 w-full h-[calc(100dvh-100%)] min-h-[calc(100dvh-100%)] bg-white z-50 border-t border-[#F0F0F2] flex flex-col shadow-2xl overflow-hidden"
         >
           {/* Top Bar for Desktop with Category Title & Close Button */}
-          <div className="hidden md:flex w-full max-w-[1560px] mx-auto px-4 lg:px-6 py-3 border-b border-[#F0F0F2] items-center justify-between shrink-0">
+          <div className="hidden md:flex w-full max-w-[1200px] mx-auto px-4 lg:px-6 py-3 border-b border-[#F0F0F2] items-center justify-between shrink-0">
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <span className="text-gray-900">კატეგორიები</span>
               {activeCategory && (
@@ -253,7 +253,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
               DESKTOP VIEW (hidden md:flex)
               Left Sidebar + Right 3-column Subcategory Grid
               ========================================================= */}
-          <div className="hidden md:flex w-full max-w-[1560px] mx-auto px-4 lg:px-6 flex-1 h-full overflow-hidden">
+          <div className="hidden md:flex w-full max-w-[1200px] mx-auto px-4 lg:px-6 flex-1 h-full overflow-hidden">
             {/* 1. Left Sidebar: Dynamic Categories from DB */}
             <div className="w-[280px] lg:w-[320px] shrink-0 border-r border-[#F0F0F2] py-4 pr-3 h-full overflow-y-auto custom-sidebar-scrollbar select-none">
               {isLoading ? (

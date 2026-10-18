@@ -59,7 +59,7 @@ function SearchContent() {
   }, [query, filters.sort]);
 
   return (
-    <div className="container mx-auto px-4 lg:px-8 max-w-[1560px] space-y-8">
+    <div className="container mx-auto px-4 lg:px-8 max-w-[1200px] space-y-8">
       {/* Top Search Results Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200">
         <div>
@@ -164,7 +164,7 @@ export function SearchClient() {
     <div className="min-h-screen bg-gray-50/50 text-gray-900 font-sans pb-24">
       {/* Top Breadcrumbs */}
       <div className="py-3.5 bg-white border-b border-gray-100 mb-8">
-        <div className="container mx-auto px-4 lg:px-8 max-w-[1560px]">
+        <div className="container mx-auto px-4 lg:px-8 max-w-[1200px]">
           <nav className="flex items-center gap-2 text-xs text-gray-500">
             <Link href="/" className="hover:text-blue-600 transition-colors">
               მთავარი
