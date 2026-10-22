@@ -42,3 +42,20 @@ next-env.d.ts
 
 /src/generated/prisma
 scratch/
+
+# scrapes, archives, and local notes — not part of the app
+collected_zoommer_products.json
+sample_*.json
+zoommer_*.json
+spilo.zip
+spilo_db.sql
+spilo_schema.sql
+spilo_ux_audit.md
+
+# editor and agent skill packs
+skills-lock.json
+.claude/
+.agents/
+.windsurf/
+AGENTS.md
+CLAUDE.md
